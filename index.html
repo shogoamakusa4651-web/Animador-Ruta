@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <style>
   :root{
     --bg:#0a0e14;
@@ -294,12 +295,240 @@
   #importModeModal .step:hover{background:var(--glass-3) !important;border-color:var(--brd-2) !important;transform:translateY(-1px);}
   #importModeModal #modeAuto:hover{border-color:rgba(255,122,24,.4) !important;}
   #importModeModal #modeGuide:hover{border-color:rgba(61,165,255,.4) !important;}
+
+  /* ========= PARADAS (CRÍTICO/ATENCIÓN) ========= */
+  :root{--critical:#ef4444;--critical-glow:rgba(239,68,68,.6);--attention:#facc15;--attention-glow:rgba(250,204,21,.5);}
+  .stop-marker{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;
+    width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.5);
+    cursor:pointer;transition:.15s;}
+  .stop-marker.critical{background:var(--critical);box-shadow:0 0 0 2px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.5),0 0 16px var(--critical-glow);}
+  .stop-marker.attention{background:var(--attention);color:#3a2a00;box-shadow:0 0 0 2px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.5),0 0 16px var(--attention-glow);}
+  .stop-marker.done{background:#10b981 !important;color:#03241c !important;}
+  .stop-marker:hover{transform:scale(1.15);}
+  .wp-num.has-note{box-shadow:0 0 0 3px #facc15,0 4px 10px rgba(0,0,0,.5);}
+
+  /* Modal de nota/parada */
+  .stop-modal-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .stop-btn{padding:14px 8px;border-radius:14px;border:2px solid transparent;cursor:pointer;font-weight:700;font-size:13px;
+    transition:.15s;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .stop-btn .ico{font-size:24px;}
+  .stop-btn.critical{background:rgba(239,68,68,.15);color:#fca5a5;border-color:rgba(239,68,68,.4);}
+  .stop-btn.critical:hover,.stop-btn.critical.sel{background:var(--critical);color:#fff;border-color:#fff;}
+  .stop-btn.attention{background:rgba(250,204,21,.15);color:#fde68a;border-color:rgba(250,204,21,.4);}
+  .stop-btn.attention:hover,.stop-btn.attention.sel{background:var(--attention);color:#3a2a00;border-color:#fff;}
+  .stop-note-input{width:100%;background:var(--glass-2);border:1px solid var(--brd);border-radius:12px;padding:10px;
+    color:var(--txt);font-family:inherit;font-size:13px;resize:vertical;min-height:60px;margin-top:10px;}
+  .stop-note-input:focus{outline:none;border-color:var(--orange);}
+
+  /* ========= MODO "MARCAR PARADA" ========= */
+  body.stop-mode #map{cursor:crosshair;}
+  body.stop-mode .panel{opacity:.85;}
+  .stop-mode-banner{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:2400;
+    background:linear-gradient(135deg,#ef4444,#facc15);color:#fff;font-weight:700;font-size:13px;
+    padding:10px 20px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.5);display:none;align-items:center;gap:10px;}
+  body.stop-mode .stop-mode-banner{display:flex;}
+  .stop-mode-banner button{background:rgba(0,0,0,.3);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer;font-size:12px;}
+
+  /* ========= TARJETA PRÓXIMO GIRO ========= */
+  .turn-card{position:fixed;top:14px;right:14px;z-index:2200;
+    background:linear-gradient(135deg,rgba(15,30,50,.95),rgba(8,18,30,.95));backdrop-filter:blur(20px);
+    border:1px solid var(--brd-2);border-radius:18px;padding:14px 18px;min-width:220px;max-width:280px;
+    box-shadow:0 12px 32px rgba(0,0,0,.5);display:none;flex-direction:column;gap:6px;color:var(--txt);
+    transition:.25s;}
+  .turn-card.show{display:flex;}
+  .turn-card.minimized{padding:8px 14px;min-width:0;max-width:140px;}
+  .turn-card.minimized .turn-label,.turn-card.minimized .turn-detail,.turn-card.minimized .turn-note{display:none;}
+  .turn-card.minimized .turn-row{flex-direction:row;gap:8px;}
+  .turn-card.minimized .turn-arrow{font-size:24px;}
+  .turn-card.minimized .turn-distance{font-size:18px;}
+  .turn-min{position:absolute;top:6px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--glass-3);
+    border:none;color:var(--txt-2);cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .turn-min:hover{background:var(--orange);color:#fff;}
+  .turn-label{font-size:10px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;}
+  .turn-row{display:flex;align-items:center;gap:14px;}
+  .turn-arrow{font-size:42px;line-height:1;color:var(--orange);text-shadow:0 0 12px rgba(255,122,24,.5);}
+  .turn-arrow.critical{color:var(--critical);text-shadow:0 0 12px var(--critical-glow);}
+  .turn-arrow.attention{color:var(--attention);text-shadow:0 0 12px var(--attention-glow);}
+  .turn-distance{font-size:28px;font-weight:800;line-height:1;color:#fff;}
+  .turn-detail{font-size:12px;color:var(--txt-2);}
+  .turn-note{font-size:12px;font-weight:700;padding:6px 10px;border-radius:10px;margin-top:4px;}
+  .turn-note.critical{background:rgba(239,68,68,.2);color:#fca5a5;border:1px solid rgba(239,68,68,.4);}
+  .turn-note.attention{background:rgba(250,204,21,.2);color:#fde68a;border:1px solid rgba(250,204,21,.4);}
+
+  /* ========= INDICACIONES ESCRITAS ========= */
+  .accordion{border:1px solid var(--brd);border-radius:14px;background:var(--glass-2);overflow:hidden;margin-top:8px;}
+  .accordion-head{padding:11px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:13px;}
+  .accordion-head:hover{background:var(--glass-3);}
+  .accordion-head .arr{transition:.2s;}
+  .accordion.open .accordion-head .arr{transform:rotate(180deg);}
+  .accordion-body{max-height:0;overflow:hidden;transition:max-height .3s;}
+  .accordion.open .accordion-body{max-height:400px;overflow-y:auto;}
+  .ind-list{padding:8px;display:flex;flex-direction:column;gap:6px;}
+  .ind-item{display:flex;gap:10px;padding:8px 10px;border-radius:10px;background:var(--glass-1);font-size:12.5px;align-items:flex-start;}
+  .ind-item .ind-n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--orange);color:#fff;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;}
+  .ind-item.critical .ind-n{background:var(--critical);}
+  .ind-item.attention .ind-n{background:var(--attention);color:#3a2a00;}
+  .ind-item .ind-tx{flex:1;line-height:1.4;}
+  .ind-item .ind-tx b{color:#fff;}
+  .ind-item .ind-tx .note{display:block;font-size:11px;color:var(--txt-dim);font-style:italic;margin-top:2px;}
+
+  /* ========= TRAMOS NO TRANSITADOS ========= */
+  /* Estilo dinámico vía Leaflet, sin CSS especial */
+
+  /* ========= MODAL FINAL DE CALIFICACIÓN ========= */
+  #ratingModal .card{width:min(420px,95vw);}
+  .rating-circle{width:140px;height:140px;margin:14px auto;border-radius:50%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:conic-gradient(var(--rating-color) var(--rating-deg),rgba(255,255,255,.08) 0);position:relative;}
+  .rating-circle::before{content:'';position:absolute;inset:8px;border-radius:50%;background:var(--bg);}
+  .rating-num{position:relative;font-size:42px;font-weight:800;color:#fff;line-height:1;}
+  .rating-lbl{position:relative;font-size:11px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;}
+  .rating-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;}
+  .rating-stat{background:var(--glass-2);padding:9px 11px;border-radius:12px;border:1px solid var(--brd);}
+  .rating-stat b{display:block;font-size:16px;font-weight:700;color:#fff;}
+  .rating-stat span{font-size:10px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:.8px;}
+  .rating-msg{background:var(--glass-2);border-left:3px solid var(--orange);padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.5;color:var(--txt-2);margin-top:10px;}
+  .rating-bonus{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#6ee7b7;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.45;margin-top:8px;display:flex;gap:8px;align-items:flex-start;}
+  .rating-bonus .ico{font-size:18px;}
+  .rating-actions{display:flex;gap:8px;margin-top:14px;}
+  .rating-actions .btn{flex:1;padding:12px;font-size:13px;font-weight:700;}
+  .rating-actions .btn.primary{background:linear-gradient(135deg,var(--orange),var(--orange-2));color:#fff;border:none;}
+
+  /* ========= MIS VIAJES ========= */
+  .trips-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:240px;overflow-y:auto;}
+  .trip-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:12px;background:var(--glass-2);border:1px solid var(--brd);cursor:pointer;transition:.15s;}
+  .trip-item:hover{background:var(--glass-3);border-color:var(--brd-2);}
+  .trip-info{display:flex;flex-direction:column;gap:2px;}
+  .trip-date{font-size:12px;font-weight:700;color:#fff;}
+  .trip-meta{font-size:10.5px;color:var(--txt-dim);}
+  .trip-rating{font-size:18px;font-weight:800;padding:6px 12px;border-radius:10px;}
+  .trip-empty{padding:18px;text-align:center;color:var(--txt-dim);font-size:12px;font-style:italic;}
+
+  /* ========= ALERTA DE VIAJE EN CURSO ========= */
+  #resumeModal .card{width:min(380px,95vw);}
+  .resume-info{background:var(--glass-2);border:1px solid var(--brd);border-radius:12px;padding:11px 13px;margin:12px 0;font-size:12.5px;color:var(--txt-2);line-height:1.5;}
+
+  /* ========= RESPONSIVE MÓVIL ========= */
+  @media (max-width:640px){
+    .turn-card{top:8px;right:8px;left:8px;max-width:none;}
+    .turn-card.minimized{left:auto;width:auto;}
+    .panel{max-height:60vh;}
+    .ind-item{font-size:13.5px;padding:10px 12px;}
+    .gps-stat b{font-size:20px;}
+    .rating-circle{width:120px;height:120px;}
+    .rating-num{font-size:38px;}
+  }
 </style>
 </head>
 <body>
 <div id="map"></div>
 <div class="toast" id="toast">Copiado ✓</div>
 <div class="gps-alert" id="gpsAlert">⚠️ <span id="gpsAlertText">Te has salido de la ruta</span></div>
+
+<!-- Tarjeta de próximo giro/parada -->
+<div class="turn-card" id="turnCard">
+  <button class="turn-min" id="turnMin" title="Minimizar">−</button>
+  <span class="turn-label" id="turnLabel">Próximo giro</span>
+  <div class="turn-row">
+    <span class="turn-arrow" id="turnArrow">↑</span>
+    <div>
+      <div class="turn-distance" id="turnDistance">— m</div>
+      <div class="turn-detail" id="turnDetail">—</div>
+    </div>
+  </div>
+  <div class="turn-note" id="turnNote" style="display:none;"></div>
+</div>
+
+<!-- Banner de modo marcar parada -->
+<div class="stop-mode-banner">
+  📍 Modo Parada activo · Click en el mapa para colocar
+  <button id="stopModeOff">Salir</button>
+</div>
+
+<!-- Modal: marcar parada / nota -->
+<div class="modal hide" id="stopModal">
+  <div class="card" style="width:340px;">
+    <button class="close" id="stopModalClose">×</button>
+    <h2 id="stopModalTitle">Marcar punto</h2>
+    <p style="font-size:13px;color:var(--txt-2);">Selecciona el tipo de parada:</p>
+    <div class="stop-modal-buttons">
+      <div class="stop-btn critical" data-type="critical"><span class="ico">🔴</span><span>Punto crítico</span></div>
+      <div class="stop-btn attention" data-type="attention"><span class="ico">🟡</span><span>Atención</span></div>
+    </div>
+    <textarea class="stop-note-input" id="stopNote" placeholder="Detalle opcional (ej: acumulación grande detrás del colmado)"></textarea>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn" id="stopSave" style="flex:1;background:linear-gradient(135deg,#ff7a18,#ff9b3d);color:#fff;border:none;font-weight:700;">Guardar</button>
+      <button class="btn" id="stopRemove" title="Quitar marca">🗑</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: reanudar viaje -->
+<div class="modal hide" id="resumeModal">
+  <div class="card">
+    <h2>🚛 Viaje sin terminar</h2>
+    <p style="font-size:13px;color:var(--txt-2);">Detecté un viaje grabado anteriormente:</p>
+    <div class="resume-info" id="resumeInfo">—</div>
+    <div class="row">
+      <button class="btn" id="resumeContinue" style="flex:1;background:linear-gradient(135deg,#22d3ee,#0891b2);color:#fff;border:none;font-weight:700;">▶ Continuar</button>
+      <button class="btn" id="resumeFinalize" style="flex:1;">🏁 Cerrar y guardar</button>
+    </div>
+    <button class="btn" id="resumeDiscard" style="width:100%;margin-top:8px;font-size:11px;color:var(--txt-dim);">Descartar este viaje</button>
+  </div>
+</div>
+
+<!-- Modal: cerrar viaje con tramos pendientes -->
+<div class="modal hide" id="closeModal">
+  <div class="card">
+    <h2>⚠ Tramos pendientes</h2>
+    <p style="font-size:13px;color:var(--txt-2);" id="closeText">Aún quedan tramos sin transitar.</p>
+    <div class="resume-info" id="closeInfo">—</div>
+    <div class="row">
+      <button class="btn" id="closeReturn" style="flex:1;background:linear-gradient(135deg,#22d3ee,#0891b2);color:#fff;border:none;font-weight:700;">🔄 Volver</button>
+      <button class="btn" id="closeFinish" style="flex:1;">🏁 Cerrar viaje</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: referencias inicio/fin -->
+<div class="modal hide" id="refsModal">
+  <div class="card" style="width:380px;">
+    <button class="close" id="refsClose">×</button>
+    <h2>📍 Referencias del recorrido</h2>
+    <p style="font-size:13px;color:var(--txt-2);">Edita las referencias si lo necesitas. Aparecerán en el documento Word.</p>
+    <div style="margin-top:14px;">
+      <label style="font-size:11px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;">🚩 Punto de inicio</label>
+      <input type="text" id="refStart" placeholder="Buscando…" class="stop-note-input" style="margin-top:4px;min-height:auto;padding:10px 12px;">
+    </div>
+    <div style="margin-top:12px;">
+      <label style="font-size:11px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;">🏁 Punto de fin</label>
+      <input type="text" id="refEnd" placeholder="Buscando…" class="stop-note-input" style="margin-top:4px;min-height:auto;padding:10px 12px;">
+    </div>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" id="refsSave" style="flex:1;background:linear-gradient(135deg,#ff7a18,#ff9b3d);color:#fff;border:none;font-weight:700;">✓ Guardar y generar Word</button>
+    </div>
+    <button class="btn" id="refsSkip" style="width:100%;margin-top:6px;font-size:11px;color:var(--txt-dim);">Omitir y generar Word sin referencias</button>
+  </div>
+</div>
+
+<!-- Modal: calificación final -->
+<div class="modal hide" id="ratingModal">
+  <div class="card">
+    <h2 style="text-align:center;">🏆 Resumen Final</h2>
+    <div class="rating-circle" id="ratingCircle" style="--rating-color:#10b981;--rating-deg:331deg;">
+      <span class="rating-num" id="ratingNum">—</span>
+      <span class="rating-lbl" id="ratingLbl">—</span>
+    </div>
+    <div class="rating-stats" id="ratingStats"></div>
+    <div class="rating-msg" id="ratingMsg">—</div>
+    <div id="ratingBonuses"></div>
+    <div class="rating-actions">
+      <button class="btn primary" id="ratingDownload">💾 Descargar reporte</button>
+      <button class="btn" id="ratingShare">📤 Compartir</button>
+    </div>
+    <button class="btn" id="ratingClose" style="width:100%;margin-top:8px;">Cerrar</button>
+  </div>
+</div>
 
 <!-- ===== BIENVENIDA ===== -->
 <div class="modal" id="overlay">
@@ -417,7 +646,51 @@
         <span>Avisos por voz</span>
         <div class="switch on" id="swVoice"></div>
       </div>
+      <button class="btn" id="finishTrip" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;border:none;font-weight:700;">🏁 Terminar viaje</button>
       <button class="btn" id="exportReal" disabled>💾 Exportar recorrido real</button>
+    </div>
+  </div>
+
+  <!-- Indicaciones escritas -->
+  <div class="section">
+    <div class="accordion" id="indAccordion">
+      <div class="accordion-head">
+        <span>📋 Indicaciones de la ruta</span>
+        <span class="arr">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="ind-list" id="indList">
+          <div class="trip-empty">Marca al menos 2 puntos para ver las indicaciones.</div>
+        </div>
+        <div class="row" style="margin-top:8px;padding:0 8px 8px;">
+          <button class="btn" id="exportWord" style="flex:1;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;border:none;font-weight:700;" disabled>📄 Exportar a Word</button>
+          <button class="btn" id="copyInd" title="Copiar al portapapeles" disabled>📋</button>
+          <button class="btn" id="editRefs" title="Editar referencias" disabled>✏</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Marcar paradas (modo edición) -->
+  <div class="section edit-only">
+    <div class="section-title">Paradas de recolección</div>
+    <button class="btn" id="markStopMode" style="width:100%;">📍 Marcar parada en mapa</button>
+    <div style="font-size:11px;color:var(--txt-dim);margin-top:6px;text-align:center;">Tip: click derecho sobre un punto existente para marcarlo</div>
+  </div>
+
+  <!-- Mis viajes -->
+  <div class="section">
+    <div class="accordion" id="tripsAccordion">
+      <div class="accordion-head">
+        <span>📁 Mis viajes (<span id="tripsCount">0</span>)</span>
+        <span class="arr">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="trips-list" id="tripsList">
+          <div class="trip-empty">No hay viajes guardados aún.</div>
+        </div>
+        <button class="btn" id="viewAllTrips" style="width:100%;margin-top:6px;font-size:11px;display:none;">Ver historial completo</button>
+      </div>
     </div>
   </div>
 
@@ -491,12 +764,38 @@
   let realPath=[], realLine=null, realLineGlow=null;
   let nextWpIdx=0, doneWps=new Set();
   let followOn=true, voiceOn=true;
-  let lastVoiceAnnounce=-1, lastDeviationAt=0, lastTruckPos=null;
+  let lastVoiceAnnounce={};   // {wpIdx: {early:true, mid:true, imminent:true}}
+  let lastDeviationAt=0, lastTruckPos=null;
+  let deviated=false, deviationStartIdx=0;  // tramos rojos
+  let skippedSegments=[];      // [{from, to, distance}]
   let wakeLock=null;
-  const WP_REACH_M=15;          // distancia para marcar waypoint como cumplido
-  const VOICE_ALERT_M=40;       // distancia para anunciar próximo giro
-  const DEVIATION_M=60;         // distancia para alertar desviación
-  const DEVIATION_COOLDOWN=15000; // ms entre alertas de desviación
+  let tripStartedAt=null, tripEndedAt=null;
+  let bonusReturnedToTrack=false;
+  let autoSaveTimer=null;
+  let lastStraightAnnounceAt=-1;
+  const WP_REACH_M=15;
+  const DEVIATION_M=60;
+  const DEVIATION_COOLDOWN=15000;
+
+  // ===== PARADAS (críticas/atención) =====
+  // stops = [{lat, lng, type:'critical'|'attention', note:'', wpIdx:null|num, attended:bool, attendedAt:null}]
+  let stops=[], stopMarkers=[];
+  let stopModeActive=false, editingStopIdx=null, editingWpIdx=null;
+
+  // ===== INSTRUCCIONES GENERADAS =====
+  // instructions = [{idx, type:'turn'|'stop'|'deadend', dir:'left'|'right'|'straight', severity:'sharp'|'normal'|'soft', distFromPrev, text}]
+  let instructions=[];
+  let densityZones=[];  // [{startIdx, endIdx}]
+  let deadEnds=new Set();   // wpIdx que son fin de calle sin salida (auto)
+  let manualDeadEnds=new Set(); // wpIdx marcados manualmente
+  let manualNotDeadEnds=new Set(); // wpIdx que el usuario desmarcó
+
+  // ===== UI ESTADO =====
+  let turnCardMin=localStorage.getItem('turnCardMin')==='1';
+  let lastTurnAnnouncementText='';
+
+  // ===== REFERENCIAS DEL RECORRIDO =====
+  let routeRefs={start:'',end:'',title:''};
 
   const carSVG=`<div class="car-wrap"><svg width="36" height="36" viewBox="0 0 34 34">
     <ellipse cx="17" cy="29" rx="9" ry="2.5" fill="rgba(0,0,0,.4)"/>
@@ -558,8 +857,12 @@
       const m=L.marker(p,{draggable:true,
         icon:L.divIcon({html:`<div class="wp-num">${i+1}</div>`,className:'',iconSize:[26,26],iconAnchor:[13,13]})}).addTo(map);
       m.on('drag',e=>{const ll=e.target.getLatLng();waypoints[i]=[ll.lat,ll.lng];drawBase();updateStats();resetAnim();});
+      m.on('dragend',()=>{buildInstructions();});
+      m.on('contextmenu',e=>{L.DomEvent.stopPropagation(e);L.DomEvent.preventDefault(e);if(!viewMode)openStopModalForWp(i);});
       markers.push(m);
     });
+    // Re-marcar como cumplidos los que ya lo estaban
+    doneWps.forEach(i=>{const el=markers[i]?.getElement()?.querySelector('.wp-num');if(el)el.classList.add('wp-done');});
   }
   function drawBase(){if(baseLine)map.removeLayer(baseLine);
     if(waypoints.length>1){
@@ -574,7 +877,8 @@
     const undo=document.getElementById('undo');if(undo)undo.disabled=waypoints.length===0||viewMode;
     const clr=document.getElementById('clear');if(clr)clr.disabled=waypoints.length===0||viewMode;
   }
-  function refresh(){drawBase();updateStats();}
+  function refresh(){drawBase();updateStats();if(typeof buildInstructions==='function')buildInstructions();if(typeof renderStops==='function')renderStops();}
+  function persist(){}
   function resetAnim(){
     pauseState=null;
     if(car){map.removeLayer(car);car=null;}
@@ -582,7 +886,11 @@
     setPlayLabel('▶','Reproducir');
   }
 
-  function addPoint(latlng){if(playing||viewMode)return;waypoints.push([latlng.lat,latlng.lng]);renderMarkers();refresh();resetAnim();}
+  function addPoint(latlng){
+    if(playing||viewMode)return;
+    if(stopModeActive){openStopModalForCoord(latlng.lat,latlng.lng);return;}
+    waypoints.push([latlng.lat,latlng.lng]);renderMarkers();refresh();resetAnim();
+  }
   map.on('click',e=>addPoint(e.latlng));
 
   // Alt + click derecho → deshacer
@@ -712,7 +1020,10 @@
           loadRoute(newWps);
           // Limpiar guía azul si hubiera
           if(guideLayer){map.removeLayer(guideLayer);guideLayer=null;document.getElementById('guideToggle').disabled=true;}
-          toast('Ruta trazada: '+newWps.length+' puntos ✓');
+          // Reset de referencias y disparar modal automático para generar el Word
+          routeRefs={start:'',end:'',title:''};
+          toast('Ruta trazada: '+newWps.length+' puntos · generando Word…');
+          setTimeout(()=>fillReferences(),600);
         }else if(mode==='guide'){
           showGuide(lines,pts);
           toast('Propuesta cargada como guía ✓');
@@ -904,12 +1215,238 @@
   })();
 
   // ============================================================
-  //                    MODO CHOFER (GPS)
+  //         GENERACIÓN DE INSTRUCCIONES (del trazado)
   // ============================================================
 
-  // Distancia mínima de un punto P a un segmento A-B (en metros, aproximación plana)
+  function angleAtWp(i){
+    if(i<=0 || i>=waypoints.length-1)return 0;
+    const b1=bearing(waypoints[i-1],waypoints[i]);
+    const b2=bearing(waypoints[i],waypoints[i+1]);
+    let d=((b2-b1+540)%360)-180; // -180 a 180
+    return d;
+  }
+  function turnDirectionLabel(angle){
+    const a=Math.abs(angle);
+    if(a<15)return {dir:'straight',severity:'soft',label:'continúe recto'};
+    const side=angle>0?'derecha':'izquierda';
+    if(a>=70)return {dir:side==='derecha'?'right':'left',severity:'sharp',label:'doble cerrado a la '+side};
+    if(a>=30)return {dir:side==='derecha'?'right':'left',severity:'normal',label:'doble a la '+side};
+    return {dir:side==='derecha'?'right':'left',severity:'soft',label:'curva suave a la '+side};
+  }
+  function arrowFor(dir,severity){
+    if(dir==='straight')return '↑';
+    if(dir==='right')return severity==='sharp'?'⮕':'↱';
+    if(dir==='left')return severity==='sharp'?'⬅':'↰';
+    return '↑';
+  }
+
+  function detectDeadEnds(){
+    deadEnds.clear();
+    // Calle sin salida: waypoint donde llegamos y devolvemos por casi el mismo camino
+    for(let i=1;i<waypoints.length-1;i++){
+      const a=angleAtWp(i);
+      if(Math.abs(a)>=150){
+        // Pero verificar que también la distancia anterior y siguiente sean similares
+        const dPrev=haversine(waypoints[i-1],waypoints[i]);
+        const dNext=haversine(waypoints[i],waypoints[i+1]);
+        if(dPrev>20 && dNext>20 && Math.min(dPrev,dNext)/Math.max(dPrev,dNext)>0.3){
+          deadEnds.add(i);
+        }
+      }
+    }
+  }
+  function isDeadEnd(i){
+    if(manualNotDeadEnds.has(i))return false;
+    return deadEnds.has(i) || manualDeadEnds.has(i);
+  }
+
+  function detectDensityZones(){
+    densityZones=[];
+    if(waypoints.length<4)return;
+    let curStart=-1;
+    for(let i=1;i<waypoints.length-1;i++){
+      // Cuántos giros significativos hay en los próximos 100m
+      let count=0, dist=0, j=i;
+      while(j<waypoints.length-1 && dist<100){
+        dist+=haversine(waypoints[j],waypoints[j+1]);
+        if(Math.abs(angleAtWp(j))>=25)count++;
+        j++;
+      }
+      if(count>=3){
+        if(curStart<0)curStart=i;
+      }else{
+        if(curStart>=0){densityZones.push({startIdx:curStart,endIdx:i});curStart=-1;}
+      }
+    }
+    if(curStart>=0)densityZones.push({startIdx:curStart,endIdx:waypoints.length-1});
+  }
+  function inDensityZone(idx){
+    return densityZones.some(z=>idx>=z.startIdx && idx<=z.endIdx);
+  }
+
+  function buildInstructions(){
+    instructions=[];
+    if(waypoints.length<2){renderInstructions();return;}
+    detectDensityZones();
+    detectDeadEnds();
+    for(let i=0;i<waypoints.length;i++){
+      const distFromPrev=i>0?haversine(waypoints[i-1],waypoints[i]):0;
+      let entry={idx:i,distFromPrev,inDensity:inDensityZone(i)};
+      // Stop sobre este waypoint?
+      const stopOnWp=stops.find(s=>s.wpIdx===i);
+      if(i===0){entry.type='start';entry.text='Salida del recorrido';}
+      else if(i===waypoints.length-1){entry.type='end';entry.text='Fin del recorrido';}
+      else{
+        const a=angleAtWp(i);
+        const td=turnDirectionLabel(a);
+        entry.type='turn';entry.dir=td.dir;entry.severity=td.severity;entry.angle=a;
+        entry.text=td.label.charAt(0).toUpperCase()+td.label.slice(1);
+        if(isDeadEnd(i))entry.deadEnd=true;
+      }
+      if(stopOnWp){entry.stop=stopOnWp;}
+      instructions.push(entry);
+    }
+    renderInstructions();
+  }
+
+  function renderInstructions(){
+    const list=document.getElementById('indList');
+    if(typeof refreshExportButtons==='function')refreshExportButtons();
+    if(!instructions.length || waypoints.length<2){
+      list.innerHTML='<div class="trip-empty">Marca al menos 2 puntos para ver las indicaciones.</div>';
+      return;
+    }
+    let html='';
+    instructions.forEach((ins,i)=>{
+      let cls='ind-item';
+      let arrow='↑';
+      if(ins.type==='turn'){arrow=arrowFor(ins.dir,ins.severity);}
+      else if(ins.type==='start')arrow='🚩';
+      else if(ins.type==='end')arrow='🏁';
+      if(ins.stop){
+        cls+=' '+ins.stop.type;
+      }
+      let txt='<b>'+arrow+' '+ins.text+'</b>';
+      if(i>0 && ins.distFromPrev>0)txt+=' <span style="color:var(--txt-dim);font-size:11px;">· '+Math.round(ins.distFromPrev)+'m del anterior</span>';
+      if(ins.deadEnd)txt+=' <span style="color:#facc15;">⚠ calle sin salida</span>';
+      if(ins.stop)txt+='<span class="note">'+(ins.stop.type==='critical'?'🔴 ':'🟡 ')+(ins.stop.note||(ins.stop.type==='critical'?'Punto crítico':'Punto de atención'))+'</span>';
+      html+='<div class="'+cls+'"><div class="ind-n">'+(i+1)+'</div><div class="ind-tx">'+txt+'</div></div>';
+    });
+    list.innerHTML=html;
+  }
+
+  // ============================================================
+  //                    PARADAS (críticas/atención)
+  // ============================================================
+
+  function stopIconHTML(type,done){
+    const sym=type==='critical'?'!':'•';
+    const cls='stop-marker '+type+(done?' done':'');
+    return `<div class="${cls}">${sym}</div>`;
+  }
+  function renderStops(){
+    stopMarkers.forEach(m=>map.removeLayer(m));
+    stopMarkers=[];
+    stops.forEach((s,i)=>{
+      const ic=L.divIcon({html:stopIconHTML(s.type,s.attended),className:'',iconSize:[30,30],iconAnchor:[15,15]});
+      const m=L.marker([s.lat,s.lng],{icon:ic,zIndexOffset:1200,draggable:!viewMode}).addTo(map);
+      m.on('click',e=>{L.DomEvent.stopPropagation(e);if(!viewMode)openStopModal(i);});
+      m.on('contextmenu',e=>{L.DomEvent.preventDefault(e);if(!viewMode)openStopModal(i);});
+      m.on('dragend',e=>{const ll=e.target.getLatLng();stops[i].lat=ll.lat;stops[i].lng=ll.lng;persist();});
+      stopMarkers.push(m);
+    });
+    // Indicador visual en waypoints que tienen nota
+    markers.forEach((mk,i)=>{
+      const el=mk.getElement()?.querySelector('.wp-num');
+      if(el){
+        const hasStop=stops.find(s=>s.wpIdx===i);
+        el.classList.toggle('has-note',!!hasStop);
+      }
+    });
+  }
+  function openStopModal(idx){
+    editingStopIdx=idx;editingWpIdx=null;
+    const s=stops[idx];
+    document.getElementById('stopModalTitle').textContent='Editar parada';
+    document.getElementById('stopNote').value=s.note||'';
+    document.querySelectorAll('#stopModal .stop-btn').forEach(b=>{
+      b.classList.toggle('sel',b.dataset.type===s.type);
+    });
+    document.getElementById('stopRemove').style.display='';
+    document.getElementById('stopModal').classList.remove('hide');
+  }
+  function openStopModalForWp(wpIdx){
+    editingStopIdx=null;editingWpIdx=wpIdx;
+    const existing=stops.find(s=>s.wpIdx===wpIdx);
+    document.getElementById('stopModalTitle').textContent=existing?'Editar parada':'Marcar punto '+(wpIdx+1);
+    document.getElementById('stopNote').value=existing?existing.note||'':'';
+    document.querySelectorAll('#stopModal .stop-btn').forEach(b=>{
+      b.classList.toggle('sel',existing && b.dataset.type===existing.type);
+    });
+    document.getElementById('stopRemove').style.display=existing?'':'none';
+    document.getElementById('stopModal').classList.remove('hide');
+  }
+  function openStopModalForCoord(lat,lng){
+    editingStopIdx=null;editingWpIdx=null;
+    document.getElementById('stopModal').dataset.lat=lat;
+    document.getElementById('stopModal').dataset.lng=lng;
+    document.getElementById('stopModalTitle').textContent='Nueva parada';
+    document.getElementById('stopNote').value='';
+    document.querySelectorAll('#stopModal .stop-btn').forEach(b=>b.classList.remove('sel'));
+    document.getElementById('stopRemove').style.display='none';
+    document.getElementById('stopModal').classList.remove('hide');
+  }
+  document.querySelectorAll('#stopModal .stop-btn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#stopModal .stop-btn').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel');
+    });
+  });
+  document.getElementById('stopModalClose').addEventListener('click',()=>document.getElementById('stopModal').classList.add('hide'));
+  document.getElementById('stopSave').addEventListener('click',()=>{
+    const sel=document.querySelector('#stopModal .stop-btn.sel');
+    if(!sel){toast('Selecciona un tipo');return;}
+    const type=sel.dataset.type;
+    const note=document.getElementById('stopNote').value.trim();
+    if(editingStopIdx!==null){
+      stops[editingStopIdx].type=type;stops[editingStopIdx].note=note;
+    }else if(editingWpIdx!==null){
+      const existing=stops.findIndex(s=>s.wpIdx===editingWpIdx);
+      if(existing>=0){stops[existing].type=type;stops[existing].note=note;}
+      else{stops.push({lat:waypoints[editingWpIdx][0],lng:waypoints[editingWpIdx][1],type,note,wpIdx:editingWpIdx,attended:false,attendedAt:null});}
+    }else{
+      const m=document.getElementById('stopModal');
+      const lat=parseFloat(m.dataset.lat), lng=parseFloat(m.dataset.lng);
+      stops.push({lat,lng,type,note,wpIdx:null,attended:false,attendedAt:null});
+    }
+    document.getElementById('stopModal').classList.add('hide');
+    renderStops();buildInstructions();persist();
+  });
+  document.getElementById('stopRemove').addEventListener('click',()=>{
+    if(editingStopIdx!==null)stops.splice(editingStopIdx,1);
+    else if(editingWpIdx!==null){
+      const i=stops.findIndex(s=>s.wpIdx===editingWpIdx);
+      if(i>=0)stops.splice(i,1);
+    }
+    document.getElementById('stopModal').classList.add('hide');
+    renderStops();buildInstructions();persist();
+  });
+
+  // Modo "Marcar parada en mapa"
+  document.getElementById('markStopMode').addEventListener('click',()=>{
+    stopModeActive=!stopModeActive;
+    document.body.classList.toggle('stop-mode',stopModeActive);
+  });
+  document.getElementById('stopModeOff').addEventListener('click',()=>{
+    stopModeActive=false;document.body.classList.remove('stop-mode');
+  });
+
+  // ============================================================
+  //                  MODO CHOFER GPS (mejorado)
+  // ============================================================
+
   function distPointToSegment(p,a,b){
-    const toM=111320; // metros por grado (aprox a lat ~19°)
+    const toM=111320;
     const lat0=(a[0]+b[0])/2*Math.PI/180;
     const fx=Math.cos(lat0)*toM, fy=toM;
     const px=p[1]*fx, py=p[0]*fy;
@@ -925,14 +1462,14 @@
   function minDistToRoute(p){
     if(waypoints.length<2)return Infinity;
     let min=Infinity;
-    for(let i=1;i<waypoints.length;i++){
+    for(let i=Math.max(0,nextWpIdx-2);i<waypoints.length;i++){
+      if(i===0)continue;
       const d=distPointToSegment(p,waypoints[i-1],waypoints[i]);
       if(d<min)min=d;
     }
     return min;
   }
 
-  // Voz (Web Speech API)
   function speak(text){
     if(!voiceOn || !('speechSynthesis' in window))return;
     try{
@@ -940,35 +1477,26 @@
       const u=new SpeechSynthesisUtterance(text);
       u.lang='es-DO';u.rate=1.0;u.pitch=1.0;u.volume=1.0;
       window.speechSynthesis.speak(u);
+      lastTurnAnnouncementText=text;
     }catch(_){}
   }
 
-  // Alerta visual
   let alertTimeout=null;
   function showAlert(text){
     document.getElementById('gpsAlertText').textContent=text;
-    const a=document.getElementById('gpsAlert');
-    a.classList.add('show');
+    const a=document.getElementById('gpsAlert');a.classList.add('show');
     clearTimeout(alertTimeout);
     alertTimeout=setTimeout(()=>a.classList.remove('show'),4000);
   }
 
-  // Wake Lock (mantener pantalla encendida)
   async function requestWakeLock(){
-    try{
-      if('wakeLock' in navigator){
-        wakeLock=await navigator.wakeLock.request('screen');
-      }
-    }catch(_){}
+    try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(_){}
   }
-  function releaseWakeLock(){
-    if(wakeLock){try{wakeLock.release();}catch(_){}wakeLock=null;}
-  }
+  function releaseWakeLock(){if(wakeLock){try{wakeLock.release();}catch(_){}wakeLock=null;}}
   document.addEventListener('visibilitychange',()=>{
     if(gpsActive && document.visibilityState==='visible' && !wakeLock)requestWakeLock();
   });
 
-  // Marcar waypoint como cumplido visualmente
   function markWaypointDone(idx){
     if(doneWps.has(idx))return;
     doneWps.add(idx);
@@ -979,7 +1507,6 @@
     }
   }
 
-  // Actualizar info en el panel
   function updateGpsPanel(){
     const total=waypoints.length;
     const done=doneWps.size;
@@ -992,26 +1519,121 @@
     }
   }
 
-  // Manejo de actualización GPS
+  // Tarjeta de próximo giro
+  function updateTurnCard(){
+    const card=document.getElementById('turnCard');
+    if(!gpsActive || nextWpIdx>=waypoints.length || !lastTruckPos){
+      card.classList.remove('show');return;
+    }
+    card.classList.add('show');
+    card.classList.toggle('minimized',turnCardMin);
+    const ins=instructions[nextWpIdx];
+    if(!ins){card.classList.remove('show');return;}
+    const d=haversine(lastTruckPos,waypoints[nextWpIdx]);
+    const stopHere=stops.find(s=>s.wpIdx===nextWpIdx);
+    const arrow=document.getElementById('turnArrow');
+    const noteEl=document.getElementById('turnNote');
+    arrow.className='turn-arrow';
+    let arrowSym=ins.type==='turn'?arrowFor(ins.dir,ins.severity):(ins.type==='end'?'🏁':'↑');
+    if(stopHere){
+      arrowSym='📍';
+      arrow.classList.add(stopHere.type);
+    }
+    if(ins.deadEnd && !stopHere)arrowSym='⚠';
+    arrow.textContent=arrowSym;
+    document.getElementById('turnLabel').textContent=stopHere?'Próxima parada':(ins.deadEnd?'Calle sin salida':(ins.type==='end'?'Final del recorrido':'Próximo giro'));
+    document.getElementById('turnDistance').textContent=d<1000?Math.round(d)+' m':(d/1000).toFixed(2)+' km';
+    document.getElementById('turnDetail').textContent=ins.text||'';
+    if(stopHere){
+      noteEl.style.display='';
+      noteEl.className='turn-note '+stopHere.type;
+      noteEl.textContent=stopHere.note||(stopHere.type==='critical'?'Punto crítico':'Punto de atención');
+    }else if(ins.deadEnd){
+      noteEl.style.display='';noteEl.className='turn-note attention';
+      noteEl.textContent='Prepare maniobra de reversa o vuelta en U';
+    }else{
+      noteEl.style.display='none';
+    }
+  }
+
+  document.getElementById('turnMin').addEventListener('click',()=>{
+    turnCardMin=!turnCardMin;
+    localStorage.setItem('turnCardMin',turnCardMin?'1':'0');
+    document.getElementById('turnCard').classList.toggle('minimized',turnCardMin);
+    document.getElementById('turnMin').textContent=turnCardMin?'+':'−';
+  });
+  document.getElementById('turnMin').textContent=turnCardMin?'+':'−';
+
+  // ===== ANUNCIOS POR VOZ (3 escalonados + lógica adaptativa) =====
+  function announceTurnIfNeeded(){
+    if(nextWpIdx>=waypoints.length || !lastTruckPos)return;
+    const ins=instructions[nextWpIdx];
+    if(!ins)return;
+    if(ins.inDensity){
+      // Solo aviso al entrar a zona densa (una vez por zona)
+      const zone=densityZones.find(z=>nextWpIdx===z.startIdx);
+      if(zone && !lastVoiceAnnounce['densEnter'+zone.startIdx]){
+        speak('Entrando a zona de giros continuos, atento al mapa');
+        lastVoiceAnnounce['densEnter'+zone.startIdx]=true;
+      }
+      return;
+    }
+    const d=haversine(lastTruckPos,waypoints[nextWpIdx]);
+    const totalTramo=ins.distFromPrev||100;
+    const recorrido=Math.max(0,totalTramo-d);
+    const pct=totalTramo>0?recorrido/totalTramo:1;
+    const stopHere=stops.find(s=>s.wpIdx===nextWpIdx);
+    const key=stopHere?'stop':(ins.deadEnd?'deadend':'turn');
+    const ann=lastVoiceAnnounce[nextWpIdx]||{};
+    // Distancias mínimas entre avisos (segundos asumiendo 7m/s = 25km/h)
+    // Tope mínimo de 15m del punto
+    if(pct>=0.2 && !ann.early && d>=15){
+      let msg;
+      if(stopHere){
+        msg='En '+Math.round(d)+' metros, '+(stopHere.type==='critical'?'punto crítico':'punto de atención')+(stopHere.note?', '+stopHere.note:'');
+      }else if(ins.deadEnd){
+        msg='En '+Math.round(d)+' metros, calle sin salida. Prepare reversa o vuelta en U';
+      }else if(ins.type==='end'){
+        msg='En '+Math.round(d)+' metros, final del recorrido';
+      }else{
+        msg='En '+Math.round(d)+' metros, '+(ins.text.toLowerCase());
+      }
+      speak(msg);ann.early=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
+    }
+    if(pct>=0.8 && !ann.mid && d>=10){
+      let msg;
+      if(stopHere)msg='Prepárese, parada en '+Math.round(d)+' metros';
+      else if(ins.type==='end')msg='Prepárese, final del recorrido en '+Math.round(d)+' metros';
+      else msg='Prepárese, '+(ins.dir==='right'?'derecha':(ins.dir==='left'?'izquierda':'recto'))+' en '+Math.round(d)+' metros';
+      speak(msg);ann.mid=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
+    }
+    if(pct>=0.95 && !ann.imminent && d>=5){
+      let msg;
+      if(stopHere)msg='Prepárese para parar ahora';
+      else if(ins.type==='end')msg='Prepárese, está llegando al final';
+      else if(ins.dir==='straight')msg='Continúe recto';
+      else msg='Prepárese para doblar a la '+(ins.dir==='right'?'derecha':'izquierda');
+      speak(msg);ann.imminent=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
+    }
+    // Tramo largo (>400m): aviso intermedio neutro
+    if(totalTramo>400 && pct>=0.45 && pct<=0.55 && !ann.midStraight){
+      speak('Continúe recto, próximo punto en '+Math.round(d)+' metros');
+      ann.midStraight=true;lastVoiceAnnounce[nextWpIdx]=ann;
+    }
+  }
+
   function onGpsUpdate(pos){
     const lat=pos.coords.latitude, lng=pos.coords.longitude, acc=pos.coords.accuracy||20;
     const p=[lat,lng];
     lastTruckPos=p;
 
-    // Marcador del camión
     if(!truckMarker){
       truckMarker=L.marker(p,{icon:truckIcon,zIndexOffset:1500}).addTo(map);
-    }else{
-      truckMarker.setLatLng(p);
-    }
-    // Círculo de precisión
+    }else{truckMarker.setLatLng(p);}
     if(!accuracyCircle){
       accuracyCircle=L.circle(p,{radius:acc,color:'#22d3ee',weight:1,opacity:.5,fillColor:'#22d3ee',fillOpacity:.08,interactive:false}).addTo(map);
-    }else{
-      accuracyCircle.setLatLng(p);accuracyCircle.setRadius(acc);
-    }
+    }else{accuracyCircle.setLatLng(p);accuracyCircle.setRadius(acc);}
 
-    // Rotación del camión según dirección
     if(realPath.length){
       const prev=realPath[realPath.length-1];
       if(haversine(prev,p)>=2){
@@ -1021,65 +1643,107 @@
       }
     }
 
-    // Grabar recorrido real (solo si avanza significativamente)
     if(!realPath.length || haversine(realPath[realPath.length-1],p)>=3){
       realPath.push(p);
       if(realPath.length>=2){
         if(!realLineGlow){
           realLineGlow=L.polyline(realPath,{color:'#22d3ee',weight:10,opacity:.25,interactive:false}).addTo(map);
           realLine=L.polyline(realPath,{color:'#22d3ee',weight:4,opacity:.95,interactive:false}).addTo(map);
-        }else{
-          realLineGlow.setLatLngs(realPath);
-          realLine.setLatLngs(realPath);
-        }
+        }else{realLineGlow.setLatLngs(realPath);realLine.setLatLngs(realPath);}
         document.getElementById('exportReal').disabled=false;
       }
     }
 
-    // Seguir vehículo
     if(followOn){
       const b=map.getBounds().pad(-0.2);
       if(!b.contains(p))map.panTo(p,{animate:true,duration:.6});
     }
 
-    // Auto-cumplimiento del próximo waypoint
+    // Auto-cumplimiento de waypoints
     if(waypoints.length){
-      // Revisar también waypoints adelante (por si saltó alguno)
       for(let i=nextWpIdx;i<Math.min(nextWpIdx+3,waypoints.length);i++){
         if(haversine(p,waypoints[i])<=WP_REACH_M){
           for(let j=nextWpIdx;j<=i;j++)markWaypointDone(j);
-          nextWpIdx=i+1;
-          if(nextWpIdx<waypoints.length){
-            speak('Punto '+(i+1)+' completado');
-          }else{
-            speak('Recorrido completado. Buen trabajo.');
-            showAlert('🎉 Recorrido completado');
+          // Si había desviación y volvió → reconocimiento
+          if(deviated){
+            deviated=false;
+            bonusReturnedToTrack=true;
+            speak('Excelente, ha regresado a la ruta');
+            showAlert('✓ Volvió a la ruta');
+            // Borrar tramo rojo si lo había
+            redrawSkippedSegments();
+          }else if(skippedSegments.length){
+            // Si el siguiente tramo no estaba saltado, OK
           }
-          lastVoiceAnnounce=-1;
+          nextWpIdx=i+1;
+          // Confirmación de cumplimiento solo en zonas no densas
+          if(!instructions[i]?.inDensity){
+            if(nextWpIdx<waypoints.length)speak('Punto '+(i+1)+' cumplido');
+          }
+          // Si era una parada → marcar atendida
+          const stopOnWp=stops.find(s=>s.wpIdx===i);
+          if(stopOnWp){stopOnWp.attended=true;stopOnWp.attendedAt=new Date().toISOString();renderStops();}
           break;
         }
       }
-
-      // Aviso de proximidad al próximo punto
-      if(nextWpIdx<waypoints.length){
-        const d=haversine(p,waypoints[nextWpIdx]);
-        if(d<=VOICE_ALERT_M && lastVoiceAnnounce!==nextWpIdx){
-          speak('Próximo punto a '+Math.round(d)+' metros');
-          lastVoiceAnnounce=nextWpIdx;
+      // Paradas independientes (sin wpIdx)
+      stops.forEach(s=>{
+        if(s.wpIdx===null && !s.attended){
+          if(haversine(p,[s.lat,s.lng])<=20){
+            s.attended=true;s.attendedAt=new Date().toISOString();
+            speak((s.type==='critical'?'Punto crítico':'Punto de atención')+' atendido');
+            renderStops();
+          }
         }
-      }
+      });
+
+      // Anuncios de voz inteligentes
+      announceTurnIfNeeded();
 
       // Detección de desviación
       const dRoute=minDistToRoute(p);
       const now=Date.now();
-      if(dRoute>DEVIATION_M && (now-lastDeviationAt)>DEVIATION_COOLDOWN){
-        showAlert('Te saliste de la ruta · '+Math.round(dRoute)+'m');
-        speak('Atención, te saliste de la ruta');
-        lastDeviationAt=now;
+      if(dRoute>DEVIATION_M){
+        if(!deviated){
+          deviated=true;deviationStartIdx=nextWpIdx;
+          // Registrar tramo saltado
+          skippedSegments.push({from:Math.max(0,nextWpIdx-1),to:nextWpIdx,distance:0,resolved:false});
+          showAlert('Se salió de la ruta planeada');
+          speak('Se ha salido de la ruta planeada');
+          redrawSkippedSegments();
+          lastDeviationAt=now;
+        }
+      }
+
+      // Detección de waypoint pasado de largo (sin cumplirlo)
+      if(nextWpIdx<waypoints.length && lastTruckPos){
+        const distNext=haversine(p,waypoints[nextWpIdx]);
+        const distNextNext=nextWpIdx+1<waypoints.length?haversine(p,waypoints[nextWpIdx+1]):Infinity;
+        if(distNext>40 && distNextNext<distNext && !deviated){
+          // Pasó de largo y ya está más cerca del siguiente
+          skippedSegments.push({from:nextWpIdx,to:nextWpIdx+1,distance:0,resolved:false});
+          markWaypointDone(nextWpIdx);
+          nextWpIdx++;
+          redrawSkippedSegments();
+        }
       }
     }
 
     updateGpsPanel();
+    updateTurnCard();
+  }
+
+  function redrawSkippedSegments(){
+    // Limpia y redibuja todos los tramos saltados como líneas rojas
+    if(window._skipLines){window._skipLines.forEach(l=>map.removeLayer(l));}
+    window._skipLines=[];
+    skippedSegments.forEach(seg=>{
+      if(seg.resolved)return;
+      if(seg.from<waypoints.length && seg.to<waypoints.length){
+        const l=L.polyline([waypoints[seg.from],waypoints[seg.to]],{color:'#ef4444',weight:6,opacity:.85,dashArray:'10,8',interactive:false}).addTo(map);
+        window._skipLines.push(l);
+      }
+    });
   }
 
   function onGpsError(err){
@@ -1090,17 +1754,23 @@
     toast(msg);
   }
 
-  async function startGps(){
+  async function startGps(skipResume){
     if(!('geolocation' in navigator)){toast('Este dispositivo no tiene GPS');return;}
     if(location.protocol!=='https:' && location.hostname!=='localhost'){
       toast('El GPS requiere HTTPS');return;
     }
+    // Verificar viaje pendiente
+    if(!skipResume && hasPendingTrip()){showResumeModal();return;}
     gpsActive=true;
-    nextWpIdx=0;doneWps.clear();realPath=[];lastTruckPos=null;lastVoiceAnnounce=-1;
+    if(!tripStartedAt)tripStartedAt=new Date().toISOString();
+    nextWpIdx=0;doneWps.clear();realPath=[];lastTruckPos=null;
+    lastVoiceAnnounce={};skippedSegments=[];deviated=false;bonusReturnedToTrack=false;
     if(realLine){map.removeLayer(realLine);realLine=null;}
     if(realLineGlow){map.removeLayer(realLineGlow);realLineGlow=null;}
-    // Limpiar marcas verdes anteriores
+    if(window._skipLines){window._skipLines.forEach(l=>map.removeLayer(l));window._skipLines=[];}
     markers.forEach(m=>{const el=m.getElement()?.querySelector('.wp-num');if(el)el.classList.remove('wp-done');});
+    stops.forEach(s=>{s.attended=false;s.attendedAt=null;});
+    renderStops();
 
     watchId=navigator.geolocation.watchPosition(onGpsUpdate,onGpsError,{
       enableHighAccuracy:true,maximumAge:1000,timeout:15000
@@ -1111,19 +1781,21 @@
     document.getElementById('gpsPanel').classList.add('show');
     speak('Modo chofer activado');
     toast('GPS activo · esperando señal…');
+    startAutoSave();
   }
 
   function stopGps(){
     gpsActive=false;
     if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
     releaseWakeLock();
+    stopAutoSave();
     document.getElementById('gpsBtn').classList.remove('active');
     document.getElementById('gpsBtnLabel').textContent='Activar GPS';
     document.getElementById('gpsPanel').classList.remove('show');
+    document.getElementById('turnCard').classList.remove('show');
     if(truckMarker){map.removeLayer(truckMarker);truckMarker=null;}
     if(accuracyCircle){map.removeLayer(accuracyCircle);accuracyCircle=null;}
     try{window.speechSynthesis.cancel();}catch(_){}
-    toast('GPS detenido · recorrido conservado');
   }
 
   document.getElementById('gpsBtn').addEventListener('click',()=>{if(gpsActive)stopGps();else startGps();});
@@ -1133,16 +1805,613 @@
     if(!voiceOn)try{window.speechSynthesis.cancel();}catch(_){}
     else speak('Avisos por voz activados');
   });
-  document.getElementById('exportReal').addEventListener('click',()=>{
-    if(!realPath.length){toast('Sin recorrido grabado');return;}
-    const data={recordedAt:new Date().toISOString(),proposed:waypoints,real:realPath};
+  document.getElementById('exportReal').addEventListener('click',()=>downloadReport());
+  document.getElementById('finishTrip').addEventListener('click',()=>finishTrip());
+
+  // ============================================================
+  //          CIERRE DE VIAJE Y CALIFICACIÓN
+  // ============================================================
+
+  function pendingSegments(){
+    return skippedSegments.filter(s=>!s.resolved);
+  }
+
+  function finishTrip(){
+    const pend=pendingSegments();
+    if(pend.length){
+      const info=document.getElementById('closeInfo');
+      info.innerHTML='Tramos sin transitar: <b>'+pend.length+'</b>'+pend.map(s=>`<br>• Entre puntos ${s.from+1} y ${s.to+1}`).join('');
+      document.getElementById('closeText').textContent='Aún quedan '+pend.length+' tramo(s) sin transitar. ¿Desea regresar a completarlos o cerrar el viaje así?';
+      document.getElementById('closeModal').classList.remove('hide');
+    }else{
+      showRating();
+    }
+  }
+  document.getElementById('closeReturn').addEventListener('click',()=>{
+    document.getElementById('closeModal').classList.add('hide');
+    speak('Diríjase al tramo pendiente más cercano');
+  });
+  document.getElementById('closeFinish').addEventListener('click',()=>{
+    document.getElementById('closeModal').classList.add('hide');
+    showRating();
+  });
+
+  function calculateRating(){
+    const total=waypoints.length;
+    const done=doneWps.size;
+    const routeCompletion=total?Math.round(done/total*100):0;
+    const critical=stops.filter(s=>s.type==='critical');
+    const attention=stops.filter(s=>s.type==='attention');
+    const criticalDone=critical.filter(s=>s.attended).length;
+    const attentionDone=attention.filter(s=>s.attended).length;
+    const criticalPct=critical.length?Math.round(criticalDone/critical.length*100):100;
+    const attentionPct=attention.length?Math.round(attentionDone/attention.length*100):100;
+    // Fidelidad: % del realPath que estuvo dentro de la ruta
+    let routeFidelity=100;
+    if(realPath.length && waypoints.length>=2){
+      let inRoute=0;
+      realPath.forEach(p=>{if(minDistToRoute(p)<=DEVIATION_M)inRoute++;});
+      routeFidelity=Math.round(inRoute/realPath.length*100);
+    }
+    // Tiempo: no castiga ir lento, premia eficiencia respecto a un baseline
+    const timeEfficiency=85; // simplificado: por ahora valor neutro
+    // Ponderado
+    const score=Math.round(
+      routeCompletion*0.40 +
+      criticalPct*0.30 +
+      attentionPct*0.15 +
+      routeFidelity*0.10 +
+      timeEfficiency*0.05
+    );
+    const finalScore=Math.min(100,score+(bonusReturnedToTrack?10:0)+(criticalPct===100&&critical.length?5:0));
+    return {score:finalScore,routeCompletion,criticalPct,attentionPct,routeFidelity,timeEfficiency,
+      critical:{total:critical.length,done:criticalDone},
+      attention:{total:attention.length,done:attentionDone},
+      bonuses:[
+        ...(bonusReturnedToTrack?['regreso_a_tramo_pendiente']:[]),
+        ...(criticalPct===100&&critical.length?['criticas_100pct']:[])
+      ]};
+  }
+  function ratingLabel(n){
+    if(n>=95)return {lbl:'Excelente',color:'#10b981',icon:'🏆'};
+    if(n>=85)return {lbl:'Muy bueno',color:'#22c55e',icon:'⭐'};
+    if(n>=70)return {lbl:'Bueno',color:'#eab308',icon:'👍'};
+    if(n>=50)return {lbl:'Parcial',color:'#f97316',icon:'⚠'};
+    return {lbl:'Incompleto',color:'#ef4444',icon:'📉'};
+  }
+  function ratingMessage(n){
+    if(n>=95)return '¡Excelente recorrido! Cubrió toda la ruta sin perder ningún punto crítico. Trabajo ejemplar.';
+    if(n>=85)return 'Muy buen trabajo. Cumplió con la ruta y la mayoría de las paradas. Siga así.';
+    if(n>=70)return 'Buen recorrido, pero hay margen de mejora. Revise los puntos pendientes para la próxima.';
+    if(n>=50)return 'Recorrido parcial. Para la próxima, intente cubrir todos los puntos críticos.';
+    return 'Recorrido incompleto. Por favor, revise la propuesta de ruta para mejorar el próximo viaje.';
+  }
+
+  function showRating(){
+    tripEndedAt=new Date().toISOString();
+    const r=calculateRating();
+    const lbl=ratingLabel(r.score);
+    document.getElementById('ratingNum').textContent=r.score;
+    document.getElementById('ratingLbl').textContent=lbl.icon+' '+lbl.lbl;
+    const circle=document.getElementById('ratingCircle');
+    circle.style.setProperty('--rating-color',lbl.color);
+    circle.style.setProperty('--rating-deg',(r.score*3.6)+'deg');
+    const totalDist=realPath.length>1?totalDistanceOf(realPath):0;
+    const stats=document.getElementById('ratingStats');
+    const duration=tripStartedAt?formatDuration(new Date(tripEndedAt)-new Date(tripStartedAt)):'—';
+    stats.innerHTML=
+      `<div class="rating-stat"><b>${r.routeCompletion}%</b><span>Ruta completada</span></div>`+
+      `<div class="rating-stat"><b>${r.critical.done}/${r.critical.total||0}</b><span>Críticos atendidos</span></div>`+
+      `<div class="rating-stat"><b>${r.attention.done}/${r.attention.total||0}</b><span>Atención atendidos</span></div>`+
+      `<div class="rating-stat"><b>${(totalDist/1000).toFixed(2)} km</b><span>Distancia real</span></div>`+
+      `<div class="rating-stat"><b>${duration}</b><span>Duración</span></div>`+
+      `<div class="rating-stat"><b>${r.routeFidelity}%</b><span>Fidelidad</span></div>`;
+    document.getElementById('ratingMsg').textContent=ratingMessage(r.score);
+    const bonusEl=document.getElementById('ratingBonuses');
+    bonusEl.innerHTML='';
+    if(r.bonuses.includes('regreso_a_tramo_pendiente'))
+      bonusEl.innerHTML+='<div class="rating-bonus"><span class="ico">🌟</span><span>Reconocimiento especial: detectó una calle pendiente y regresó a completarla. Excelente actitud profesional.</span></div>';
+    if(r.bonuses.includes('criticas_100pct'))
+      bonusEl.innerHTML+='<div class="rating-bonus"><span class="ico">✨</span><span>Atendió todos los puntos críticos del recorrido. Bien hecho.</span></div>';
+
+    document.getElementById('ratingModal').classList.remove('hide');
+    speak('Su calificación es de '+r.score+' puntos sobre 100. '+ratingMessage(r.score));
+
+    // Guardar viaje
+    saveTrip(buildReport(r));
+    stopGps();
+    clearPendingTrip();
+  }
+  function totalDistanceOf(path){
+    let t=0;
+    for(let i=1;i<path.length;i++)t+=haversine(path[i-1],path[i]);
+    return t;
+  }
+  function formatDuration(ms){
+    const s=Math.round(ms/1000);
+    const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+    if(h>0)return h+'h '+m+'min';
+    return m+'min';
+  }
+  function buildReport(r){
+    return {
+      id:'trip_'+Date.now(),
+      recordedAt:tripEndedAt,
+      startedAt:tripStartedAt,
+      duration_ms:tripStartedAt?(new Date(tripEndedAt)-new Date(tripStartedAt)):0,
+      rating:r.score,
+      ratingLevel:ratingLabel(r.score).lbl,
+      message:ratingMessage(r.score),
+      bonuses:r.bonuses,
+      breakdown:{
+        routeCompletion:r.routeCompletion,
+        criticalStops:r.criticalPct,
+        attentionStops:r.attentionPct,
+        routeFidelity:r.routeFidelity,
+        timeEfficiency:r.timeEfficiency
+      },
+      summary:{
+        totalWaypoints:waypoints.length,
+        doneWaypoints:doneWps.size,
+        totalCritical:r.critical.total,
+        criticalAttended:r.critical.done,
+        totalAttention:r.attention.total,
+        attentionAttended:r.attention.done,
+        realDistance_m:Math.round(totalDistanceOf(realPath)),
+        skippedSegmentsCount:skippedSegments.filter(s=>!s.resolved).length
+      },
+      proposed:waypoints,
+      real:realPath,
+      stops:stops,
+      skippedSegments:skippedSegments
+    };
+  }
+  function downloadReport(){
+    const r=calculateRating();
+    const data=buildReport(r);
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-    a.download='recorrido_real_'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
-    a.click();URL.revokeObjectURL(a.href);toast('Recorrido descargado ✓');
+    a.download='reporte_'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
+    a.click();URL.revokeObjectURL(a.href);toast('Reporte descargado ✓');
+  }
+  document.getElementById('ratingDownload').addEventListener('click',downloadReport);
+  document.getElementById('ratingShare').addEventListener('click',async()=>{
+    const r=calculateRating();const data=buildReport(r);
+    const txt='Reporte de viaje\nCalificación: '+r.score+'/100 ('+ratingLabel(r.score).lbl+')\nRuta completada: '+r.routeCompletion+'%\nDistancia: '+(data.summary.realDistance_m/1000).toFixed(2)+' km';
+    if(navigator.share){try{await navigator.share({title:'Reporte de viaje',text:txt});}catch(_){}}
+    else{navigator.clipboard.writeText(txt);toast('Resumen copiado ✓');}
+  });
+  document.getElementById('ratingClose').addEventListener('click',()=>{
+    document.getElementById('ratingModal').classList.add('hide');
+    renderTripsList();
+  });
+
+  // ============================================================
+  //                   AUTO-SAVE + HISTORIAL
+  // ============================================================
+  function startAutoSave(){
+    stopAutoSave();
+    autoSaveTimer=setInterval(()=>persistPendingTrip(),30000);
+  }
+  function stopAutoSave(){if(autoSaveTimer){clearInterval(autoSaveTimer);autoSaveTimer=null;}}
+  function persistPendingTrip(){
+    if(!gpsActive)return;
+    try{
+      const snap={
+        startedAt:tripStartedAt,
+        savedAt:new Date().toISOString(),
+        waypoints,stops,realPath,doneWps:Array.from(doneWps),
+        nextWpIdx,skippedSegments,bonusReturnedToTrack
+      };
+      localStorage.setItem('animador_pending_trip',JSON.stringify(snap));
+    }catch(_){}
+  }
+  function hasPendingTrip(){
+    try{return !!localStorage.getItem('animador_pending_trip');}catch(_){return false;}
+  }
+  function clearPendingTrip(){try{localStorage.removeItem('animador_pending_trip');}catch(_){}}
+  function showResumeModal(){
+    try{
+      const snap=JSON.parse(localStorage.getItem('animador_pending_trip'));
+      if(!snap){startGps(true);return;}
+      const info=document.getElementById('resumeInfo');
+      const when=new Date(snap.startedAt).toLocaleString('es-DO');
+      info.innerHTML='Iniciado: <b>'+when+'</b><br>Puntos visitados: <b>'+snap.doneWps.length+'/'+snap.waypoints.length+'</b><br>Distancia grabada: <b>'+(totalDistanceOf(snap.realPath||[])/1000).toFixed(2)+' km</b>';
+      document.getElementById('resumeModal').classList.remove('hide');
+    }catch(_){startGps(true);}
+  }
+  document.getElementById('resumeContinue').addEventListener('click',()=>{
+    try{
+      const snap=JSON.parse(localStorage.getItem('animador_pending_trip'));
+      if(snap){
+        tripStartedAt=snap.startedAt;
+        if(snap.waypoints && snap.waypoints.length)loadRoute(snap.waypoints);
+        stops=snap.stops||[];
+        realPath=snap.realPath||[];
+        doneWps=new Set(snap.doneWps||[]);
+        nextWpIdx=snap.nextWpIdx||0;
+        skippedSegments=snap.skippedSegments||[];
+        bonusReturnedToTrack=!!snap.bonusReturnedToTrack;
+        doneWps.forEach(i=>{const el=markers[i]?.getElement()?.querySelector('.wp-num');if(el)el.classList.add('wp-done');});
+        renderStops();redrawSkippedSegments();
+      }
+    }catch(_){}
+    document.getElementById('resumeModal').classList.add('hide');
+    startGps(true);
+  });
+  document.getElementById('resumeFinalize').addEventListener('click',()=>{
+    try{
+      const snap=JSON.parse(localStorage.getItem('animador_pending_trip'));
+      if(snap){
+        tripStartedAt=snap.startedAt;
+        if(snap.waypoints && snap.waypoints.length)loadRoute(snap.waypoints);
+        stops=snap.stops||[];realPath=snap.realPath||[];
+        doneWps=new Set(snap.doneWps||[]);nextWpIdx=snap.nextWpIdx||0;
+        skippedSegments=snap.skippedSegments||[];
+        bonusReturnedToTrack=!!snap.bonusReturnedToTrack;
+      }
+    }catch(_){}
+    document.getElementById('resumeModal').classList.add('hide');
+    showRating();
+  });
+  document.getElementById('resumeDiscard').addEventListener('click',()=>{
+    clearPendingTrip();
+    document.getElementById('resumeModal').classList.add('hide');
+    tripStartedAt=null;
+    startGps(true);
+  });
+
+  // Historial
+  function saveTrip(report){
+    try{
+      const all=JSON.parse(localStorage.getItem('animador_trips')||'[]');
+      all.unshift(report);
+      localStorage.setItem('animador_trips',JSON.stringify(all));
+      renderTripsList();
+    }catch(_){}
+  }
+  function getAllTrips(){
+    try{return JSON.parse(localStorage.getItem('animador_trips')||'[]');}catch(_){return [];}
+  }
+  let showAllTripsFlag=false;
+  function renderTripsList(){
+    const all=getAllTrips();
+    document.getElementById('tripsCount').textContent=all.length;
+    const list=document.getElementById('tripsList');
+    const btnAll=document.getElementById('viewAllTrips');
+    if(!all.length){list.innerHTML='<div class="trip-empty">No hay viajes guardados aún.</div>';btnAll.style.display='none';return;}
+    const visible=showAllTripsFlag?all:all.slice(0,20);
+    btnAll.style.display=all.length>20?'':'none';
+    btnAll.textContent=showAllTripsFlag?'Ver solo recientes':'Ver historial completo ('+all.length+')';
+    list.innerHTML=visible.map(t=>{
+      const date=new Date(t.recordedAt).toLocaleString('es-DO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      const lbl=ratingLabel(t.rating);
+      return `<div class="trip-item" data-id="${t.id}">
+        <div class="trip-info">
+          <span class="trip-date">${date}</span>
+          <span class="trip-meta">${t.summary.realDistance_m?(t.summary.realDistance_m/1000).toFixed(2)+' km · ':''}${t.summary.doneWaypoints}/${t.summary.totalWaypoints} pts</span>
+        </div>
+        <div class="trip-rating" style="background:${lbl.color}22;color:${lbl.color};">${t.rating}</div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.trip-item').forEach(el=>{
+      el.addEventListener('click',()=>openTrip(el.dataset.id));
+    });
+  }
+  function openTrip(id){
+    const t=getAllTrips().find(x=>x.id===id);
+    if(!t)return;
+    // Mostrar el reporte en el modal de rating en modo solo-lectura
+    const lbl=ratingLabel(t.rating);
+    document.getElementById('ratingNum').textContent=t.rating;
+    document.getElementById('ratingLbl').textContent=lbl.icon+' '+lbl.lbl;
+    document.getElementById('ratingCircle').style.setProperty('--rating-color',lbl.color);
+    document.getElementById('ratingCircle').style.setProperty('--rating-deg',(t.rating*3.6)+'deg');
+    document.getElementById('ratingStats').innerHTML=
+      `<div class="rating-stat"><b>${t.breakdown.routeCompletion}%</b><span>Ruta</span></div>`+
+      `<div class="rating-stat"><b>${t.summary.criticalAttended}/${t.summary.totalCritical}</b><span>Críticos</span></div>`+
+      `<div class="rating-stat"><b>${t.summary.attentionAttended}/${t.summary.totalAttention}</b><span>Atención</span></div>`+
+      `<div class="rating-stat"><b>${(t.summary.realDistance_m/1000).toFixed(2)} km</b><span>Distancia</span></div>`+
+      `<div class="rating-stat"><b>${formatDuration(t.duration_ms||0)}</b><span>Duración</span></div>`+
+      `<div class="rating-stat"><b>${t.breakdown.routeFidelity}%</b><span>Fidelidad</span></div>`;
+    document.getElementById('ratingMsg').textContent=t.message;
+    document.getElementById('ratingBonuses').innerHTML='';
+    document.getElementById('ratingModal').classList.remove('hide');
+    // Cargar la ruta en el mapa
+    if(t.proposed && t.proposed.length>=2)loadRoute(t.proposed);
+    // Botón download usa este reporte
+    document.getElementById('ratingDownload').onclick=()=>{
+      const blob=new Blob([JSON.stringify(t,null,2)],{type:'application/json'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+      a.download='reporte_'+t.id+'.json';a.click();URL.revokeObjectURL(a.href);toast('Reporte descargado ✓');
+    };
+  }
+  document.getElementById('viewAllTrips').addEventListener('click',()=>{showAllTripsFlag=!showAllTripsFlag;renderTripsList();});
+
+  // ============================================================
+  //          REFERENCIAS + EXPORTACIÓN WORD/TEXTO
+  // ============================================================
+
+  // Reverse geocoding con Nominatim (gratis, OSM)
+  async function reverseGeocode(lat,lng){
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&accept-language=es`,{
+        headers:{'Accept':'application/json'}
+      });
+      if(!r.ok)return '';
+      const d=await r.json();
+      if(!d || !d.display_name)return '';
+      // Tomar las primeras 3-4 partes (calle, barrio, ciudad)
+      const parts=d.display_name.split(',').map(s=>s.trim()).slice(0,3);
+      return parts.join(', ');
+    }catch(_){return '';}
+  }
+
+  async function fillReferences(){
+    if(waypoints.length<2)return;
+    document.getElementById('refStart').value='Buscando…';
+    document.getElementById('refEnd').value='Buscando…';
+    document.getElementById('refsModal').classList.remove('hide');
+    const [s,e]=await Promise.all([
+      reverseGeocode(waypoints[0][0],waypoints[0][1]),
+      reverseGeocode(waypoints[waypoints.length-1][0],waypoints[waypoints.length-1][1])
+    ]);
+    document.getElementById('refStart').value=routeRefs.start || s || '';
+    document.getElementById('refEnd').value=routeRefs.end || e || '';
+  }
+
+  document.getElementById('refsClose').addEventListener('click',()=>document.getElementById('refsModal').classList.add('hide'));
+  document.getElementById('refsSave').addEventListener('click',()=>{
+    routeRefs.start=document.getElementById('refStart').value.trim();
+    routeRefs.end=document.getElementById('refEnd').value.trim();
+    document.getElementById('refsModal').classList.add('hide');
+    generateWordDoc();
+  });
+  document.getElementById('refsSkip').addEventListener('click',()=>{
+    routeRefs.start='';routeRefs.end='';
+    document.getElementById('refsModal').classList.add('hide');
+    generateWordDoc();
+  });
+  document.getElementById('editRefs').addEventListener('click',()=>fillReferences());
+
+  // Generar texto plano de las indicaciones
+  function buildPlainText(){
+    if(waypoints.length<2)return '';
+    const lines=[];
+    lines.push('INDICACIONES DE RECORRIDO');
+    lines.push('═'.repeat(40));
+    lines.push('Fecha: '+new Date().toLocaleDateString('es-DO',{day:'2-digit',month:'long',year:'numeric'}));
+    lines.push('Distancia total: '+(totalDist()/1000).toFixed(2)+' km');
+    lines.push('Total de puntos: '+waypoints.length);
+    if(routeRefs.start || routeRefs.end){
+      lines.push('');
+      if(routeRefs.start)lines.push('🚩 Inicio: '+routeRefs.start);
+      if(routeRefs.end)lines.push('🏁 Fin: '+routeRefs.end);
+    }
+    const crit=stops.filter(s=>s.type==='critical').length;
+    const att=stops.filter(s=>s.type==='attention').length;
+    if(crit||att){
+      lines.push('');
+      lines.push('Paradas marcadas: '+(crit?crit+' crítica(s)':'')+(crit&&att?', ':'')+(att?att+' de atención':''));
+    }
+    lines.push('');
+    lines.push('─── INDICACIONES PASO A PASO ───');
+    lines.push('');
+    instructions.forEach((ins,i)=>{
+      let arrow='↑';
+      if(ins.type==='turn')arrow=arrowFor(ins.dir,ins.severity);
+      else if(ins.type==='start')arrow='🚩';
+      else if(ins.type==='end')arrow='🏁';
+      let line=(i+1)+'. '+arrow+' '+ins.text;
+      if(i>0 && ins.distFromPrev>0)line+=' · '+Math.round(ins.distFromPrev)+'m del anterior';
+      if(ins.deadEnd)line+=' ⚠ CALLE SIN SALIDA';
+      lines.push(line);
+      if(ins.stop){
+        const tag=ins.stop.type==='critical'?'🔴 PUNTO CRÍTICO':'🟡 PUNTO DE ATENCIÓN';
+        lines.push('   '+tag+(ins.stop.note?': '+ins.stop.note:''));
+      }
+      if(ins.deadEnd)lines.push('   ⚠ Prepare maniobra de reversa o vuelta en U');
+    });
+    return lines.join('\n');
+  }
+
+  // Generar y descargar el Word
+  function generateWordDoc(){
+    if(waypoints.length<2){toast('Marca al menos 2 puntos');return;}
+    if(typeof docx==='undefined'){toast('Cargando librería… reintenta en 3s');return;}
+    const {Document,Packer,Paragraph,TextRun,HeadingLevel,AlignmentType,BorderStyle}=docx;
+
+    // Color por tipo de giro
+    const colorTurn='ff7a18';
+    const colorCritical='dc2626';
+    const colorAttention='b8860b';
+    const colorDeadEnd='b8860b';
+    const colorMuted='6b7280';
+    const colorDark='1f2937';
+
+    const children=[];
+
+    // Título
+    children.push(new Paragraph({
+      heading:HeadingLevel.HEADING_1,
+      alignment:AlignmentType.CENTER,
+      children:[new TextRun({text:'INDICACIONES DE RECORRIDO',bold:true,size:36,color:colorDark})]
+    }));
+    children.push(new Paragraph({
+      alignment:AlignmentType.CENTER,
+      children:[new TextRun({text:'─'.repeat(30),color:colorMuted})]
+    }));
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+
+    // Metadata
+    const dateStr=new Date().toLocaleDateString('es-DO',{day:'2-digit',month:'long',year:'numeric'});
+    children.push(new Paragraph({
+      children:[
+        new TextRun({text:'Fecha: ',bold:true}),
+        new TextRun({text:dateStr})
+      ]
+    }));
+    children.push(new Paragraph({
+      children:[
+        new TextRun({text:'Distancia total: ',bold:true}),
+        new TextRun({text:(totalDist()/1000).toFixed(2)+' km'})
+      ]
+    }));
+    children.push(new Paragraph({
+      children:[
+        new TextRun({text:'Total de puntos: ',bold:true}),
+        new TextRun({text:String(waypoints.length)})
+      ]
+    }));
+
+    // Paradas resumen
+    const crit=stops.filter(s=>s.type==='critical').length;
+    const att=stops.filter(s=>s.type==='attention').length;
+    if(crit||att){
+      const txtParts=[];
+      if(crit)txtParts.push(crit+' crítica(s)');
+      if(att)txtParts.push(att+' de atención');
+      children.push(new Paragraph({
+        children:[
+          new TextRun({text:'Paradas marcadas: ',bold:true}),
+          new TextRun({text:txtParts.join(', ')})
+        ]
+      }));
+    }
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+
+    // Referencias
+    if(routeRefs.start || routeRefs.end){
+      children.push(new Paragraph({
+        heading:HeadingLevel.HEADING_2,
+        children:[new TextRun({text:'REFERENCIAS',bold:true,size:26,color:colorDark})]
+      }));
+      if(routeRefs.start){
+        children.push(new Paragraph({
+          children:[
+            new TextRun({text:'🚩 Inicio: ',bold:true,color:'059669'}),
+            new TextRun({text:routeRefs.start})
+          ]
+        }));
+      }
+      if(routeRefs.end){
+        children.push(new Paragraph({
+          children:[
+            new TextRun({text:'🏁 Fin: ',bold:true,color:'dc2626'}),
+            new TextRun({text:routeRefs.end})
+          ]
+        }));
+      }
+      children.push(new Paragraph({children:[new TextRun({text:''})]}));
+    }
+
+    // Sección indicaciones
+    children.push(new Paragraph({
+      heading:HeadingLevel.HEADING_2,
+      children:[new TextRun({text:'INDICACIONES PASO A PASO',bold:true,size:26,color:colorDark})]
+    }));
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+
+    // Cada instrucción
+    instructions.forEach((ins,i)=>{
+      let arrow='↑';
+      if(ins.type==='turn')arrow=arrowFor(ins.dir,ins.severity);
+      else if(ins.type==='start')arrow='🚩';
+      else if(ins.type==='end')arrow='🏁';
+      let color=colorTurn;
+      if(ins.type==='start')color='059669';
+      else if(ins.type==='end')color='dc2626';
+      if(ins.stop){color=ins.stop.type==='critical'?colorCritical:colorAttention;}
+      else if(ins.deadEnd)color=colorDeadEnd;
+
+      // Línea principal
+      const main=[
+        new TextRun({text:(i+1)+'. ',bold:true,color:colorDark}),
+        new TextRun({text:arrow+' ',bold:true,color:color,size:26}),
+        new TextRun({text:ins.text,bold:true})
+      ];
+      if(i>0 && ins.distFromPrev>0){
+        main.push(new TextRun({text:'   ('+Math.round(ins.distFromPrev)+'m del anterior)',color:colorMuted,italics:true,size:18}));
+      }
+      children.push(new Paragraph({children:main,spacing:{before:80}}));
+
+      // Nota de parada
+      if(ins.stop){
+        const tag=ins.stop.type==='critical'?'🔴 PUNTO CRÍTICO':'🟡 PUNTO DE ATENCIÓN';
+        const c=ins.stop.type==='critical'?colorCritical:colorAttention;
+        const noteRuns=[new TextRun({text:'      '+tag+(ins.stop.note?': ':''),bold:true,color:c,size:20})];
+        if(ins.stop.note)noteRuns.push(new TextRun({text:ins.stop.note,color:colorDark,size:20}));
+        children.push(new Paragraph({children:noteRuns}));
+      }
+      // Calle sin salida
+      if(ins.deadEnd){
+        children.push(new Paragraph({
+          children:[
+            new TextRun({text:'      ⚠ CALLE SIN SALIDA — ',bold:true,color:colorDeadEnd,size:20}),
+            new TextRun({text:'Prepare maniobra de reversa o vuelta en U.',color:colorDark,size:20,italics:true})
+          ]
+        }));
+      }
+    });
+
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+    children.push(new Paragraph({
+      alignment:AlignmentType.CENTER,
+      children:[new TextRun({text:'─── Fin del documento ───',color:colorMuted,italics:true})]
+    }));
+    children.push(new Paragraph({
+      alignment:AlignmentType.CENTER,
+      children:[new TextRun({text:'Generado por Animador de Ruta',color:colorMuted,size:16,italics:true})]
+    }));
+
+    const doc=new Document({
+      creator:'Animador de Ruta',
+      title:'Indicaciones de Recorrido',
+      sections:[{properties:{},children:children}]
+    });
+    Packer.toBlob(doc).then(blob=>{
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='indicaciones_'+new Date().toISOString().slice(0,10)+'.docx';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast('Word descargado ✓');
+    }).catch(err=>{
+      console.error(err);
+      toast('Error generando el Word');
+    });
+  }
+
+  document.getElementById('exportWord').addEventListener('click',()=>{
+    if(waypoints.length<2){toast('Marca al menos 2 puntos');return;}
+    // Si no hay referencias aún, abrir modal; si ya hay, generar directo
+    if(!routeRefs.start && !routeRefs.end)fillReferences();
+    else generateWordDoc();
+  });
+  document.getElementById('copyInd').addEventListener('click',async()=>{
+    if(waypoints.length<2){toast('Marca al menos 2 puntos');return;}
+    const txt=buildPlainText();
+    try{await navigator.clipboard.writeText(txt);toast('Indicaciones copiadas ✓');}
+    catch(_){toast('No pude copiar — pega manualmente');}
+  });
+
+  function refreshExportButtons(){
+    const has=waypoints.length>=2;
+    document.getElementById('exportWord').disabled=!has;
+    document.getElementById('copyInd').disabled=!has;
+    document.getElementById('editRefs').disabled=!has;
+  }
+
+  // ============================================================
+  //                        ACCORDIONS
+  // ============================================================
+  document.querySelectorAll('.accordion-head').forEach(h=>{
+    h.addEventListener('click',()=>h.parentElement.classList.toggle('open'));
   });
 
   refresh();
+  buildInstructions();
+  renderTripsList();
 })();
 </script>
 </body>
