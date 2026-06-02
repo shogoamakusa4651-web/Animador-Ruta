@@ -523,9 +523,10 @@
     <div class="rating-msg" id="ratingMsg">—</div>
     <div id="ratingBonuses"></div>
     <div class="rating-actions">
-      <button class="btn primary" id="ratingDownload">💾 Descargar reporte</button>
+      <button class="btn primary" id="ratingDownload">📄 Descargar reporte (Word)</button>
       <button class="btn" id="ratingShare">📤 Compartir</button>
     </div>
+    <button class="btn" id="ratingJson" style="width:100%;margin-top:6px;font-size:11px;color:var(--txt-dim);">⚙ Datos técnicos (JSON)</button>
     <button class="btn" id="ratingClose" style="width:100%;margin-top:8px;">Cerrar</button>
   </div>
 </div>
@@ -1805,7 +1806,7 @@
     if(!voiceOn)try{window.speechSynthesis.cancel();}catch(_){}
     else speak('Avisos por voz activados');
   });
-  document.getElementById('exportReal').addEventListener('click',()=>downloadReport());
+  document.getElementById('exportReal').addEventListener('click',()=>generateWordReport());
   document.getElementById('finishTrip').addEventListener('click',()=>finishTrip());
 
   // ============================================================
@@ -1985,15 +1986,195 @@
       skippedSegments:skippedSegments
     };
   }
-  function downloadReport(){
+  function downloadJsonReport(){
     const r=calculateRating();
     const data=buildReport(r);
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-    a.download='reporte_'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
-    a.click();URL.revokeObjectURL(a.href);toast('Reporte descargado ✓');
+    a.download='reporte_tecnico_'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+    toast('JSON descargado ✓');
   }
-  document.getElementById('ratingDownload').addEventListener('click',downloadReport);
+
+  function generateWordReport(){
+    if(typeof docx==='undefined' || !docx.Document){
+      toast('Librería Word aún cargando · espera 3 segundos y reintenta');
+      return;
+    }
+    const r=calculateRating();
+    const data=buildReport(r);
+    const {Document,Packer,Paragraph,TextRun,HeadingLevel,AlignmentType}=docx;
+    const lbl=ratingLabel(r.score);
+    const colorDark='1f2937', colorMuted='6b7280';
+    const colorRating=lbl.color.replace('#','');
+    const colorCritical='dc2626', colorAttention='b8860b';
+    const colorGreen='059669', colorBlue='2563eb';
+
+    const children=[];
+
+    // ===== TÍTULO =====
+    children.push(new Paragraph({
+      heading:HeadingLevel.HEADING_1,
+      alignment:AlignmentType.CENTER,
+      children:[new TextRun({text:'REPORTE DE RECORRIDO',bold:true,size:36,color:colorDark})]
+    }));
+    children.push(new Paragraph({
+      alignment:AlignmentType.CENTER,
+      children:[new TextRun({text:'─'.repeat(30),color:colorMuted})]
+    }));
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+
+    // ===== DATOS GENERALES =====
+    const dateStr=new Date(data.recordedAt).toLocaleString('es-DO',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const startStr=data.startedAt?new Date(data.startedAt).toLocaleString('es-DO',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:'DATOS GENERALES',bold:true,size:26,color:colorDark})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'Fecha del reporte: ',bold:true}),new TextRun({text:dateStr})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'Inicio del viaje: ',bold:true}),new TextRun({text:startStr})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'Duración total: ',bold:true}),new TextRun({text:formatDuration(data.duration_ms||0)})]}));
+    if(routeRefs.start)children.push(new Paragraph({children:[new TextRun({text:'🚩 Inicio: ',bold:true,color:colorGreen}),new TextRun({text:routeRefs.start})]}));
+    if(routeRefs.end)children.push(new Paragraph({children:[new TextRun({text:'🏁 Fin: ',bold:true,color:colorCritical}),new TextRun({text:routeRefs.end})]}));
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+
+    // ===== CALIFICACIÓN =====
+    children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:'CALIFICACIÓN',bold:true,size:26,color:colorDark})]}));
+    children.push(new Paragraph({
+      alignment:AlignmentType.CENTER,
+      spacing:{before:120,after:120},
+      children:[
+        new TextRun({text:String(r.score),bold:true,size:72,color:colorRating}),
+        new TextRun({text:' / 100',color:colorMuted,size:32})
+      ]
+    }));
+    children.push(new Paragraph({
+      alignment:AlignmentType.CENTER,
+      children:[new TextRun({text:lbl.icon+' '+lbl.lbl.toUpperCase(),bold:true,size:24,color:colorRating})]
+    }));
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+    children.push(new Paragraph({
+      children:[new TextRun({text:data.message,italics:true,color:colorDark})]
+    }));
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+
+    // ===== BONIFICACIONES =====
+    if(data.bonuses && data.bonuses.length){
+      children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:'🌟 RECONOCIMIENTOS ESPECIALES',bold:true,size:26,color:colorGreen})]}));
+      if(data.bonuses.includes('regreso_a_tramo_pendiente'))
+        children.push(new Paragraph({children:[new TextRun({text:'✓ ',bold:true,color:colorGreen}),new TextRun({text:'Detectó una calle pendiente y regresó a completarla. Excelente actitud profesional. (+10 puntos)',color:colorDark})]}));
+      if(data.bonuses.includes('criticas_100pct'))
+        children.push(new Paragraph({children:[new TextRun({text:'✓ ',bold:true,color:colorGreen}),new TextRun({text:'Atendió todos los puntos críticos del recorrido. (+5 puntos)',color:colorDark})]}));
+      children.push(new Paragraph({children:[new TextRun({text:''})]}));
+    }
+
+    // ===== MÉTRICAS =====
+    children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:'MÉTRICAS DEL VIAJE',bold:true,size:26,color:colorDark})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'Ruta completada: ',bold:true}),new TextRun({text:data.breakdown.routeCompletion+'%'}),new TextRun({text:'   ('+data.summary.doneWaypoints+' de '+data.summary.totalWaypoints+' puntos)',color:colorMuted,italics:true,size:18})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'Distancia real recorrida: ',bold:true}),new TextRun({text:(data.summary.realDistance_m/1000).toFixed(2)+' km'})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'Fidelidad a la ruta: ',bold:true}),new TextRun({text:data.breakdown.routeFidelity+'%'})]}));
+    if(data.summary.totalCritical>0){
+      const okC=data.summary.criticalAttended===data.summary.totalCritical;
+      children.push(new Paragraph({children:[new TextRun({text:'🔴 Puntos críticos atendidos: ',bold:true,color:colorCritical}),new TextRun({text:data.summary.criticalAttended+' de '+data.summary.totalCritical,bold:!okC,color:okC?colorGreen:colorCritical}),new TextRun({text:'   ('+data.breakdown.criticalStops+'%)',color:colorMuted,italics:true,size:18})]}));
+    }
+    if(data.summary.totalAttention>0){
+      const okA=data.summary.attentionAttended===data.summary.totalAttention;
+      children.push(new Paragraph({children:[new TextRun({text:'🟡 Puntos de atención atendidos: ',bold:true,color:colorAttention}),new TextRun({text:data.summary.attentionAttended+' de '+data.summary.totalAttention,bold:!okA}),new TextRun({text:'   ('+data.breakdown.attentionStops+'%)',color:colorMuted,italics:true,size:18})]}));
+    }
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+
+    // ===== TRAMOS NO TRANSITADOS =====
+    const pendSegs=(data.skippedSegments||[]).filter(s=>!s.resolved);
+    if(pendSegs.length){
+      children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:'⚠ TRAMOS NO TRANSITADOS',bold:true,size:26,color:colorCritical})]}));
+      children.push(new Paragraph({children:[new TextRun({text:'Total de tramos sin transitar: ',bold:true}),new TextRun({text:String(pendSegs.length),bold:true,color:colorCritical})]}));
+      pendSegs.forEach(seg=>{
+        children.push(new Paragraph({children:[new TextRun({text:'  • ',color:colorCritical,bold:true}),new TextRun({text:'Entre el punto '+(seg.from+1)+' y el punto '+(seg.to+1),color:colorDark})]}));
+      });
+      children.push(new Paragraph({children:[new TextRun({text:''})]}));
+    }
+
+    // ===== PARADAS DETALLADAS =====
+    const stopsAttended=(data.stops||[]).filter(s=>s.attended);
+    const stopsMissed=(data.stops||[]).filter(s=>!s.attended);
+    if(data.stops && data.stops.length){
+      children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:'DETALLE DE PARADAS',bold:true,size:26,color:colorDark})]}));
+      if(stopsAttended.length){
+        children.push(new Paragraph({children:[new TextRun({text:'✓ Atendidas ('+stopsAttended.length+'):',bold:true,color:colorGreen})]}));
+        stopsAttended.forEach((s,i)=>{
+          const tag=s.type==='critical'?'🔴 ':'🟡 ';
+          const time=s.attendedAt?new Date(s.attendedAt).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}):'';
+          children.push(new Paragraph({children:[new TextRun({text:'   '+tag,bold:true,color:s.type==='critical'?colorCritical:colorAttention}),new TextRun({text:(s.note||(s.type==='critical'?'Punto crítico':'Punto de atención'))}),new TextRun({text:time?'   ['+time+']':'',color:colorMuted,italics:true,size:18})]}));
+        });
+        children.push(new Paragraph({children:[new TextRun({text:''})]}));
+      }
+      if(stopsMissed.length){
+        children.push(new Paragraph({children:[new TextRun({text:'✗ No atendidas ('+stopsMissed.length+'):',bold:true,color:colorCritical})]}));
+        stopsMissed.forEach((s)=>{
+          const tag=s.type==='critical'?'🔴 ':'🟡 ';
+          children.push(new Paragraph({children:[new TextRun({text:'   '+tag,bold:true,color:s.type==='critical'?colorCritical:colorAttention}),new TextRun({text:(s.note||(s.type==='critical'?'Punto crítico':'Punto de atención'))})]}));
+        });
+        children.push(new Paragraph({children:[new TextRun({text:''})]}));
+      }
+    }
+
+    // ===== DESGLOSE DE PUNTUACIÓN =====
+    children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:'DESGLOSE DE LA PUNTUACIÓN',bold:true,size:26,color:colorDark})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'• Completitud de ruta: ',bold:true}),new TextRun({text:data.breakdown.routeCompletion+'/100'}),new TextRun({text:'   (peso 40%)',color:colorMuted,italics:true,size:18})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'• Paradas críticas: ',bold:true}),new TextRun({text:data.breakdown.criticalStops+'/100'}),new TextRun({text:'   (peso 30%)',color:colorMuted,italics:true,size:18})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'• Paradas de atención: ',bold:true}),new TextRun({text:data.breakdown.attentionStops+'/100'}),new TextRun({text:'   (peso 15%)',color:colorMuted,italics:true,size:18})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'• Fidelidad al trazado: ',bold:true}),new TextRun({text:data.breakdown.routeFidelity+'/100'}),new TextRun({text:'   (peso 10%)',color:colorMuted,italics:true,size:18})]}));
+    children.push(new Paragraph({children:[new TextRun({text:'• Eficiencia de tiempo: ',bold:true}),new TextRun({text:data.breakdown.timeEfficiency+'/100'}),new TextRun({text:'   (peso 5%)',color:colorMuted,italics:true,size:18})]}));
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+
+    // ===== INDICACIONES ORIGINALES =====
+    if(instructions.length){
+      children.push(new Paragraph({heading:HeadingLevel.HEADING_2,children:[new TextRun({text:'INDICACIONES ORIGINALES DE LA RUTA',bold:true,size:26,color:colorDark})]}));
+      instructions.forEach((ins,i)=>{
+        let arrow='↑';
+        if(ins.type==='turn')arrow=arrowFor(ins.dir,ins.severity);
+        else if(ins.type==='start')arrow='🚩';
+        else if(ins.type==='end')arrow='🏁';
+        let color='ff7a18';
+        if(ins.type==='start')color=colorGreen;
+        else if(ins.type==='end')color=colorCritical;
+        if(ins.stop)color=ins.stop.type==='critical'?colorCritical:colorAttention;
+        else if(ins.deadEnd)color=colorAttention;
+        const wasDone=doneWps.has(i);
+        const status=wasDone?'✓ ':'  ';
+        const main=[
+          new TextRun({text:status,bold:true,color:wasDone?colorGreen:colorMuted}),
+          new TextRun({text:(i+1)+'. ',bold:true,color:colorDark}),
+          new TextRun({text:arrow+' ',bold:true,color:color,size:24}),
+          new TextRun({text:ins.text,bold:true,color:wasDone?colorDark:colorMuted})
+        ];
+        if(i>0 && ins.distFromPrev>0)main.push(new TextRun({text:'   ('+Math.round(ins.distFromPrev)+'m)',color:colorMuted,italics:true,size:18}));
+        children.push(new Paragraph({children:main,spacing:{before:60}}));
+        if(ins.stop){
+          const tag=ins.stop.type==='critical'?'🔴':'🟡';
+          children.push(new Paragraph({children:[new TextRun({text:'        '+tag+' ',color:ins.stop.type==='critical'?colorCritical:colorAttention,bold:true,size:20}),new TextRun({text:(ins.stop.note||(ins.stop.type==='critical'?'Punto crítico':'Punto de atención')),color:colorDark,size:20})]}));
+        }
+        if(ins.deadEnd)children.push(new Paragraph({children:[new TextRun({text:'        ⚠ Calle sin salida',color:colorAttention,italics:true,size:20})]}));
+      });
+    }
+
+    // Pie
+    children.push(new Paragraph({children:[new TextRun({text:''})]}));
+    children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'─── Fin del reporte ───',color:colorMuted,italics:true})]}));
+    children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'Animador de Ruta · Sistema de gestión de recorridos',color:colorMuted,size:16,italics:true})]}));
+
+    const doc=new Document({creator:'Animador de Ruta',title:'Reporte de Recorrido',sections:[{properties:{},children}]});
+    Packer.toBlob(doc).then(blob=>{
+      const docxBlob=new Blob([blob],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(docxBlob);
+      a.download='reporte_'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.docx';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+      toast('Reporte Word descargado ✓');
+    }).catch(err=>{console.error('Error Word reporte:',err);toast('Error generando el Word: '+err.message);});
+  }
+
+  document.getElementById('ratingDownload').addEventListener('click',generateWordReport);
+  document.getElementById('ratingJson').addEventListener('click',downloadJsonReport);
   document.getElementById('ratingShare').addEventListener('click',async()=>{
     const r=calculateRating();const data=buildReport(r);
     const txt='Reporte de viaje\nCalificación: '+r.score+'/100 ('+ratingLabel(r.score).lbl+')\nRuta completada: '+r.routeCompletion+'%\nDistancia: '+(data.summary.realDistance_m/1000).toFixed(2)+' km';
@@ -2002,6 +2183,9 @@
   });
   document.getElementById('ratingClose').addEventListener('click',()=>{
     document.getElementById('ratingModal').classList.add('hide');
+    // Restaurar handlers normales (en caso de venir de openTrip)
+    document.getElementById('ratingDownload').onclick=generateWordReport;
+    document.getElementById('ratingJson').onclick=downloadJsonReport;
     renderTripsList();
   });
 
@@ -2138,12 +2322,43 @@
     document.getElementById('ratingModal').classList.remove('hide');
     // Cargar la ruta en el mapa
     if(t.proposed && t.proposed.length>=2)loadRoute(t.proposed);
-    // Botón download usa este reporte
-    document.getElementById('ratingDownload').onclick=()=>{
+    // Cargar datos del viaje histórico para que generateWordReport los use
+    document.getElementById('ratingDownload').onclick=()=>generateWordReportFromData(t);
+    document.getElementById('ratingJson').onclick=()=>{
       const blob=new Blob([JSON.stringify(t,null,2)],{type:'application/json'});
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-      a.download='reporte_'+t.id+'.json';a.click();URL.revokeObjectURL(a.href);toast('Reporte descargado ✓');
+      a.download='reporte_tecnico_'+t.id+'.json';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast('JSON descargado ✓');
     };
+  }
+
+  // Genera Word a partir de un reporte ya guardado (viaje histórico)
+  function generateWordReportFromData(t){
+    // Restaurar contexto temporal para que generateWordReport tome estos datos
+    const savedStops=stops, savedRealPath=realPath, savedDoneWps=doneWps;
+    const savedSkipped=skippedSegments, savedStarted=tripStartedAt, savedEnded=tripEndedAt;
+    const savedBonus=bonusReturnedToTrack, savedInstr=instructions, savedWps=waypoints;
+    try{
+      stops=t.stops||[];realPath=t.real||[];
+      doneWps=new Set();
+      if(t.summary && t.proposed){
+        // marcamos los waypoints "done" según summary.doneWaypoints (cantidad)
+        // pero como no guardamos cuáles, asumimos los primeros N
+        for(let i=0;i<(t.summary.doneWaypoints||0);i++)doneWps.add(i);
+      }
+      skippedSegments=t.skippedSegments||[];
+      tripStartedAt=t.startedAt;tripEndedAt=t.recordedAt;
+      bonusReturnedToTrack=(t.bonuses||[]).includes('regreso_a_tramo_pendiente');
+      waypoints=t.proposed||[];
+      buildInstructions();
+      generateWordReport();
+    }finally{
+      // Restaurar estado actual
+      stops=savedStops;realPath=savedRealPath;doneWps=savedDoneWps;
+      skippedSegments=savedSkipped;tripStartedAt=savedStarted;tripEndedAt=savedEnded;
+      bonusReturnedToTrack=savedBonus;instructions=savedInstr;waypoints=savedWps;
+    }
   }
   document.getElementById('viewAllTrips').addEventListener('click',()=>{showAllTripsFlag=!showAllTripsFlag;renderTripsList();});
 
