@@ -1844,33 +1844,52 @@
     const attention=stops.filter(s=>s.type==='attention');
     const criticalDone=critical.filter(s=>s.attended).length;
     const attentionDone=attention.filter(s=>s.attended).length;
-    const criticalPct=critical.length?Math.round(criticalDone/critical.length*100):100;
-    const attentionPct=attention.length?Math.round(attentionDone/attention.length*100):100;
-    // Fidelidad: % del realPath que estuvo dentro de la ruta
-    let routeFidelity=100;
-    if(realPath.length && waypoints.length>=2){
+    // Si no hay paradas marcadas → no se cuenta el componente, redistribuyo a otros
+    const hasCritical=critical.length>0;
+    const hasAttention=attention.length>0;
+    const criticalPct=hasCritical?Math.round(criticalDone/critical.length*100):0;
+    const attentionPct=hasAttention?Math.round(attentionDone/attention.length*100):0;
+    // Fidelidad: 0 por default si no hubo recorrido GPS, sube si estuvo dentro de la ruta
+    let routeFidelity=0;
+    if(realPath.length>=3 && waypoints.length>=2){
       let inRoute=0;
       realPath.forEach(p=>{if(minDistToRoute(p)<=DEVIATION_M)inRoute++;});
       routeFidelity=Math.round(inRoute/realPath.length*100);
     }
-    // Tiempo: no castiga ir lento, premia eficiencia respecto a un baseline
-    const timeEfficiency=85; // simplificado: por ahora valor neutro
-    // Ponderado
+    // Time efficiency: solo si hubo recorrido
+    const timeEfficiency=realPath.length>=3?85:0;
+
+    // Si NO hubo recorrido real → score = 0 directo, sin importar nada
+    if(realPath.length<3 || routeCompletion===0){
+      return {score:0,routeCompletion:0,criticalPct,attentionPct,routeFidelity:0,timeEfficiency:0,
+        critical:{total:critical.length,done:criticalDone},
+        attention:{total:attention.length,done:attentionDone},
+        bonuses:[]};
+    }
+
+    // Pesos dinámicos: si no hay paradas críticas/atención, ese peso va a routeCompletion
+    let wRoute=0.40, wCrit=0.30, wAtt=0.15, wFid=0.10, wTime=0.05;
+    if(!hasCritical){wRoute+=wCrit;wCrit=0;}
+    if(!hasAttention){wRoute+=wAtt;wAtt=0;}
+
     const score=Math.round(
-      routeCompletion*0.40 +
-      criticalPct*0.30 +
-      attentionPct*0.15 +
-      routeFidelity*0.10 +
-      timeEfficiency*0.05
+      routeCompletion*wRoute +
+      criticalPct*wCrit +
+      attentionPct*wAtt +
+      routeFidelity*wFid +
+      timeEfficiency*wTime
     );
-    const finalScore=Math.min(100,score+(bonusReturnedToTrack?10:0)+(criticalPct===100&&critical.length?5:0));
+    const bonuses=[];
+    if(bonusReturnedToTrack)bonuses.push('regreso_a_tramo_pendiente');
+    if(hasCritical && criticalPct===100)bonuses.push('criticas_100pct');
+    let finalScore=score;
+    if(bonusReturnedToTrack)finalScore+=10;
+    if(hasCritical && criticalPct===100)finalScore+=5;
+    finalScore=Math.min(100,Math.max(0,finalScore));
     return {score:finalScore,routeCompletion,criticalPct,attentionPct,routeFidelity,timeEfficiency,
       critical:{total:critical.length,done:criticalDone},
       attention:{total:attention.length,done:attentionDone},
-      bonuses:[
-        ...(bonusReturnedToTrack?['regreso_a_tramo_pendiente']:[]),
-        ...(criticalPct===100&&critical.length?['criticas_100pct']:[])
-      ]};
+      bonuses};
   }
   function ratingLabel(n){
     if(n>=95)return {lbl:'Excelente',color:'#10b981',icon:'🏆'};
@@ -2370,20 +2389,28 @@
       sections:[{properties:{},children:children}]
     });
     Packer.toBlob(doc).then(blob=>{
+      // Forzar el MIME type correcto del .docx
+      const docxBlob=new Blob([blob],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
       const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
+      a.href=URL.createObjectURL(docxBlob);
       a.download='indicaciones_'+new Date().toISOString().slice(0,10)+'.docx';
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(a.href);
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(a.href),2000);
       toast('Word descargado ✓');
     }).catch(err=>{
-      console.error(err);
-      toast('Error generando el Word');
+      console.error('Error Word:',err);
+      toast('Error generando el Word: '+err.message);
     });
   }
 
   document.getElementById('exportWord').addEventListener('click',()=>{
     if(waypoints.length<2){toast('Marca al menos 2 puntos');return;}
+    if(typeof docx==='undefined' || !docx.Document){
+      toast('Librería Word aún cargando · espera 3 segundos y reintenta');
+      return;
+    }
     // Si no hay referencias aún, abrir modal; si ya hay, generar directo
     if(!routeRefs.start && !routeRefs.end)fillReferences();
     else generateWordDoc();
