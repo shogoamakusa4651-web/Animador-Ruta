@@ -458,6 +458,26 @@
     font-family:-apple-system,'Segoe UI',sans-serif;font-size:12px;color:#8C887E;}
   .fb-status.hide{display:none;}
   .fb-dot{width:8px;height:8px;border-radius:50%;background:#A8A398;display:inline-block;}
+  /* ===== PANEL SUPERVISOR EN VIVO (Fase 3) ===== */
+  .sup-panel{position:fixed;top:14px;left:14px;z-index:2500;width:282px;max-height:calc(100vh - 28px);
+    background:#ECEAE3;border:1px solid rgba(68,65,58,0.12);border-radius:18px;padding:14px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#44413A;display:flex;flex-direction:column;}
+  .sup-panel.hide{display:none;}
+  .sup-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .sup-hdot{width:9px;height:9px;border-radius:50%;background:#7E9B86;display:inline-block;}
+  .sup-title{font-size:15px;font-weight:600;flex:1;}
+  .sup-count{font-size:12px;color:#8C887E;background:rgba(68,65,58,0.06);padding:2px 9px;border-radius:10px;}
+  .sup-list{overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+  .sup-card{background:#FBFAF6;border:1px solid rgba(68,65,58,0.09);border-radius:13px;padding:10px 12px;cursor:pointer;}
+  .sup-card:hover{border-color:#7E9B86;}
+  .sup-row1{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+  .sup-cdot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block;}
+  .sup-code{font-size:14px;font-weight:600;flex:1;}
+  .sup-badge{font-size:11px;padding:2px 8px;border-radius:20px;}
+  .sup-meta{font-size:11.5px;color:#A8A398;padding-left:15px;}
+  .sup-empty{font-size:12.5px;color:#A8A398;text-align:center;padding:16px 8px;}
+  .sup-marker{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;
+    color:#fff;font-size:11px;font-weight:700;font-family:-apple-system,sans-serif;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);}
 </style>
 </head>
 <body>
@@ -640,6 +660,12 @@
       <p class="acc-sub">Listo, <b id="choferCodeShow">CH-00</b>. La transmisión en vivo se activa en la Fase 2.</p>
     </div>
   </div>
+</div>
+
+<div class="sup-panel hide" id="supPanel">
+  <div class="sup-head"><span class="sup-hdot"></span><span class="sup-title">Supervisor · en vivo</span><span class="sup-count" id="supCount">0</span></div>
+  <div class="sup-list" id="supList"></div>
+  <div class="sup-empty" id="supEmpty">Esperando camiones en ruta…</div>
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
@@ -1365,6 +1391,50 @@
     if(fbConnected) setFbStatus('on');
   }
   window.addEventListener('beforeunload',()=>{ if(txTimer) stopTx('offline'); });
+
+  // ===== SUPERVISOR EN VIVO (Fase 3) =====
+  let supMarkers={}, supSub=false, supLast=null, supTick=null;
+  function hexA(hex,a){ const n=parseInt(hex.slice(1),16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')'; }
+  function statusOf(t){
+    const age=(Date.now()-(t.ts||0))/1000;
+    if(t.status==='offline'||t.status==='termino') return {label:t.status==='termino'?'terminó':'desconectado',c:'#8098A8'};
+    if(age>30) return {label:'sin señal',c:'#BD8475'};
+    return {label:'en ruta',c:'#7E9B86'};
+  }
+  function renderSupervisor(data){
+    const list=document.getElementById('supList'), empty=document.getElementById('supEmpty'), count=document.getElementById('supCount');
+    if(!list)return;
+    const ids=data?Object.keys(data):[];
+    Object.keys(supMarkers).forEach(id=>{ if(!data||!data[id]){ map.removeLayer(supMarkers[id]); delete supMarkers[id]; } });
+    list.innerHTML=''; let n=0;
+    ids.forEach(id=>{
+      const t=data[id]; if(!t)return;
+      const st=statusOf(t);
+      if(t.lat!=null && t.lng!=null){
+        const icon=L.divIcon({html:'<div class="sup-marker" style="background:'+st.c+'">'+String(t.code||id).replace('CH-','')+'</div>',className:'',iconSize:[30,30],iconAnchor:[15,15]});
+        if(supMarkers[id]){ supMarkers[id].setLatLng([t.lat,t.lng]).setIcon(icon); }
+        else { supMarkers[id]=L.marker([t.lat,t.lng],{icon:icon,zIndexOffset:1000}).addTo(map); }
+      }
+      const age=Math.max(0,Math.round((Date.now()-(t.ts||0))/1000));
+      const ageTx=age<60?('hace '+age+'s'):('hace '+Math.round(age/60)+' min');
+      const prog=(t.progress!=null)?(' · '+t.progress+'%'):'';
+      const card=document.createElement('div'); card.className='sup-card';
+      card.innerHTML='<div class="sup-row1"><span class="sup-cdot" style="background:'+st.c+'"></span>'
+        +'<span class="sup-code">'+(t.code||id)+'</span>'
+        +'<span class="sup-badge" style="background:'+hexA(st.c,0.16)+';color:'+st.c+'">'+st.label+'</span></div>'
+        +'<div class="sup-meta">'+(t.route||'sin ruta')+prog+' · '+ageTx+'</div>';
+      if(t.lat!=null && t.lng!=null) card.addEventListener('click',()=>map.setView([t.lat,t.lng],17,{animate:true}));
+      list.appendChild(card); n++;
+    });
+    count.textContent=n; empty.style.display=n?'none':'block';
+  }
+  function startSupervisor(){
+    const p=document.getElementById('panel'); if(p)p.style.display='none';
+    document.getElementById('supPanel').classList.remove('hide');
+    if(!fbDb){ document.getElementById('supEmpty').textContent='Sin conexión a Firebase.'; return; }
+    if(!supSub){ supSub=true; fbDb.ref('live').on('value', s=>{ supLast=s.val(); renderSupervisor(supLast); }); }
+    if(!supTick){ supTick=setInterval(()=>renderSupervisor(supLast), 5000); }
+  }
   function gateError(id){
     const c=document.querySelector('#'+id+' .acc-card'); if(!c)return;
     c.style.animation='none'; void c.offsetWidth; c.style.animation='accShake .35s';
@@ -1375,7 +1445,7 @@
       if(v===ACCESS_KEYS.adm){ enterAdmApp(); }
       else gateError('admGate'); });
     bind('supEnter',()=>{ const v=(document.getElementById('supKeyIn').value||'').trim();
-      if(v===ACCESS_KEYS.sup){ document.getElementById('supForm').classList.add('hide'); document.getElementById('supOk').classList.remove('hide'); }
+      if(v===ACCESS_KEYS.sup){ document.getElementById('supGate').classList.add('hide'); startSupervisor(); }
       else gateError('supGate'); });
     bind('choferEnter',()=>{ const n=(document.getElementById('choferNum').value||'').trim();
       if(/^\d+$/.test(n)){ choferCode='CH-'+n.padStart(2,'0');
