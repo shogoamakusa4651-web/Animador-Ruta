@@ -761,6 +761,13 @@
     <div class="stat"><b id="dist">0.00</b><span>Kilómetros</span></div>
   </div>
 
+  <!-- Trazado -->
+  <div class="section edit-only">
+    <div class="section-title">Trazado</div>
+    <button class="btn" id="drawToggle">✏️ Activar trazado</button>
+    <div style="font-size:11px;color:var(--txt-dim);margin-top:6px;">Actívalo para marcar puntos con clic. Apágalo para mover el mapa sin crear puntos.</div>
+  </div>
+
   <!-- Propuesta KMZ -->
   <div class="section edit-only">
     <div class="section-title">Propuesta</div>
@@ -1047,12 +1054,20 @@
     setPlayLabel('▶','Reproducir');
   }
 
+  let drawMode=false;
   function addPoint(latlng){
     if(playing||viewMode)return;
     if(stopModeActive){openStopModalForCoord(latlng.lat,latlng.lng);return;}
+    if(!drawMode)return;
     waypoints.push([latlng.lat,latlng.lng]);renderMarkers();refresh();resetAnim();
   }
   map.on('click',e=>addPoint(e.latlng));
+  const drawBtn=document.getElementById('drawToggle');
+  function setDrawMode(on){ drawMode=on;
+    if(drawBtn){ drawBtn.classList.toggle('accent',on); drawBtn.textContent=on?'✏️ Trazado activo':'✏️ Activar trazado'; }
+    const mp=document.getElementById('map'); if(mp)mp.style.cursor=on?'crosshair':'';
+  }
+  if(drawBtn) drawBtn.addEventListener('click',()=>setDrawMode(!drawMode));
 
   // Alt + click derecho → deshacer
   map.on('contextmenu',e=>{
