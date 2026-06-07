@@ -14,22 +14,23 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
 <style>
   :root{
-    --bg:#0a0e14;
-    --glass:rgba(18,22,30,0.78);
-    --glass-2:rgba(255,255,255,0.04);
-    --glass-3:rgba(255,255,255,0.08);
-    --brd:rgba(255,255,255,0.1);
-    --brd-2:rgba(255,255,255,0.16);
-    --accent:#ff7a18;
-    --accent-soft:rgba(255,122,24,0.15);
-    --accent2:#ffd166;
-    --guide:#3da5ff;
-    --view:#a67bff;
-    --txt:#f2f4f8;
-    --txt-2:#c8cdd6;
-    --txt-dim:#8a93a3;
-    --ok:#34d399;
-    --danger:#ef4444;
+    --bg:#ECEAE3;
+    --glass:rgba(247,245,240,0.86);
+    --glass-2:rgba(68,65,58,0.05);
+    --glass-3:rgba(68,65,58,0.09);
+    --brd:rgba(68,65,58,0.12);
+    --brd-2:rgba(68,65,58,0.20);
+    --accent:#7E9B86;
+    --accent-soft:rgba(126,155,134,0.16);
+    --accent2:#C7A765;
+    --guide:#8098A8;
+    --view:#9A8FB0;
+    --txt:#44413A;
+    --txt-2:#6B675F;
+    --txt-dim:#8C887E;
+    --ok:#6FA98A;
+    --danger:#C0705F;
+    --orange:#7E9B86;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -116,7 +117,7 @@
   }
   .player-controls{display:flex;align-items:center;gap:10px;}
   .play-main{
-    flex:1;background:linear-gradient(135deg,var(--accent),#ff9d4d);color:#1a0e00;
+    flex:1;background:var(--accent);color:#fff;
     border:none;border-radius:14px;padding:13px;font-size:15px;font-weight:700;
     cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px;
     box-shadow:0 4px 16px rgba(255,122,24,.25);
@@ -214,14 +215,14 @@
   .step{display:flex;gap:12px;align-items:flex-start;}
   .step .n{
     flex:none;width:26px;height:26px;border-radius:50%;
-    background:linear-gradient(135deg,var(--accent),#ff9d4d);color:#1a0e00;
+    background:var(--accent);color:#fff;
     font-weight:800;font-size:12.5px;display:flex;align-items:center;justify-content:center;
   }
   .step .tx{font-size:13px;line-height:1.5;color:var(--txt-2);}
   .step .tx b{color:var(--txt);}
   .card .primary-action{
     width:100%;margin-top:18px;border:none;border-radius:14px;padding:13px;font-size:15px;font-weight:700;
-    cursor:pointer;background:linear-gradient(135deg,var(--accent),#ff9d4d);color:#1a0e00;transition:.15s;
+    cursor:pointer;background:var(--accent);color:#fff;transition:.15s;
     box-shadow:0 4px 16px rgba(255,122,24,.25);
   }
   .card .primary-action:hover{filter:brightness(1.08);transform:translateY(-1px);}
@@ -232,7 +233,7 @@
   .car-wrap{transition:transform .08s linear;will-change:transform;}
   .car-wrap svg{display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6));}
   .wp-num{
-    background:var(--accent);color:#1a0e00;border-radius:50%;width:26px;height:26px;
+    background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;
     display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;
     border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.5);cursor:grab;
   }
@@ -432,7 +433,7 @@
   .acc h2{font-size:25px;font-weight:500;letter-spacing:-.4px;margin:0 0 6px;color:#44413A;}
   .acc-sub{font-size:14px;color:#8C887E;margin:0 0 24px;line-height:1.5;}
   .acc-in{width:100%;height:52px;padding:0 16px;font-size:16px;color:#44413A;background:#FBFAF6;
-    border:1px solid rgba(68,65,58,0.14);border-radius:14px;outline:none;font-family:inherit;margin-bottom:14px;}
+    border:1px solid rgba(68,65,58,0.14);border-radius:14px;outline:none;font-family:inherit;margin-bottom:22px;}
   .acc-in:focus{border-color:#7E9B86;}
   .acc-in::placeholder{color:#A8A398;}
   .acc-btn{width:100%;height:52px;border:none;border-radius:14px;background:#7E9B86;color:#fff;
@@ -541,7 +542,7 @@
     </div>
     <textarea class="stop-note-input" id="stopNote" placeholder="Detalle opcional (ej: acumulación grande detrás del colmado)"></textarea>
     <div class="row" style="margin-top:12px;">
-      <button class="btn" id="stopSave" style="flex:1;background:linear-gradient(135deg,#ff7a18,#ff9b3d);color:#fff;border:none;font-weight:700;">Guardar</button>
+      <button class="btn" id="stopSave" style="flex:1;background:var(--accent);color:#fff;border:none;font-weight:700;">Guardar</button>
       <button class="btn" id="stopRemove" title="Quitar marca">🗑</button>
     </div>
   </div>
@@ -589,7 +590,7 @@
       <input type="text" id="refEnd" placeholder="Buscando…" class="stop-note-input" style="margin-top:4px;min-height:auto;padding:10px 12px;">
     </div>
     <div class="row" style="margin-top:14px;">
-      <button class="btn" id="refsSave" style="flex:1;background:linear-gradient(135deg,#ff7a18,#ff9b3d);color:#fff;border:none;font-weight:700;">✓ Guardar y generar Word</button>
+      <button class="btn" id="refsSave" style="flex:1;background:var(--accent);color:#fff;border:none;font-weight:700;">✓ Guardar y generar Word</button>
     </div>
     <button class="btn" id="refsSkip" style="width:100%;margin-top:6px;font-size:11px;color:var(--txt-dim);">Omitir y generar Word sin referencias</button>
   </div>
@@ -697,11 +698,12 @@
     <div class="mgmt-sec" style="margin-top:18px">Supervisores <span style="color:#A8A398">· Sup</span></div>
     <div class="mgmt-add"><input class="mgmt-in" id="spName" placeholder="Nombre del supervisor"><button class="mgmt-addbtn" id="spAdd">Agregar</button></div>
     <div id="spList"></div>
+    <button id="mgmtLogout" style="width:100%;margin-top:20px;height:44px;border:1px solid rgba(192,112,95,0.45);background:transparent;color:#C0705F;border-radius:12px;font-size:14px;font-family:inherit;cursor:pointer;">Cerrar sesión</button>
   </div>
 </div>
 
 <div class="sup-panel hide" id="supPanel">
-  <div class="sup-head"><span class="sup-hdot"></span><span class="sup-title">Supervisor · en vivo</span><span class="sup-count" id="supCount">0</span></div>
+  <div class="sup-head"><span class="sup-hdot"></span><span class="sup-title">Supervisor · en vivo</span><span class="sup-count" id="supCount">0</span><button id="supExit" title="Cerrar sesión" style="border:none;background:transparent;color:#C0705F;cursor:pointer;font-size:12px;margin-left:8px;">Salir</button></div>
   <div class="sup-list" id="supList"></div>
   <div class="sup-empty" id="supEmpty">Esperando camiones en ruta…</div>
 </div>
@@ -958,7 +960,7 @@
 
   const carSVG=`<div class="car-wrap"><svg width="36" height="36" viewBox="0 0 34 34">
     <ellipse cx="17" cy="29" rx="9" ry="2.5" fill="rgba(0,0,0,.4)"/>
-    <rect x="9" y="6" width="16" height="22" rx="5" fill="#ff7a18" stroke="#fff" stroke-width="1.5"/>
+    <rect x="9" y="6" width="16" height="22" rx="5" fill="#7E9B86" stroke="#fff" stroke-width="1.5"/>
     <rect x="11.5" y="9" width="11" height="6" rx="2.5" fill="#bfe3ff"/>
     <rect x="11.5" y="19" width="11" height="5" rx="2" fill="#7a3a00"/>
     <circle cx="11" cy="11.5" r="1.6" fill="#fff"/><circle cx="23" cy="11.5" r="1.6" fill="#fff"/>
@@ -1224,7 +1226,7 @@
   function drawProgress(traveled,segs){
     const done=[];for(const s of segs){if(s.start+s.d<=traveled)done.push(s.a,s.b);else{done.push(s.a);break;}}
     const pos=placeCarAt(traveled,segs);
-    if(!progLine)progLine=L.polyline([...done,pos],{color:'#ff7a18',weight:5,opacity:.95}).addTo(map);
+    if(!progLine)progLine=L.polyline([...done,pos],{color:'#7E9B86',weight:5,opacity:.95}).addTo(map);
     else progLine.setLatLngs([...done,pos]);
     return pos;
   }
@@ -1519,7 +1521,7 @@
       if(v===ACCESS_KEYS.adm){ enterAdmApp(); }
       else gateError('admGate'); });
     bind('supEnter',()=>{ const v=(document.getElementById('supKeyIn').value||'').trim();
-      if(v===ACCESS_KEYS.sup){ document.getElementById('supGate').classList.add('hide'); startSupervisor(); }
+      if(v===ACCESS_KEYS.sup){ try{localStorage.setItem('animador_role','sup');}catch(_){} document.getElementById('supGate').classList.add('hide'); startSupervisor(); }
       else gateError('supGate'); });
     bind('choferEnter', async ()=>{ const n=(document.getElementById('choferNum').value||'').trim();
       const err=document.getElementById('choferErr');
@@ -1534,10 +1536,15 @@
       startTx(); startGps(true); });
     const onEnter=(id,btn)=>{const e=document.getElementById(id); if(e)e.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();const b=document.getElementById(btn);if(b)b.click();}});};
     onEnter('admKeyIn','admEnter'); onEnter('supKeyIn','supEnter'); onEnter('choferNum','choferEnter');
+    const se=document.getElementById('supExit'); if(se)se.addEventListener('click',logout);
+    const ml=document.getElementById('mgmtLogout'); if(ml)ml.addEventListener('click',logout);
     mgmtSetup();
   }
+  function savedRole(){ try{return localStorage.getItem('animador_role');}catch(_){return null;} }
+  function logout(){ try{localStorage.removeItem('animador_role');}catch(_){} location.reload(); }
   function enterAdmApp(){
     const g=document.getElementById('admGate'); if(g)g.classList.add('hide');
+    try{localStorage.setItem('animador_role','adm');}catch(_){}
     const b=document.getElementById('mgmtBtn'); if(b)b.classList.add('show');
     startMgmt();
     const h=location.hash||'';
@@ -1562,7 +1569,9 @@
       hideWelcome(); document.getElementById('choferGate').classList.remove('hide'); return true;
     }
     // Supervisor
-    if(mode==='sup'){ userRole='supervisor'; hideWelcome(); document.getElementById('supGate').classList.remove('hide'); return true; }
+    if(mode==='sup'){ userRole='supervisor'; hideWelcome();
+      if(savedRole()==='sup'){ startSupervisor(); } else { document.getElementById('supGate').classList.remove('hide'); }
+      return true; }
     // Presentación de SOLO LECTURA (link de ver) — abierto, no permite editar
     if(raw.indexOf('v=')===0){
       const v=param('v');
@@ -1571,7 +1580,7 @@
     // TODO lo demás (plano, #adm, #r=, lo que sea) exige clave de ADM
     userRole='adm';
     hideWelcome();
-    document.getElementById('admGate').classList.remove('hide');
+    if(savedRole()==='adm'){ enterAdmApp(); } else { document.getElementById('admGate').classList.remove('hide'); }
     return true;
   }
 
