@@ -1314,10 +1314,11 @@
   const ACCESS_KEYS={adm:'adm2026', sup:'sup2026'};
 
   let fbApp=null, fbDb=null, fbConnected=false, userRole=null, choferCode=null;
+  let txTimer=null;
 
   function setFbStatus(state){
     const el=document.getElementById('fbStatus'); if(!el)return;
-    const m={on:['#7E9B86','conectado'],off:['#BD8475','sin conexión'],wait:['#C7A765','conectando…'],nolib:['#BD8475','librería no cargó']};
+    const m={on:['#7E9B86','conectado'],off:['#BD8475','sin conexión'],wait:['#C7A765','conectando…'],tx:['#7E9B86','transmitiendo'],nolib:['#BD8475','librería no cargó']};
     const v=m[state]||m.off;
     const dot=el.querySelector('.fb-dot'); if(dot)dot.style.background=v[0];
     const tx=el.querySelector('.fb-tx'); if(tx)tx.textContent='Firebase: '+v[1];
@@ -1333,6 +1334,37 @@
       fbDb.ref('.info/connected').on('value', s=>{ fbConnected=(s.val()===true); setFbStatus(fbConnected?'on':'off'); });
     }catch(e){ console.warn('Firebase init falló:',e); setFbStatus('off'); }
   }
+
+  // ===== TRANSMISIÓN DEL CHOFER (Fase 2) =====
+  function txId(){ return (choferCode||'CH-00').replace(/[.#$\[\]\/]/g,'_'); }
+  function writeTx(){
+    if(!fbDb || !choferCode) return;
+    const p=lastTruckPos;
+    let progress=null;
+    if(waypoints && waypoints.length){ progress=Math.round((doneWps.size/waypoints.length)*100); }
+    const data={
+      code: choferCode,
+      lat: p?p[0]:null,
+      lng: p?p[1]:null,
+      progress: progress,
+      status: 'en_ruta',
+      route: (routeRefs&&routeRefs.title)?routeRefs.title:null,
+      ts: Date.now()
+    };
+    try{ fbDb.ref('live/'+txId()).update(data); }catch(e){ console.warn('tx',e); }
+  }
+  function startTx(){
+    if(txTimer) return;
+    setFbStatus('tx');
+    writeTx();
+    txTimer=setInterval(writeTx, 5000);
+  }
+  function stopTx(finalStatus){
+    if(txTimer){ clearInterval(txTimer); txTimer=null; }
+    if(fbDb && choferCode){ try{ fbDb.ref('live/'+txId()).update({status: finalStatus||'offline', ts: Date.now()}); }catch(e){} }
+    if(fbConnected) setFbStatus('on');
+  }
+  window.addEventListener('beforeunload',()=>{ if(txTimer) stopTx('offline'); });
   function gateError(id){
     const c=document.querySelector('#'+id+' .acc-card'); if(!c)return;
     c.style.animation='none'; void c.offsetWidth; c.style.animation='accShake .35s';
@@ -1340,24 +1372,34 @@
   function accSetup(){
     const bind=(id,fn)=>{const e=document.getElementById(id); if(e)e.addEventListener('click',fn);};
     bind('admEnter',()=>{ const v=(document.getElementById('admKeyIn').value||'').trim();
-      if(v===ACCESS_KEYS.adm){ document.getElementById('admGate').classList.add('hide'); }
+      if(v===ACCESS_KEYS.adm){ enterAdmApp(); }
       else gateError('admGate'); });
     bind('supEnter',()=>{ const v=(document.getElementById('supKeyIn').value||'').trim();
       if(v===ACCESS_KEYS.sup){ document.getElementById('supForm').classList.add('hide'); document.getElementById('supOk').classList.remove('hide'); }
       else gateError('supGate'); });
     bind('choferEnter',()=>{ const n=(document.getElementById('choferNum').value||'').trim();
-      if(/^\d+$/.test(n)){ choferCode='CH-'+n; document.getElementById('choferCodeShow').textContent=choferCode;
-        document.getElementById('choferForm').classList.add('hide'); document.getElementById('choferOk').classList.remove('hide'); }
+      if(/^\d+$/.test(n)){ choferCode='CH-'+n.padStart(2,'0');
+        document.getElementById('choferGate').classList.add('hide');
+        startTx(); startGps(true); }
       else gateError('choferGate'); });
     const onEnter=(id,btn)=>{const e=document.getElementById(id); if(e)e.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();const b=document.getElementById(btn);if(b)b.click();}});};
     onEnter('admKeyIn','admEnter'); onEnter('supKeyIn','supEnter'); onEnter('choferNum','choferEnter');
   }
+  function enterAdmApp(){
+    const g=document.getElementById('admGate'); if(g)g.classList.add('hide');
+    const h=location.hash||'';
+    let rParam=null;
+    const parts=h.replace(/^#/,'').split('&');
+    for(const p of parts){ if(p.indexOf('r=')===0){ rParam=p.slice(2); break; } }
+    if(rParam){ const pts=decode(rParam); if(pts)loadRoute(pts); }
+    hideWelcome();
+  }
   function routeAccess(){
     const raw=(location.hash||'').replace(/^#/,'');
-    if(!raw)return false;
     const parts=raw.split('&');
     const mode=parts[0];
     const param=(k)=>{ for(const p of parts){ if(p.indexOf(k+'=')===0)return p.slice(k.length+1); } return null; };
+    // Chofer: link de ruta
     if(mode==='chofer'){
       userRole='chofer';
       const r=param('r'), v=param('v');
@@ -1366,9 +1408,18 @@
       if(routeRefs&&routeRefs.title){const rn=document.getElementById('choferRoute'); if(rn)rn.textContent=routeRefs.title;}
       hideWelcome(); document.getElementById('choferGate').classList.remove('hide'); return true;
     }
+    // Supervisor
     if(mode==='sup'){ userRole='supervisor'; hideWelcome(); document.getElementById('supGate').classList.remove('hide'); return true; }
-    if(mode==='adm'){ userRole='adm'; hideWelcome(); document.getElementById('admGate').classList.remove('hide'); return true; }
-    return false;
+    // Presentación de SOLO LECTURA (link de ver) — abierto, no permite editar
+    if(raw.indexOf('v=')===0){
+      const v=param('v');
+      if(v){ const pts=decode(v); if(pts){ activateViewMode(); loadRoute(pts); hideWelcome(); return true; } }
+    }
+    // TODO lo demás (plano, #adm, #r=, lo que sea) exige clave de ADM
+    userRole='adm';
+    hideWelcome();
+    document.getElementById('admGate').classList.remove('hide');
+    return true;
   }
 
   (function init(){
@@ -1966,6 +2017,7 @@
     document.getElementById('turnCard').classList.remove('show');
     if(truckMarker){map.removeLayer(truckMarker);truckMarker=null;}
     if(accuracyCircle){map.removeLayer(accuracyCircle);accuracyCircle=null;}
+    stopTx('offline');
     try{window.speechSynthesis.cancel();}catch(_){}
   }
 
