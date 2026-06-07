@@ -478,6 +478,30 @@
   .sup-empty{font-size:12.5px;color:#A8A398;text-align:center;padding:16px 8px;}
   .sup-marker{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;
     color:#fff;font-size:11px;font-weight:700;font-family:-apple-system,sans-serif;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);}
+  /* ===== GESTIÓN ADM (Fase 4) ===== */
+  .mgmt-btn{position:fixed;right:16px;bottom:16px;z-index:2400;display:none;align-items:center;gap:7px;
+    background:#7E9B86;color:#fff;border:none;border-radius:24px;padding:11px 16px;font-size:14px;font-weight:500;
+    font-family:-apple-system,'Segoe UI',sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.18);}
+  .mgmt-btn.show{display:inline-flex;}
+  .mgmt-ov{position:fixed;inset:0;z-index:3200;display:none;align-items:center;justify-content:center;
+    background:rgba(40,38,34,0.35);font-family:-apple-system,'Segoe UI',sans-serif;padding:20px;}
+  .mgmt-ov.show{display:flex;}
+  .mgmt-card{width:100%;max-width:460px;max-height:86vh;overflow-y:auto;background:#ECEAE3;border-radius:22px;padding:20px;color:#44413A;}
+  .mgmt-h{display:flex;align-items:center;margin-bottom:10px;}
+  .mgmt-h h2{font-size:19px;font-weight:600;flex:1;margin:0;}
+  .mgmt-x{border:none;background:transparent;font-size:22px;color:#8C887E;cursor:pointer;line-height:1;}
+  .mgmt-sec{font-size:13px;color:#8C887E;margin:14px 0 8px;}
+  .mgmt-add{display:flex;gap:8px;margin-bottom:10px;}
+  .mgmt-in{flex:1;height:44px;padding:0 14px;font-size:15px;color:#44413A;background:#FBFAF6;border:1px solid rgba(68,65,58,0.14);border-radius:12px;outline:none;font-family:inherit;}
+  .mgmt-in:focus{border-color:#7E9B86;}
+  .mgmt-addbtn{height:44px;padding:0 16px;border:none;border-radius:12px;background:#7E9B86;color:#fff;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;}
+  .mgmt-item{display:flex;align-items:center;gap:10px;background:#FBFAF6;border:1px solid rgba(68,65,58,0.09);border-radius:12px;padding:9px 12px;margin-bottom:7px;}
+  .mgmt-code{font-family:ui-monospace,'SF Mono',monospace;font-size:12.5px;padding:3px 9px;border-radius:8px;background:rgba(126,155,134,0.16);color:#3E5C49;}
+  .mgmt-name{flex:1;font-size:14px;}
+  .mgmt-del{border:none;background:transparent;color:#BD8475;cursor:pointer;font-size:16px;}
+  .mgmt-empty{font-size:12px;color:#A8A398;padding:4px 2px 10px;}
+  .acc-err{color:#9A5C4D;font-size:12.5px;text-align:center;margin:-12px 0 14px;}
+  .acc-err.hide{display:none;}
 </style>
 </head>
 <body>
@@ -651,6 +675,7 @@
         <span class="acc-prefix">CH-</span>
         <input class="acc-codein" id="choferNum" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="00" maxlength="4" autocomplete="off">
       </div>
+      <div class="acc-err hide" id="choferErr">Código no registrado</div>
       <div class="acc-priv"><span>Tu ubicación se compartirá con tu supervisor mientras dure la ruta.</span></div>
       <button class="acc-btn" id="choferEnter">Empezar ruta</button>
     </div>
@@ -659,6 +684,19 @@
       <h2>Conectado</h2>
       <p class="acc-sub">Listo, <b id="choferCodeShow">CH-00</b>. La transmisión en vivo se activa en la Fase 2.</p>
     </div>
+  </div>
+</div>
+
+<button class="mgmt-btn" id="mgmtBtn">⚙ Gestión</button>
+<div class="mgmt-ov" id="mgmtOv">
+  <div class="mgmt-card">
+    <div class="mgmt-h"><h2>Gestión</h2><button class="mgmt-x" id="mgmtX">×</button></div>
+    <div class="mgmt-sec">Choferes <span style="color:#A8A398">· CH</span></div>
+    <div class="mgmt-add"><input class="mgmt-in" id="chName" placeholder="Nombre del chofer"><button class="mgmt-addbtn" id="chAdd">Agregar</button></div>
+    <div id="chList"></div>
+    <div class="mgmt-sec" style="margin-top:18px">Supervisores <span style="color:#A8A398">· Sup</span></div>
+    <div class="mgmt-add"><input class="mgmt-in" id="spName" placeholder="Nombre del supervisor"><button class="mgmt-addbtn" id="spAdd">Agregar</button></div>
+    <div id="spList"></div>
   </div>
 </div>
 
@@ -1340,7 +1378,7 @@
   const ACCESS_KEYS={adm:'adm2026', sup:'sup2026'};
 
   let fbApp=null, fbDb=null, fbConnected=false, userRole=null, choferCode=null;
-  let txTimer=null;
+  let txTimer=null, choferName=null;
 
   function setFbStatus(state){
     const el=document.getElementById('fbStatus'); if(!el)return;
@@ -1370,6 +1408,7 @@
     if(waypoints && waypoints.length){ progress=Math.round((doneWps.size/waypoints.length)*100); }
     const data={
       code: choferCode,
+      name: choferName,
       lat: p?p[0]:null,
       lng: p?p[1]:null,
       progress: progress,
@@ -1422,7 +1461,7 @@
       card.innerHTML='<div class="sup-row1"><span class="sup-cdot" style="background:'+st.c+'"></span>'
         +'<span class="sup-code">'+(t.code||id)+'</span>'
         +'<span class="sup-badge" style="background:'+hexA(st.c,0.16)+';color:'+st.c+'">'+st.label+'</span></div>'
-        +'<div class="sup-meta">'+(t.route||'sin ruta')+prog+' · '+ageTx+'</div>';
+        +'<div class="sup-meta">'+(t.name?(t.name+' · '):'')+(t.route||'sin ruta')+prog+' · '+ageTx+'</div>';
       if(t.lat!=null && t.lng!=null) card.addEventListener('click',()=>map.setView([t.lat,t.lng],17,{animate:true}));
       list.appendChild(card); n++;
     });
@@ -1434,6 +1473,41 @@
     if(!fbDb){ document.getElementById('supEmpty').textContent='Sin conexión a Firebase.'; return; }
     if(!supSub){ supSub=true; fbDb.ref('live').on('value', s=>{ supLast=s.val(); renderSupervisor(supLast); }); }
     if(!supTick){ supTick=setInterval(()=>renderSupervisor(supLast), 5000); }
+  }
+
+  // ===== GESTIÓN ADM: choferes y supervisores con código (Fase 4) =====
+  let mgmtChoferes={}, mgmtSup={}, mgmtSub=false;
+  function fbKey(c){ return c.replace(/[.#$\[\]\/]/g,'_'); }
+  function nextCode(prefix,obj){ let max=0; if(obj)Object.keys(obj).forEach(k=>{const m=k.match(/(\d+)$/);if(m){const v=parseInt(m[1],10);if(v>max)max=v;}}); return prefix+String(max+1).padStart(2,'0'); }
+  function mgmtList(elId,data,onDel){
+    const el=document.getElementById(elId); if(!el)return;
+    const ids=data?Object.keys(data):[];
+    if(!ids.length){ el.innerHTML='<div class="mgmt-empty">Ninguno todavía.</div>'; return; }
+    el.innerHTML=''; ids.sort().forEach(id=>{ const v=data[id]||{};
+      const row=document.createElement('div'); row.className='mgmt-item';
+      row.innerHTML='<span class="mgmt-code">'+id+'</span><span class="mgmt-name">'+(v.name||'')+'</span>';
+      const del=document.createElement('button'); del.className='mgmt-del'; del.textContent='×'; del.title='Quitar';
+      del.addEventListener('click',()=>onDel(id)); row.appendChild(del); el.appendChild(row);
+    });
+  }
+  function startMgmt(){
+    if(!fbDb || mgmtSub) return; mgmtSub=true;
+    fbDb.ref('config/choferes').on('value',s=>{ mgmtChoferes=s.val()||{}; mgmtList('chList',mgmtChoferes,id=>fbDb.ref('config/choferes/'+id).remove()); });
+    fbDb.ref('config/supervisores').on('value',s=>{ mgmtSup=s.val()||{}; mgmtList('spList',mgmtSup,id=>fbDb.ref('config/supervisores/'+id).remove()); });
+  }
+  function mgmtSetup(){
+    const ov=document.getElementById('mgmtOv'); if(!ov)return;
+    const b=document.getElementById('mgmtBtn'); if(b)b.addEventListener('click',()=>ov.classList.add('show'));
+    const x=document.getElementById('mgmtX'); if(x)x.addEventListener('click',()=>ov.classList.remove('show'));
+    ov.addEventListener('click',e=>{ if(e.target===ov)ov.classList.remove('show'); });
+    const chAdd=document.getElementById('chAdd'); if(chAdd)chAdd.addEventListener('click',()=>{
+      const i=document.getElementById('chName'); const name=(i.value||'').trim(); if(!name||!fbDb)return;
+      const code=nextCode('CH-',mgmtChoferes); fbDb.ref('config/choferes/'+fbKey(code)).set({name:name,active:true,ts:Date.now()}); i.value='';
+    });
+    const spAdd=document.getElementById('spAdd'); if(spAdd)spAdd.addEventListener('click',()=>{
+      const i=document.getElementById('spName'); const name=(i.value||'').trim(); if(!name||!fbDb)return;
+      const code=nextCode('Sup-',mgmtSup); fbDb.ref('config/supervisores/'+fbKey(code)).set({name:name,active:true,ts:Date.now()}); i.value='';
+    });
   }
   function gateError(id){
     const c=document.querySelector('#'+id+' .acc-card'); if(!c)return;
@@ -1447,16 +1521,25 @@
     bind('supEnter',()=>{ const v=(document.getElementById('supKeyIn').value||'').trim();
       if(v===ACCESS_KEYS.sup){ document.getElementById('supGate').classList.add('hide'); startSupervisor(); }
       else gateError('supGate'); });
-    bind('choferEnter',()=>{ const n=(document.getElementById('choferNum').value||'').trim();
-      if(/^\d+$/.test(n)){ choferCode='CH-'+n.padStart(2,'0');
-        document.getElementById('choferGate').classList.add('hide');
-        startTx(); startGps(true); }
-      else gateError('choferGate'); });
+    bind('choferEnter', async ()=>{ const n=(document.getElementById('choferNum').value||'').trim();
+      const err=document.getElementById('choferErr');
+      if(!/^\d+$/.test(n)){ if(err)err.classList.remove('hide'); gateError('choferGate'); return; }
+      const code='CH-'+n.padStart(2,'0'); let ok=true, name=null;
+      if(fbDb){ try{ const snap=await fbDb.ref('config/choferes/'+fbKey(code)).once('value'); const v=snap.val();
+          if(v && v.active!==false){ name=v.name||null; } else { ok=false; } }catch(e){ ok=true; } }
+      if(!ok){ if(err)err.classList.remove('hide'); gateError('choferGate'); return; }
+      if(err)err.classList.add('hide');
+      choferCode=code; choferName=name;
+      document.getElementById('choferGate').classList.add('hide');
+      startTx(); startGps(true); });
     const onEnter=(id,btn)=>{const e=document.getElementById(id); if(e)e.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();const b=document.getElementById(btn);if(b)b.click();}});};
     onEnter('admKeyIn','admEnter'); onEnter('supKeyIn','supEnter'); onEnter('choferNum','choferEnter');
+    mgmtSetup();
   }
   function enterAdmApp(){
     const g=document.getElementById('admGate'); if(g)g.classList.add('hide');
+    const b=document.getElementById('mgmtBtn'); if(b)b.classList.add('show');
+    startMgmt();
     const h=location.hash||'';
     let rParam=null;
     const parts=h.replace(/^#/,'').split('&');
