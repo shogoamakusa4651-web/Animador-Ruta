@@ -1032,31 +1032,7 @@
     </div>
   </div>
 
-  <!-- Compartir -->
-  <div class="section edit-only">
-    <div class="section-title">Compartir</div>
-    <div class="tiles">
-      <button class="tile t-link" id="shareLink">
-        <div class="tile-icon">🔗</div>
-        <div class="tile-label">Editable</div>
-      </button>
-      <button class="tile t-view" id="sharePresent">
-        <div class="tile-icon">👁</div>
-        <div class="tile-label">Presentación</div>
-      </button>
-      <button class="tile t-code" id="shareCode">
-        <div class="tile-icon">⧉</div>
-        <div class="tile-label">Código</div>
-      </button>
-    </div>
-    <textarea class="codearea" id="codeIn" placeholder="O pega aquí un código recibido…"></textarea>
-    <div class="row" style="margin-top:8px;">
-      <button class="btn" id="loadCode">Cargar código</button>
-      <button class="btn" id="saveJson" title="Descargar como archivo">⬇</button>
-      <button class="btn" id="loadJsonBtn" title="Subir archivo">⬆</button>
-    </div>
-    <input type="file" id="loadJson" accept=".json" style="display:none">
-  </div>
+
 
   <!-- Mapa -->
   <div class="section">
@@ -1197,8 +1173,10 @@
   function setMarkersVisible(v){ markers.forEach(m=>{ const el=m.getElement(); if(el)el.style.display=v?'':'none'; }); }
   function drawBase(){if(baseLine)map.removeLayer(baseLine); if(startFlag){map.removeLayer(startFlag);startFlag=null;}
     if(waypoints.length>1){
-      const style=viewMode?{color:'#FFC233',weight:5,opacity:.92,dashArray:'1,16',lineCap:'round'}:{color:'#FFC233',weight:5,opacity:.95,dashArray:'1,16',lineCap:'round'};
-      baseLine=L.polyline(waypoints,style).addTo(map);
+      const g=L.layerGroup();
+      L.polyline(waypoints,{color:'#FFFFFF',weight:9,opacity:.8,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+      L.polyline(waypoints,{color:'#E2453C',weight:5,opacity:.97,dashArray:'12,9',lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+      g.addTo(map); baseLine=g;
     }
     if(waypoints.length>=1){
       startFlag=L.marker(waypoints[0],{icon:L.divIcon({html:'<div class="start-flag">🚩</div>',className:'',iconSize:[28,28],iconAnchor:[5,26]}),interactive:false,zIndexOffset:800}).addTo(map);
@@ -1407,7 +1385,7 @@
   function drawProgress(traveled,segs){
     const done=[];for(const s of segs){if(s.start+s.d<=traveled)done.push(s.a,s.b);else{done.push(s.a);break;}}
     const pos=placeCarAt(traveled,segs);
-    if(!progLine)progLine=L.polyline([...done,pos],{color:'#ffffff',weight:5,opacity:.95,lineCap:'round'}).addTo(map);
+    if(!progLine)progLine=L.polyline([...done,pos],{color:'#27A35B',weight:6,opacity:.98,lineCap:'round',lineJoin:'round'}).addTo(map);
     else progLine.setLatLngs([...done,pos]);
     return pos;
   }
@@ -1493,30 +1471,6 @@
   async function copy(text){try{await navigator.clipboard.writeText(text);return true;}
     catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
       document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy');}catch(_){}document.body.removeChild(ta);return ok;}}
-
-  document.getElementById('shareCode').addEventListener('click',async()=>{
-    if(waypoints.length<1){toast('Marca al menos un punto');return;}
-    const c=encode();const ok=await copy(c);document.getElementById('codeIn').value=c;toast(ok?'Código copiado ✓':'Copia el código de abajo');});
-  document.getElementById('shareLink').addEventListener('click',async()=>{
-    if(waypoints.length<1){toast('Marca al menos un punto');return;}
-    const link=location.href.split('#')[0]+'#r='+encode();const ok=await copy(link);
-    document.getElementById('codeIn').value=link;toast(ok?'Enlace editable copiado ✓':'Copia el texto de abajo');});
-  document.getElementById('sharePresent').addEventListener('click',async()=>{
-    if(waypoints.length<1){toast('Marca al menos un punto');return;}
-    const link=location.href.split('#')[0]+'#v='+encode();const ok=await copy(link);
-    document.getElementById('codeIn').value=link;toast(ok?'Enlace de presentación copiado ✓':'Copia el texto de abajo');});
-  document.getElementById('loadCode').addEventListener('click',()=>{
-    let v=document.getElementById('codeIn').value.trim();if(!v){toast('Pega un código primero');return;}
-    if(v.includes('#r='))v=v.split('#r=')[1];else if(v.includes('#v='))v=v.split('#v=')[1];
-    const pts=decode(v);if(pts){loadRoute(pts);toast('Ruta cargada ✓');}else toast('Código no válido');});
-
-  document.getElementById('saveJson').addEventListener('click',()=>{
-    if(waypoints.length<1){toast('Marca al menos un punto');return;}
-    const blob=new Blob([JSON.stringify({waypoints},null,2)],{type:'application/json'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ruta.json';a.click();URL.revokeObjectURL(a.href);toast('Descargado ✓');});
-  document.getElementById('loadJsonBtn').addEventListener('click',()=>document.getElementById('loadJson').click());
-  document.getElementById('loadJson').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
-    r.onload=()=>{try{const j=JSON.parse(r.result);if(j.waypoints?.length){loadRoute(j.waypoints);toast('Ruta cargada ✓');}else toast('Archivo sin ruta');}catch(_){toast('JSON no válido');}};r.readAsText(f);});
 
   async function doSearch(){const q=document.getElementById('q').value.trim();if(!q)return;
     try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q));
@@ -1927,8 +1881,18 @@
         +'<div class="mon-line"><i class="ti ti-user"></i> Chofer: '+(r.choferCode||'sin asignar')+'</div>'
         +'<div class="mon-line"><i class="ti ti-eye"></i> Supervisor: '+(r.supCode||'sin asignar')+'</div>'
         +'<div class="mon-line"><i class="ti ti-calendar"></i> Frecuencia: '+((r.freq&&r.freq.length)?r.freq.join('·'):'sin definir')+'</div></div>'
-        +'<button class="mon-tinybtn" id="rdShowMap" style="width:100%;margin-top:4px;flex:none">Ver trazado en el mapa</button>';
+        +'<button class="mon-tinybtn" id="rdShowMap" style="width:100%;margin-top:4px;flex:none">Ver trazado en el mapa</button>'
+        +'<div class="rd-item" style="margin-top:11px">'
+          +'<div style="font-size:13px;font-weight:600;margin-bottom:2px">Enviar esta ruta</div>'
+          +'<div style="font-size:11px;color:#807E77;margin-bottom:6px">Asigna camión y chofer para este envío y genera el enlace.</div>'
+          +'<label class="fld-lbl">Camión</label><select class="fld" id="dsCamion"></select>'
+          +'<label class="fld-lbl">Chofer</label><select class="fld" id="dsChofer"></select>'
+          +'<label class="fld-lbl">Supervisor (opcional)</label><select class="fld" id="dsSup"></select>'
+          +'<button class="mon-tinybtn" id="dsGen" style="width:100%;margin-top:11px;flex:none"><i class="ti ti-link"></i> Generar enlaces</button>'
+          +'<div id="dsLinks" style="margin-top:10px"></div></div>';
       const sm=document.getElementById('rdShowMap'); if(sm)sm.addEventListener('click',()=>{ showRouteLayer(rdId); fitRoute(rdId); closeRouteDetail(); });
+      fillCamInto('dsCamion',r.camion); fillSelInto('dsChofer',mgmtChoferes,r.choferCode); fillSelInto('dsSup',mgmtSup,r.supCode);
+      const dg=document.getElementById('dsGen'); if(dg)dg.addEventListener('click',genLinks);
     } else if(rdTab==='viajes'){
       const fechas=Object.keys(rdViajes).sort().reverse();
       if(!fechas.length){ body.innerHTML='<div class="rd-empty">Aún no hay viajes registrados.<br>Usa "simular" en una ruta para generar uno de prueba.</div>'; return; }
@@ -1985,6 +1949,28 @@
         +'<div class="mon-line"><i class="ti ti-user"></i> '+(rp.choferCode||'—')+(rp.supCode?(' · Sup '+rp.supCode):'')+'</div>';
       body.appendChild(it); });
   }
+
+  function fillSelInto(id,data,val){ const sel=document.getElementById(id); if(!sel)return; sel.innerHTML='<option value="">(ninguno)</option>'; Object.keys(data||{}).sort().forEach(code=>{ const v=data[code]||{}; const o=document.createElement('option'); o.value=code; o.textContent=code+(v.name?(' · '+v.name):''); sel.appendChild(o); }); sel.value=val||''; }
+  function fillCamInto(id,val){ const sel=document.getElementById(id); if(!sel)return; sel.innerHTML='<option value="">(sin camión)</option>'; Object.keys(mgmtCamiones||{}).sort().forEach(k=>{ const v=mgmtCamiones[k]||{}; const o=document.createElement('option'); o.value=(v.ficha||k); o.textContent=(v.ficha||k)+(v.estado&&v.estado!=='disponible'?(' · '+v.estado):''); sel.appendChild(o); }); sel.value=val||''; }
+  function linkRow(label,url){ const w=document.createElement('div'); w.style.marginBottom='9px';
+    const l=document.createElement('div'); l.className='mon-line'; l.style.color='#807E77'; l.textContent=label; w.appendChild(l);
+    const b=document.createElement('button'); b.className='mon-tinybtn'; b.style.width='100%'; b.style.flex='none'; b.innerHTML='<i class="ti ti-copy"></i> Copiar enlace';
+    b.addEventListener('click',async()=>{ const ok=await copy(url); toast(ok?'Enlace copiado ✓':'No se pudo copiar'); }); w.appendChild(b);
+    const u=document.createElement('div'); u.style.cssText='font-size:10.5px;color:#ABA9A2;word-break:break-all;margin-top:4px'; u.textContent=url; w.appendChild(u);
+    return w; }
+  function genLinks(){ const id=rdId; if(!id)return; const r=mgmtRutas[id]||{};
+    const camion=document.getElementById('dsCamion').value||null;
+    const chofer=document.getElementById('dsChofer').value||null;
+    const sup=document.getElementById('dsSup').value||null;
+    if(!chofer){ toast('Elige un chofer para el envío'); return; }
+    let supAccess=r.supAccess||null; if(sup){ if(!supAccess)supAccess=String(Math.floor(1000+Math.random()*9000)); } else supAccess=null;
+    if(fbDb)fbDb.ref('rutas/'+id).update({camion:camion,choferCode:chofer,supCode:sup,supAccess:supAccess,supActive:true});
+    const base=location.href.split('#')[0];
+    const box=document.getElementById('dsLinks'); box.innerHTML='';
+    box.appendChild(linkRow('Para el chofer '+chofer+(camion?(' · '+camion):''), base+'#chofer&ruta='+id));
+    if(sup){ box.appendChild(linkRow('Para el supervisor '+sup, base+'#sup&ruta='+id));
+      const c=document.createElement('div'); c.className='mon-line'; c.style.color='#23211D'; c.innerHTML='Código del supervisor: <b style="color:#9A6A1C">'+supAccess+'</b>'; box.appendChild(c); }
+    toast('Enlaces generados ✓'); }
 
   function monSetup(){
     const head=document.getElementById('monDashHead');
@@ -2533,8 +2519,8 @@
       realPath.push(p);
       if(realPath.length>=2){
         if(!realLineGlow){
-          realLineGlow=L.polyline(realPath,{color:'#22d3ee',weight:10,opacity:.25,interactive:false}).addTo(map);
-          realLine=L.polyline(realPath,{color:'#22d3ee',weight:4,opacity:.95,interactive:false}).addTo(map);
+          realLineGlow=L.polyline(realPath,{color:'#27A35B',weight:11,opacity:.22,interactive:false}).addTo(map);
+          realLine=L.polyline(realPath,{color:'#27A35B',weight:5,opacity:.97,interactive:false}).addTo(map);
         }else{realLineGlow.setLatLngs(realPath);realLine.setLatLngs(realPath);}
         document.getElementById('exportReal').disabled=false;
       }
@@ -2549,7 +2535,7 @@
     if(waypoints.length && !reachedStart){
       const dStart=haversine(p,waypoints[0]);
       const g=document.getElementById('startGuide');
-      if(dStart>25){ if(g){ const tx=g.querySelector('.sg-tx'); if(tx)tx.textContent='🚩 Dirígete al punto de inicio · '+Math.round(dStart)+' m'; g.classList.add('show'); } }
+      if(dStart>25){ if(g){ const tx=g.querySelector('.sg-tx'); if(tx)tx.textContent='🚩 Dirígete al punto de inicio · '+(dStart<1000?Math.round(dStart)+' m':(dStart/1000).toFixed(1)+' km'); g.classList.add('show'); } }
       else { reachedStart=true; if(g)g.classList.remove('show'); speak('Llegó al punto de inicio, comienza la ruta'); }
     }
 
