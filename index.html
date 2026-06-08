@@ -523,8 +523,8 @@
   .units-btn{position:fixed;right:16px;bottom:62px;z-index:2400;display:none;align-items:center;gap:7px;background:#FBFAF6;color:#44413A;border:1px solid rgba(68,65,58,0.2);border-radius:24px;padding:10px 15px;font-size:13px;font-family:-apple-system,'Segoe UI',sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.12);}
   .units-btn.show{display:inline-flex;}
   .day-row{display:flex;gap:5px;margin-bottom:12px;}
-  .day-row button{flex:1;height:36px;border:1px solid rgba(68,65,58,0.16);background:transparent;color:#8C887E;border-radius:9px;font-size:12px;font-family:inherit;cursor:pointer;}
-  .day-row button.on{background:#7E9B86;color:#fff;border-color:#7E9B86;}
+  .day-row button{flex:1;height:36px;border:1px solid rgba(30,28,24,0.14);background:#fff;color:#3A3833;border-radius:9px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;}
+  .day-row button.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
   .mgmt-sel{width:100%;height:44px;padding:0 12px;font-size:14px;color:#44413A;background:#FBFAF6;border:1px solid rgba(68,65,58,0.14);border-radius:12px;font-family:inherit;margin-bottom:12px;}
   .mgmt-lbl{font-size:12px;color:#8C887E;margin:0 0 6px 2px;}
   /* ===== BARRA DE VISTA ADM + GUÍA INICIO (Entrega 2) ===== */
@@ -563,6 +563,9 @@
   .mon-chip.sim{color:#807E77;}
   .mon-simstop{position:fixed;left:14px;bottom:64px;z-index:2350;display:none;align-items:center;gap:7px;background:#2E2C27;color:#fff;border:none;border-radius:24px;padding:9px 14px;font-size:13px;font-family:inherit;cursor:pointer;}
   .mon-simstop.show{display:inline-flex;}
+  .fld-lbl{display:block;font-size:11px;color:var(--txt-dim);margin:9px 0 4px;}
+  .fld{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;border:1px solid var(--brd);background:var(--glass-2);color:var(--txt);font-size:13px;font-family:inherit;}
+  .cm-estado{font-size:11px;border:1px solid var(--brd);border-radius:8px;padding:4px 7px;background:transparent;color:inherit;font-family:inherit;margin-left:auto;margin-right:8px;}
 </style>
 </head>
 <body>
@@ -781,12 +784,17 @@
     </div>
     <div class="adm-tabs">
       <button class="adm-tab on" data-tab="rutas">Rutas</button>
+      <button class="adm-tab" data-tab="camiones">Camiones</button>
       <button class="adm-tab" data-tab="choferes">Choferes</button>
       <button class="adm-tab" data-tab="sups">Supervisores</button>
     </div>
     <div class="adm-pane on" id="paneRutas">
-      <div class="mgmt-empty" style="margin-bottom:8px">Crea rutas desde el editor con "Guardar como ruta".</div>
+      <div class="mgmt-empty" style="margin-bottom:8px">Crea rutas desde el editor con "Guardar ruta".</div>
       <div id="rutaList"></div>
+    </div>
+    <div class="adm-pane" id="paneCamiones">
+      <div class="mgmt-add"><input class="mgmt-in" id="cmFicha" placeholder="Ficha del camión (ej: F-13)"><button class="mgmt-addbtn" id="cmAdd">Agregar</button></div>
+      <div id="cmList"></div>
     </div>
     <div class="adm-pane" id="paneChoferes">
       <div class="mgmt-add"><input class="mgmt-in" id="chName" placeholder="Nombre del chofer"><button class="mgmt-addbtn" id="chAdd">Agregar</button></div>
@@ -797,23 +805,6 @@
       <div id="spList"></div>
     </div>
     <button id="mgmtLogout" style="width:100%;margin-top:20px;height:44px;border:1px solid rgba(192,112,95,0.45);background:transparent;color:#C0705F;border-radius:12px;font-size:14px;font-family:inherit;cursor:pointer;">Cerrar sesión</button>
-  </div>
-</div>
-
-<div class="mgmt-ov" id="rutaOv">
-  <div class="mgmt-card" style="max-width:420px">
-    <div class="mgmt-h"><h2 id="rutaModalTitle">Guardar ruta</h2><button class="mgmt-x" id="rutaX">×</button></div>
-    <div class="mgmt-lbl">Nombre de la ruta</div>
-    <input class="mgmt-in" id="rNombre" placeholder="Ej: Ruta Centro" style="width:100%;margin-bottom:12px">
-    <div class="mgmt-lbl">Camión asignado</div>
-    <input class="mgmt-in" id="rCamion" placeholder="Ej: Camión 04" style="width:100%;margin-bottom:12px">
-    <div class="mgmt-lbl">Frecuencia</div>
-    <div class="day-row" id="rDays"></div>
-    <div class="mgmt-lbl">Chofer (opcional)</div>
-    <select class="mgmt-sel" id="rChofer"></select>
-    <div class="mgmt-lbl">Supervisor (opcional)</div>
-    <select class="mgmt-sel" id="rSup"></select>
-    <button class="mgmt-addbtn" id="rSave" style="width:100%;height:46px;">Guardar ruta</button>
   </div>
 </div>
 
@@ -878,10 +869,21 @@
 
   <!-- Ruta -->
   <div class="section edit-only">
-    <div class="section-title">Ruta</div>
-    <button class="btn" id="drawToggle">✏️ Editar trazado</button>
-    <button class="btn accent" id="saveRutaBtn" style="margin-top:8px;">💾 Guardar como ruta</button>
-    <div style="font-size:11px;color:var(--txt-dim);margin-top:6px;">Activa "Editar trazado" para marcar puntos con clic. Guarda la ruta para asignarle camión, frecuencia, chofer y supervisor.</div>
+    <div class="section-title" id="rutaFormTitle">Nueva ruta</div>
+    <label class="fld-lbl">Nombre de la ruta</label>
+    <input class="fld" id="rNombre" placeholder="Ej: Ruta Centro">
+    <label class="fld-lbl">Camión asignado</label>
+    <select class="fld" id="rCamion"></select>
+    <label class="fld-lbl">Frecuencia</label>
+    <div class="day-row" id="rDays"></div>
+    <label class="fld-lbl">Chofer</label>
+    <select class="fld" id="rChofer"></select>
+    <label class="fld-lbl">Supervisor</label>
+    <select class="fld" id="rSup"></select>
+    <button class="btn" id="drawToggle" style="margin-top:12px;">✏️ Editar trazado</button>
+    <button class="btn accent" id="saveRutaBtn" style="margin-top:8px;">💾 Guardar ruta</button>
+    <button class="btn" id="newRutaBtn" style="margin-top:8px;">＋ Nueva ruta (limpiar)</button>
+    <div style="font-size:11px;color:var(--txt-dim);margin-top:8px;">Importa un KMZ o activa "Editar trazado" para el recorrido. Completa los datos y guarda al final. Los camiones se crean en Administración → Camiones.</div>
   </div>
 
   <!-- Propuesta KMZ -->
@@ -1424,6 +1426,7 @@
     if(!ok)return;
     playing=false;if(animId)cancelAnimationFrame(animId);
     waypoints=[];renderMarkers();resetAnim();refresh();
+    editingRutaId=null; const t=document.getElementById('rutaFormTitle'); if(t)t.textContent='Nueva ruta';
     toast('Ruta borrada');
   });
 
@@ -1614,7 +1617,7 @@
   }
 
   // ===== GESTIÓN ADM: choferes y supervisores con código (Fase 4) =====
-  let mgmtChoferes={}, mgmtSup={}, mgmtSub=false;
+  let mgmtChoferes={}, mgmtSup={}, mgmtCamiones={}, mgmtSub=false;
   function fbKey(c){ return c.replace(/[.#$\[\]\/]/g,'_'); }
   function nextCode(prefix,obj){ let max=0; if(obj)Object.keys(obj).forEach(k=>{const m=k.match(/(\d+)$/);if(m){const v=parseInt(m[1],10);if(v>max)max=v;}}); return prefix+String(max+1).padStart(2,'0'); }
   function mgmtList(elId,data,onDel){
@@ -1630,8 +1633,9 @@
   }
   function startMgmt(){
     if(!fbDb || mgmtSub) return; mgmtSub=true;
-    fbDb.ref('config/choferes').on('value',s=>{ mgmtChoferes=s.val()||{}; mgmtList('chList',mgmtChoferes,id=>fbDb.ref('config/choferes/'+id).remove()); });
-    fbDb.ref('config/supervisores').on('value',s=>{ mgmtSup=s.val()||{}; mgmtList('spList',mgmtSup,id=>fbDb.ref('config/supervisores/'+id).remove()); });
+    fbDb.ref('config/choferes').on('value',s=>{ mgmtChoferes=s.val()||{}; mgmtList('chList',mgmtChoferes,id=>fbDb.ref('config/choferes/'+id).remove()); refreshRutaSelects(); });
+    fbDb.ref('config/supervisores').on('value',s=>{ mgmtSup=s.val()||{}; mgmtList('spList',mgmtSup,id=>fbDb.ref('config/supervisores/'+id).remove()); refreshRutaSelects(); });
+    fbDb.ref('config/camiones').on('value',s=>{ mgmtCamiones=s.val()||{}; camionList(); refreshRutaSelects(); });
   }
   function mgmtSetup(){
     const ov=document.getElementById('mgmtOv'); if(!ov)return;
@@ -1646,6 +1650,11 @@
       const i=document.getElementById('spName'); const name=(i.value||'').trim(); if(!name||!fbDb)return;
       const code=nextCode('Sup-',mgmtSup); fbDb.ref('config/supervisores/'+fbKey(code)).set({name:name,active:true,ts:Date.now()}); i.value='';
     });
+    const cmAdd=document.getElementById('cmAdd'); if(cmAdd)cmAdd.addEventListener('click',()=>{
+      const i=document.getElementById('cmFicha'); const ficha=(i.value||'').trim(); if(!ficha||!fbDb)return;
+      fbDb.ref('config/camiones/'+fbKey(ficha)).set({ficha:ficha,estado:'disponible',ts:Date.now()}); i.value='';
+    });
+    const cmI=document.getElementById('cmFicha'); if(cmI)cmI.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();document.getElementById('cmAdd').click();} });
   }
 
   // ===== RUTAS COMO OBJETOS + DASHBOARD (Entrega 1) =====
@@ -1679,7 +1688,7 @@
       card.innerHTML='<div class="ruta-top"><span class="ruta-name">'+(r.nombre||'(sin nombre)')+'</span>'+(r.camion?'<span class="ruta-tag">'+r.camion+'</span>':'')+'</div><div class="ruta-meta">'+(meta.join(' · ')||'sin asignaciones')+'</div>';
       const acts=document.createElement('div'); acts.className='ruta-acts';
       const mk=(txt,fn,cls)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.addEventListener('click',fn);return b;};
-      acts.appendChild(mk('✏️ Editar trazado',()=>{ const pts=decode(r.wp||''); if(pts){ loadRoute(pts); editingRutaId=id; document.getElementById('mgmtOv').classList.remove('show'); toast('Ruta cargada para editar'); } }));
+      acts.appendChild(mk('✏️ Editar',()=>{ const pts=decode(r.wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(r); document.getElementById('mgmtOv').classList.remove('show'); setAdmView('editor'); toast('Ruta cargada — edita y guarda al final'); }));
       acts.appendChild(mk('🔗 Link chofer',async()=>{ const link=location.href.split('#')[0]+'#chofer&ruta='+id; await copy(link); toast('Link de chofer copiado ✓'); }));
       if(r.supCode){
         acts.appendChild(mk('🔗 Link supervisor',async()=>{ const link=location.href.split('#')[0]+'#sup&ruta='+id; await copy(link); toast('Link supervisor copiado · código '+(r.supAccess||'—')); }));
@@ -1693,31 +1702,57 @@
   function fillSelect(id,data){ const sel=document.getElementById(id); if(!sel)return;
     sel.innerHTML='<option value="">(ninguno)</option>';
     Object.keys(data||{}).sort().forEach(code=>{ const v=data[code]||{}; const o=document.createElement('option'); o.value=code; o.textContent=code+(v.name?(' · '+v.name):''); sel.appendChild(o); }); }
-  function openRutaModal(){
-    if(waypoints.length<2){ toast('Traza o importa una ruta primero'); return; }
-    fillSelect('rChofer',mgmtChoferes); fillSelect('rSup',mgmtSup);
-    const r=editingRutaId&&mgmtRutas[editingRutaId];
-    document.getElementById('rNombre').value=r?(r.nombre||''):'';
-    document.getElementById('rCamion').value=r?(r.camion||''):'';
-    document.getElementById('rChofer').value=r?(r.choferCode||''):'';
-    document.getElementById('rSup').value=r?(r.supCode||''):'';
+  function camionList(){
+    const el=document.getElementById('cmList'); if(!el)return;
+    const ids=mgmtCamiones?Object.keys(mgmtCamiones):[];
+    if(!ids.length){ el.innerHTML='<div class="mgmt-empty">Ningún camión todavía.</div>'; return; }
+    el.innerHTML=''; ids.sort().forEach(id=>{ const v=mgmtCamiones[id]||{};
+      const row=document.createElement('div'); row.className='mgmt-item';
+      row.innerHTML='<span class="mgmt-code">'+(v.ficha||id)+'</span>';
+      const sel=document.createElement('select'); sel.className='cm-estado';
+      ['disponible','en ruta','dañado','mantenimiento'].forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; if((v.estado||'disponible')===o)op.selected=true; sel.appendChild(op); });
+      sel.addEventListener('change',()=>{ if(fbDb)fbDb.ref('config/camiones/'+id+'/estado').set(sel.value); });
+      row.appendChild(sel);
+      const del=document.createElement('button'); del.className='mgmt-del'; del.textContent='×'; del.title='Quitar';
+      del.addEventListener('click',()=>{ if(fbDb)fbDb.ref('config/camiones/'+id).remove(); }); row.appendChild(del);
+      el.appendChild(row); });
+  }
+  function fillCamiones(){ const sel=document.getElementById('rCamion'); if(!sel)return;
+    const cur=sel.value; sel.innerHTML='<option value="">(sin camión)</option>';
+    Object.keys(mgmtCamiones||{}).sort().forEach(id=>{ const v=mgmtCamiones[id]||{}; const o=document.createElement('option'); o.value=(v.ficha||id); o.textContent=(v.ficha||id)+(v.estado&&v.estado!=='disponible'?(' · '+v.estado):''); sel.appendChild(o); });
+    sel.value=cur||''; }
+  function refreshRutaSelects(){
+    const c=document.getElementById('rChofer'), s=document.getElementById('rSup');
+    const cv=c&&c.value, sv=s&&s.value;
+    fillSelect('rChofer',mgmtChoferes); fillSelect('rSup',mgmtSup); fillCamiones();
+    if(c)c.value=cv||''; if(s)s.value=sv||''; }
+  function populateRutaForm(r){
+    fillSelect('rChofer',mgmtChoferes); fillSelect('rSup',mgmtSup); fillCamiones();
+    const set=(id,val)=>{const e=document.getElementById(id);if(e)e.value=val||'';};
+    set('rNombre',r?r.nombre:''); set('rCamion',r?r.camion:''); set('rChofer',r?r.choferCode:''); set('rSup',r?r.supCode:'');
     rDaysSel=r&&r.freq?r.freq.slice():[];
     document.querySelectorAll('#rDays button').forEach(b=>b.classList.toggle('on',rDaysSel.includes(b.dataset.d)));
-    document.getElementById('rutaModalTitle').textContent=r?'Editar ruta':'Guardar ruta';
-    document.getElementById('rutaOv').classList.add('show');
+    const t=document.getElementById('rutaFormTitle'); if(t)t.textContent=r?('Editando: '+(r.nombre||'ruta')):'Nueva ruta';
+  }
+  function newRuta(){
+    editingRutaId=null; rDaysSel=[];
+    populateRutaForm(null);
+    if(waypoints&&waypoints.length){ playing=false; if(typeof animId!=='undefined'&&animId)cancelAnimationFrame(animId); waypoints=[]; renderMarkers(); resetAnim(); refresh(); }
+    toast('Listo para una ruta nueva');
   }
   function saveRuta(){
     if(!fbDb){ toast('Sin conexión a Firebase'); return; }
+    if(waypoints.length<2){ toast('Traza o importa el recorrido primero'); return; }
     const id=editingRutaId||('r'+Date.now().toString(36));
     const prev=mgmtRutas[id]||{};
     const supCode=document.getElementById('rSup').value||null;
     let supAccess=prev.supAccess||null, supActive=(prev.supActive!==undefined?prev.supActive:true);
     if(supCode){ if(!supAccess)supAccess=String(Math.floor(1000+Math.random()*9000)); } else { supAccess=null; }
-    const data={ nombre:document.getElementById('rNombre').value.trim()||'(sin nombre)', camion:document.getElementById('rCamion').value.trim()||null,
+    const data={ nombre:(document.getElementById('rNombre').value||'').trim()||'(sin nombre)', camion:document.getElementById('rCamion').value||null,
       wp:encode(), freq:rDaysSel.slice(), choferCode:document.getElementById('rChofer').value||null,
       supCode:supCode, supAccess:supAccess, supActive:supActive, createdAt:prev.createdAt||Date.now() };
     fbDb.ref('rutas/'+id).set(data); editingRutaId=id;
-    document.getElementById('rutaOv').classList.remove('show');
+    const t=document.getElementById('rutaFormTitle'); if(t)t.textContent='Editando: '+data.nombre;
     toast(supCode?('Ruta guardada · código sup '+supAccess):'Ruta guardada ✓');
   }
   function setAdmView(v){
@@ -1730,6 +1765,7 @@
       if(vm)vm.classList.add('on'); if(ve)ve.classList.remove('on'); }
     else { if(monP)monP.classList.remove('show'); if(monD)monD.classList.remove('show');
       if(editor)editor.style.display='';
+      refreshRutaSelects();
       if(ve)ve.classList.add('on'); if(vm)vm.classList.remove('on'); }
   }
   function admSetup(){
@@ -1737,15 +1773,13 @@
       document.querySelectorAll('.adm-tab').forEach(x=>x.classList.remove('on'));
       document.querySelectorAll('.adm-pane').forEach(x=>x.classList.remove('on'));
       t.classList.add('on');
-      const m={rutas:'paneRutas',choferes:'paneChoferes',sups:'paneSups'}; const pane=document.getElementById(m[t.dataset.tab]); if(pane)pane.classList.add('on');
+      const m={rutas:'paneRutas',camiones:'paneCamiones',choferes:'paneChoferes',sups:'paneSups'}; const pane=document.getElementById(m[t.dataset.tab]); if(pane)pane.classList.add('on');
     }));
     const dr=document.getElementById('rDays');
     if(dr){ DAYS.forEach(d=>{ const b=document.createElement('button'); b.textContent=d; b.dataset.d=d;
       b.addEventListener('click',()=>{ b.classList.toggle('on'); const i=rDaysSel.indexOf(d); if(i>=0)rDaysSel.splice(i,1); else rDaysSel.push(d); }); dr.appendChild(b); }); }
-    const sb=document.getElementById('saveRutaBtn'); if(sb)sb.addEventListener('click',openRutaModal);
-    const rs=document.getElementById('rSave'); if(rs)rs.addEventListener('click',saveRuta);
-    const rx=document.getElementById('rutaX'); if(rx)rx.addEventListener('click',()=>document.getElementById('rutaOv').classList.remove('show'));
-    const rov=document.getElementById('rutaOv'); if(rov)rov.addEventListener('click',e=>{ if(e.target===rov)rov.classList.remove('show'); });
+    const sb=document.getElementById('saveRutaBtn'); if(sb)sb.addEventListener('click',saveRuta);
+    const nb=document.getElementById('newRutaBtn'); if(nb)nb.addEventListener('click',newRuta);
     const ub=document.getElementById('unitsBtn'); if(ub)ub.addEventListener('click',toggleUnits);
     const ve=document.getElementById('viewEditor'); if(ve)ve.addEventListener('click',()=>setAdmView('editor'));
     const vm=document.getElementById('viewMonitor'); if(vm)vm.addEventListener('click',()=>setAdmView('monitor'));
