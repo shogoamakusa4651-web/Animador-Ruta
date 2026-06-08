@@ -541,6 +541,28 @@
     font-family:-apple-system,'Segoe UI',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.1);}
   .start-guide.show{display:flex;}
   .start-flag{font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));}
+  /* ===== MONITOREO PRINCIPAL (reconstrucción) ===== */
+  .mon-panel{position:fixed;top:64px;right:14px;z-index:2300;width:266px;max-height:calc(100vh - 150px);overflow-y:auto;display:none;flex-direction:column;
+    background:#F4F3F0;border:1px solid rgba(30,28,24,0.08);border-radius:18px;padding:14px;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;}
+  .mon-panel.show{display:flex;}
+  .mon-days{display:flex;gap:5px;margin-bottom:13px;}
+  .mon-day{flex:1;height:30px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:#fff;color:#3A3833;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;}
+  .mon-day.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
+  .mon-sec{font-size:11px;color:#ABA9A2;letter-spacing:.4px;margin:2px 0 9px 2px;}
+  .mon-card{background:#fff;border:1px solid rgba(30,28,24,0.07);border-radius:14px;padding:11px 12px;margin-bottom:8px;cursor:pointer;}
+  .mon-card:hover{border-color:rgba(30,28,24,0.18);}
+  .mon-line{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#807E77;margin-top:4px;}
+  .mon-pct{font-size:11px;color:#9A6A1C;background:rgba(207,154,74,0.16);padding:2px 8px;border-radius:8px;}
+  .mon-dash{position:fixed;left:14px;right:294px;bottom:14px;z-index:2300;display:none;
+    background:#F4F3F0;border:1px solid rgba(30,28,24,0.08);border-radius:16px;padding:11px 14px;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;}
+  .mon-dash.show{display:block;}
+  .mon-dash.min .mon-dash-body{display:none;}
+  .mon-dash-head{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .mon-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid rgba(30,28,24,0.12);border-radius:20px;padding:6px 12px;font-size:12.5px;color:#23211D;cursor:pointer;margin:0 7px 7px 0;}
+  .mon-chip.on{border-color:#CF9A4A;background:rgba(207,154,74,0.10);}
+  .mon-chip.sim{color:#807E77;}
+  .mon-simstop{position:fixed;left:14px;bottom:64px;z-index:2350;display:none;align-items:center;gap:7px;background:#2E2C27;color:#fff;border:none;border-radius:24px;padding:9px 14px;font-size:13px;font-family:inherit;cursor:pointer;}
+  .mon-simstop.show{display:inline-flex;}
 </style>
 </head>
 <body>
@@ -736,6 +758,18 @@
   </div>
   <button class="adm-barbtn" id="admOpenBtn">⚙ Administración</button>
 </div>
+<div class="mon-panel" id="monPanel">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px"><span style="width:8px;height:8px;border-radius:50%;background:#CF9A4A"></span><span style="font-size:15px;font-weight:600;flex:1">Monitoreo</span></div>
+  <div class="mon-days" id="monDays"></div>
+  <div class="mon-sec">RUTAS ACTIVAS</div>
+  <div id="monActive"></div>
+</div>
+<div class="mon-dash" id="monDash">
+  <div class="mon-dash-head" id="monDashHead"><span style="font-size:13px;font-weight:600">Rutas inactivas</span><span style="font-size:11px;color:#ABA9A2">tócalas para ver su trazado</span><i class="ti ti-chevron-down" id="monDashChev" style="margin-left:auto;color:#807E77" aria-hidden="true"></i></div>
+  <div class="mon-dash-body" id="monInactive" style="margin-top:10px"></div>
+</div>
+<button class="mon-simstop" id="simStop"><i class="ti ti-player-stop" aria-hidden="true"></i> Detener simulación</button>
+
 <div class="start-guide" id="startGuide"><span class="sg-tx">🚩 Dirígete al punto de inicio</span></div>
 <div class="mgmt-ov" id="mgmtOv">
   <div class="mgmt-card">
@@ -1621,8 +1655,8 @@
   function loadRutaFromFb(id,cb){ if(!fbDb){cb&&cb(null);return;} fbDb.ref('rutas/'+id).once('value').then(s=>cb&&cb(s.val())).catch(()=>cb&&cb(null)); }
   function subscribeUnits(){
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
-    if(!supSub){ supSub=true; fbDb.ref('live').on('value', s=>{ supLast=s.val(); renderSupervisor(supLast); updateKpis(); }); }
-    if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); }, 5000); }
+    if(!supSub){ supSub=true; fbDb.ref('live').on('value', s=>{ supLast=s.val(); renderSupervisor(supLast); updateKpis(); renderMonitor(); }); }
+    if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
   }
   function toggleUnits(){ const sp=document.getElementById('supPanel'); if(!sp)return;
     if(sp.classList.contains('hide')){ sp.classList.remove('hide'); subscribeUnits(); } else { sp.classList.add('hide'); } }
@@ -1655,7 +1689,7 @@
       card.appendChild(acts); el.appendChild(card);
     });
   }
-  function startRutas(){ if(!fbDb)return; fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; rutaListRender(); updateKpis(); }); }
+  function startRutas(){ if(!fbDb)return; fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; rutaListRender(); updateKpis(); renderMonitor(); }); }
   function fillSelect(id,data){ const sel=document.getElementById(id); if(!sel)return;
     sel.innerHTML='<option value="">(ninguno)</option>';
     Object.keys(data||{}).sort().forEach(code=>{ const v=data[code]||{}; const o=document.createElement('option'); o.value=code; o.textContent=code+(v.name?(' · '+v.name):''); sel.appendChild(o); }); }
@@ -1687,11 +1721,15 @@
     toast(supCode?('Ruta guardada · código sup '+supAccess):'Ruta guardada ✓');
   }
   function setAdmView(v){
-    const editor=document.getElementById('panel'), units=document.getElementById('supPanel');
+    const editor=document.getElementById('panel');
     const ve=document.getElementById('viewEditor'), vm=document.getElementById('viewMonitor');
-    if(v==='monitor'){ if(editor)editor.style.display='none'; if(units)units.classList.remove('hide'); subscribeUnits();
+    const monP=document.getElementById('monPanel'), monD=document.getElementById('monDash');
+    if(v==='monitor'){ if(editor)editor.style.display='none';
+      if(monP)monP.classList.add('show'); if(monD)monD.classList.add('show');
+      subscribeUnits(); renderMonitor();
       if(vm)vm.classList.add('on'); if(ve)ve.classList.remove('on'); }
-    else { if(units)units.classList.add('hide'); if(editor)editor.style.display='';
+    else { if(monP)monP.classList.remove('show'); if(monD)monD.classList.remove('show');
+      if(editor)editor.style.display='';
       if(ve)ve.classList.add('on'); if(vm)vm.classList.remove('on'); }
   }
   function admSetup(){
@@ -1712,6 +1750,61 @@
     const ve=document.getElementById('viewEditor'); if(ve)ve.addEventListener('click',()=>setAdmView('editor'));
     const vm=document.getElementById('viewMonitor'); if(vm)vm.addEventListener('click',()=>setAdmView('monitor'));
     const ao=document.getElementById('admOpenBtn'); if(ao)ao.addEventListener('click',()=>document.getElementById('mgmtOv').classList.add('show'));
+  }
+
+  // ===== MONITOREO (pantalla principal) =====
+  let routeLayers={}, monDay=null, simTimer=null;
+  function showRouteLayer(id){ const r=mgmtRutas[id]; if(!r||routeLayers[id])return;
+    const pts=decode(r.wp||''); if(!pts||pts.length<2)return;
+    routeLayers[id]=L.polyline(pts,{color:'#CF9A4A',weight:5,opacity:.95,dashArray:'1,14',lineCap:'round',interactive:false}).addTo(map); }
+  function hideRouteLayer(id){ if(routeLayers[id]){map.removeLayer(routeLayers[id]);delete routeLayers[id];} }
+  function toggleRouteLayer(id){ if(routeLayers[id])hideRouteLayer(id); else showRouteLayer(id); renderMonitor(); }
+  function applyDayLayers(){ if(monDay){ Object.keys(mgmtRutas).forEach(id=>{ if((mgmtRutas[id].freq||[]).includes(monDay))showRouteLayer(id); }); } }
+  function liveByRuta(){ const live=supLast||{}, m={}; Object.keys(live).forEach(k=>{ const t=live[k]; const age=(Date.now()-((t&&t.ts)||0))/1000; if(t&&t.rutaId&&t.status!=='offline'&&t.status!=='termino'&&age<=40)m[t.rutaId]=t; }); return m; }
+  function renderMonitor(){
+    const mp=document.getElementById('monPanel'); if(!mp||!mp.classList.contains('show'))return;
+    const days=document.getElementById('monDays'); days.innerHTML='';
+    DAYS.forEach(d=>{ const b=document.createElement('button'); b.className='mon-day'+(monDay===d?' on':''); b.textContent=d;
+      b.addEventListener('click',()=>{ monDay=(monDay===d?null:d); applyDayLayers(); renderMonitor(); }); days.appendChild(b); });
+    const byRuta=liveByRuta();
+    const act=document.getElementById('monActive'); act.innerHTML=''; let nAct=0;
+    Object.keys(mgmtRutas).forEach(id=>{ const r=mgmtRutas[id], t=byRuta[id]; if(!t)return; nAct++; showRouteLayer(id);
+      const card=document.createElement('div'); card.className='mon-card';
+      card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#2E2C27"></span><span style="font-size:14px;font-weight:600;flex:1">'+(r.nombre||'(sin nombre)')+'</span><span class="mon-pct">'+(t.progress!=null?t.progress+'%':'—')+'</span></div>'
+        +'<div class="mon-line"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'—')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-user" aria-hidden="true"></i> '+((t.code||r.choferCode||'—'))+(t.name?(' '+t.name):'')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-eye" aria-hidden="true"></i> '+(r.supCode||'sin supervisor')+'</div>';
+      card.addEventListener('click',()=>{ if(t.lat!=null)map.setView([t.lat,t.lng],16,{animate:true}); });
+      act.appendChild(card); });
+    if(!nAct)act.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Ninguna en curso.</div>';
+    const inact=document.getElementById('monInactive'); inact.innerHTML=''; let nIn=0;
+    Object.keys(mgmtRutas).forEach(id=>{ const r=mgmtRutas[id]; if(byRuta[id])return;
+      if(monDay && !((r.freq||[]).includes(monDay)))return; nIn++;
+      const on=!!routeLayers[id];
+      const chip=document.createElement('span'); chip.className='mon-chip'+(on?' on':'');
+      chip.innerHTML='<i class="ti ti-'+(on?'eye':'eye-off')+'" aria-hidden="true"></i> '+(r.nombre||'(sin nombre)');
+      chip.addEventListener('click',()=>toggleRouteLayer(id)); inact.appendChild(chip);
+      const sim=document.createElement('span'); sim.className='mon-chip sim'; sim.innerHTML='<i class="ti ti-player-play" aria-hidden="true"></i> simular';
+      sim.addEventListener('click',()=>startSim(id)); inact.appendChild(sim); });
+    if(!nIn)inact.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Sin rutas inactivas'+(monDay?(' el '+monDay):'')+'.</div>';
+  }
+  function startSim(id){ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2){toast('Esa ruta no tiene trazado');return;}
+    stopSim(); const code='SIM-'+(r.camion||id).toString().replace(/\s/g,''); let i=0,f=0;
+    document.getElementById('simStop').classList.add('show');
+    simTimer=setInterval(()=>{
+      if(i>=pts.length-1){ if(fbDb)fbDb.ref('live/'+fbKey(code)).update({status:'termino',ts:Date.now()}); stopSim(); return; }
+      f+=0.18; if(f>=1){f=0;i++;}
+      const a=pts[i], b=pts[Math.min(i+1,pts.length-1)];
+      const lat=a[0]+(b[0]-a[0])*f, lng=a[1]+(b[1]-a[1])*f;
+      const prog=Math.round((i/(pts.length-1))*100);
+      if(fbDb)fbDb.ref('live/'+fbKey(code)).update({code:code,name:'Simulación',lat:lat,lng:lng,progress:prog,status:'en_ruta',route:r.nombre||null,rutaId:id,ts:Date.now()});
+    },1000);
+    toast('Simulando '+(r.nombre||'ruta')+'…'); }
+  function stopSim(){ if(simTimer){clearInterval(simTimer);simTimer=null;} const s=document.getElementById('simStop'); if(s)s.classList.remove('show'); }
+  function monSetup(){
+    const head=document.getElementById('monDashHead');
+    if(head)head.addEventListener('click',()=>{ const d=document.getElementById('monDash'); d.classList.toggle('min'); const c=document.getElementById('monDashChev'); if(c)c.className='ti ti-chevron-'+(d.classList.contains('min')?'up':'down'); });
+    const ss=document.getElementById('simStop'); if(ss)ss.addEventListener('click',stopSim);
   }
   function gateError(id){
     const c=document.querySelector('#'+id+' .acc-card'); if(!c)return;
@@ -1751,6 +1844,7 @@
     const ml=document.getElementById('mgmtLogout'); if(ml)ml.addEventListener('click',logout);
     mgmtSetup();
     admSetup();
+    monSetup();
   }
   function savedRole(){ try{return localStorage.getItem('animador_role');}catch(_){return null;} }
   function logout(){ try{localStorage.removeItem('animador_role');}catch(_){} location.reload(); }
@@ -1760,7 +1854,7 @@
     startMgmt();
     startRutas();
     const bar=document.getElementById('admBar'); if(bar)bar.classList.add('show');
-    setAdmView('editor');
+    setAdmView('monitor');
     const h=location.hash||'';
     let rParam=null;
     const parts=h.replace(/^#/,'').split('&');
