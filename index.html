@@ -527,6 +527,20 @@
   .day-row button.on{background:#7E9B86;color:#fff;border-color:#7E9B86;}
   .mgmt-sel{width:100%;height:44px;padding:0 12px;font-size:14px;color:#44413A;background:#FBFAF6;border:1px solid rgba(68,65,58,0.14);border-radius:12px;font-family:inherit;margin-bottom:12px;}
   .mgmt-lbl{font-size:12px;color:#8C887E;margin:0 0 6px 2px;}
+  /* ===== BARRA DE VISTA ADM + GUÍA INICIO (Entrega 2) ===== */
+  .adm-bar{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2450;display:none;gap:8px;align-items:center;
+    background:#ECEAE3;border:1px solid rgba(68,65,58,0.14);border-radius:16px;padding:6px;box-shadow:0 2px 10px rgba(0,0,0,.10);
+    font-family:-apple-system,'Segoe UI',sans-serif;}
+  .adm-bar.show{display:flex;}
+  .adm-seg{display:flex;background:rgba(68,65,58,0.06);border-radius:11px;padding:3px;}
+  .adm-segbtn{border:none;background:transparent;color:#8C887E;font-size:13px;font-family:inherit;padding:7px 13px;border-radius:9px;cursor:pointer;}
+  .adm-segbtn.on{background:#fff;color:#44413A;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .adm-barbtn{border:none;background:#7E9B86;color:#fff;font-size:13px;font-family:inherit;padding:8px 13px;border-radius:11px;cursor:pointer;}
+  .start-guide{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:2300;display:none;align-items:center;gap:8px;
+    background:#FBFAF6;border:1px solid rgba(126,155,134,0.55);border-radius:14px;padding:9px 15px;color:#3E5C49;font-size:13px;
+    font-family:-apple-system,'Segoe UI',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.1);}
+  .start-guide.show{display:flex;}
+  .start-flag{font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));}
 </style>
 </head>
 <body>
@@ -715,6 +729,14 @@
 
 <button class="mgmt-btn" id="mgmtBtn">⚙ Administración</button>
 <button class="units-btn" id="unitsBtn">🛰 Unidades en vivo</button>
+<div class="adm-bar" id="admBar">
+  <div class="adm-seg">
+    <button class="adm-segbtn on" id="viewEditor">✏️ Editor</button>
+    <button class="adm-segbtn" id="viewMonitor">🛰 Monitoreo</button>
+  </div>
+  <button class="adm-barbtn" id="admOpenBtn">⚙ Administración</button>
+</div>
+<div class="start-guide" id="startGuide"><span class="sg-tx">🚩 Dirígete al punto de inicio</span></div>
 <div class="mgmt-ov" id="mgmtOv">
   <div class="mgmt-card">
     <div class="mgmt-h"><h2>Administración</h2><button class="mgmt-x" id="mgmtX">×</button></div>
@@ -983,6 +1005,7 @@
   const satGroup=L.layerGroup([sat,satLabels]).addTo(map);
 
   let waypoints=[], markers=[], baseLine=null, progLine=null, car=null, animId=null, playing=false;
+  let startFlag=null, reachedStart=false;
   let pauseState=null;
   let guideLayer=null, guideVisible=true;
   let viewMode=false;
@@ -1092,10 +1115,14 @@
     // Re-marcar como cumplidos los que ya lo estaban
     doneWps.forEach(i=>{const el=markers[i]?.getElement()?.querySelector('.wp-num');if(el)el.classList.add('wp-done');});
   }
-  function drawBase(){if(baseLine)map.removeLayer(baseLine);
+  function setMarkersVisible(v){ markers.forEach(m=>{ const el=m.getElement(); if(el)el.style.display=v?'':'none'; }); }
+  function drawBase(){if(baseLine)map.removeLayer(baseLine); if(startFlag){map.removeLayer(startFlag);startFlag=null;}
     if(waypoints.length>1){
       const style=viewMode?{color:'#fff',weight:3,opacity:.35,dashArray:'4,8'}:{color:'#fff',weight:3,opacity:.45,dashArray:'2,9'};
       baseLine=L.polyline(waypoints,style).addTo(map);
+    }
+    if(waypoints.length>=1){
+      startFlag=L.marker(waypoints[0],{icon:L.divIcon({html:'<div class="start-flag">🚩</div>',className:'',iconSize:[28,28],iconAnchor:[5,26]}),interactive:false,zIndexOffset:800}).addTo(map);
     }}
   function updateStats(){
     document.getElementById('nPts').textContent=waypoints.length;
@@ -1317,6 +1344,7 @@
       if(car){map.removeLayer(car);car=null;}
     }
     playing=true;setPlayLabel('⏸','Pausar');
+    setMarkersVisible(false);
     const speed=120*parseFloat(document.getElementById('spd').value);
     if(startTraveled===0)map.panTo(waypoints[0]);
     let t0=null;
@@ -1327,12 +1355,12 @@
       const pos=drawProgress(traveled,segs);
       if(!map.getBounds().pad(-0.25).contains(pos))map.panTo(pos,{animate:true,duration:.5});
       pauseState={traveled,total};
-      if(traveled>=total){playing=false;setPlayLabel('▶','Reproducir');pauseState=null;return;}
+      if(traveled>=total){playing=false;setPlayLabel('▶','Reproducir');pauseState=null;setMarkersVisible(true);return;}
       animId=requestAnimationFrame(frame);
     }
     animId=requestAnimationFrame(frame);
   }
-  function pause(){playing=false;if(animId)cancelAnimationFrame(animId);setPlayLabel('▶','Reanudar');}
+  function pause(){playing=false;if(animId)cancelAnimationFrame(animId);setPlayLabel('▶','Reanudar');setMarkersVisible(true);}
 
   // REINICIAR: vuelve al inicio pero NO arranca. Queda en pausa esperando Play.
   function restartAnim(){
@@ -1658,6 +1686,14 @@
     document.getElementById('rutaOv').classList.remove('show');
     toast(supCode?('Ruta guardada · código sup '+supAccess):'Ruta guardada ✓');
   }
+  function setAdmView(v){
+    const editor=document.getElementById('panel'), units=document.getElementById('supPanel');
+    const ve=document.getElementById('viewEditor'), vm=document.getElementById('viewMonitor');
+    if(v==='monitor'){ if(editor)editor.style.display='none'; if(units)units.classList.remove('hide'); subscribeUnits();
+      if(vm)vm.classList.add('on'); if(ve)ve.classList.remove('on'); }
+    else { if(units)units.classList.add('hide'); if(editor)editor.style.display='';
+      if(ve)ve.classList.add('on'); if(vm)vm.classList.remove('on'); }
+  }
   function admSetup(){
     document.querySelectorAll('.adm-tab').forEach(t=>t.addEventListener('click',()=>{
       document.querySelectorAll('.adm-tab').forEach(x=>x.classList.remove('on'));
@@ -1673,6 +1709,9 @@
     const rx=document.getElementById('rutaX'); if(rx)rx.addEventListener('click',()=>document.getElementById('rutaOv').classList.remove('show'));
     const rov=document.getElementById('rutaOv'); if(rov)rov.addEventListener('click',e=>{ if(e.target===rov)rov.classList.remove('show'); });
     const ub=document.getElementById('unitsBtn'); if(ub)ub.addEventListener('click',toggleUnits);
+    const ve=document.getElementById('viewEditor'); if(ve)ve.addEventListener('click',()=>setAdmView('editor'));
+    const vm=document.getElementById('viewMonitor'); if(vm)vm.addEventListener('click',()=>setAdmView('monitor'));
+    const ao=document.getElementById('admOpenBtn'); if(ao)ao.addEventListener('click',()=>document.getElementById('mgmtOv').classList.add('show'));
   }
   function gateError(id){
     const c=document.querySelector('#'+id+' .acc-card'); if(!c)return;
@@ -1718,10 +1757,10 @@
   function enterAdmApp(){
     const g=document.getElementById('admGate'); if(g)g.classList.add('hide');
     try{localStorage.setItem('animador_role','adm');}catch(_){}
-    const b=document.getElementById('mgmtBtn'); if(b)b.classList.add('show');
     startMgmt();
     startRutas();
-    const ub=document.getElementById('unitsBtn'); if(ub)ub.classList.add('show');
+    const bar=document.getElementById('admBar'); if(bar)bar.classList.add('show');
+    setAdmView('editor');
     const h=location.hash||'';
     let rParam=null;
     const parts=h.replace(/^#/,'').split('&');
@@ -2222,6 +2261,14 @@
       if(!b.contains(p))map.panTo(p,{animate:true,duration:.6});
     }
 
+    // Guía al punto de inicio (punto de encuentro) como un GPS normal
+    if(waypoints.length && !reachedStart){
+      const dStart=haversine(p,waypoints[0]);
+      const g=document.getElementById('startGuide');
+      if(dStart>25){ if(g){ const tx=g.querySelector('.sg-tx'); if(tx)tx.textContent='🚩 Dirígete al punto de inicio · '+Math.round(dStart)+' m'; g.classList.add('show'); } }
+      else { reachedStart=true; if(g)g.classList.remove('show'); speak('Llegó al punto de inicio, comienza la ruta'); }
+    }
+
     // Auto-cumplimiento de waypoints
     if(waypoints.length){
       for(let i=nextWpIdx;i<Math.min(nextWpIdx+3,waypoints.length);i++){
@@ -2326,7 +2373,7 @@
     if(!skipResume && hasPendingTrip()){showResumeModal();return;}
     gpsActive=true;
     if(!tripStartedAt)tripStartedAt=new Date().toISOString();
-    nextWpIdx=0;doneWps.clear();realPath=[];lastTruckPos=null;
+    nextWpIdx=0;doneWps.clear();realPath=[];lastTruckPos=null;reachedStart=false;{const g=document.getElementById('startGuide');if(g)g.classList.remove('show');}
     lastVoiceAnnounce={};skippedSegments=[];deviated=false;bonusReturnedToTrack=false;
     if(realLine){map.removeLayer(realLine);realLine=null;}
     if(realLineGlow){map.removeLayer(realLineGlow);realLineGlow=null;}
@@ -2358,7 +2405,7 @@
     document.getElementById('turnCard').classList.remove('show');
     if(truckMarker){map.removeLayer(truckMarker);truckMarker=null;}
     if(accuracyCircle){map.removeLayer(accuracyCircle);accuracyCircle=null;}
-    stopTx('offline');
+    stopTx('offline'); {const g=document.getElementById('startGuide');if(g)g.classList.remove('show');}
     try{window.speechSynthesis.cancel();}catch(_){}
   }
 
