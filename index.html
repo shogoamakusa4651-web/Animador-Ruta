@@ -233,9 +233,9 @@
   .car-wrap{transition:transform .08s linear;will-change:transform;}
   .car-wrap svg{display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6));}
   .wp-num{
-    background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;
-    display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;
-    border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.5);cursor:grab;
+    background:#FFC233;color:#3a2a00;border-radius:50%;width:13px;height:13px;
+    display:flex;align-items:center;justify-content:center;font-size:0;font-weight:700;
+    border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:grab;
   }
   .leaflet-container{background:#0a0e14;font-family:inherit;}
   .leaflet-control-attribution{font-size:9px;opacity:.5;}
@@ -1106,7 +1106,7 @@
     if(viewMode)return;
     waypoints.forEach((p,i)=>{
       const m=L.marker(p,{draggable:true,
-        icon:L.divIcon({html:`<div class="wp-num">${i+1}</div>`,className:'',iconSize:[26,26],iconAnchor:[13,13]})}).addTo(map);
+        icon:L.divIcon({html:`<div class="wp-num">${i+1}</div>`,className:'',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(map);
       m.on('drag',e=>{const ll=e.target.getLatLng();waypoints[i]=[ll.lat,ll.lng];drawBase();updateStats();resetAnim();});
       m.on('dragend',()=>{buildInstructions();});
       m.on('contextmenu',e=>{L.DomEvent.stopPropagation(e);L.DomEvent.preventDefault(e);if(!viewMode)openStopModalForWp(i);});
@@ -1118,7 +1118,7 @@
   function setMarkersVisible(v){ markers.forEach(m=>{ const el=m.getElement(); if(el)el.style.display=v?'':'none'; }); }
   function drawBase(){if(baseLine)map.removeLayer(baseLine); if(startFlag){map.removeLayer(startFlag);startFlag=null;}
     if(waypoints.length>1){
-      const style=viewMode?{color:'#fff',weight:3,opacity:.35,dashArray:'4,8'}:{color:'#fff',weight:3,opacity:.45,dashArray:'2,9'};
+      const style=viewMode?{color:'#FFC233',weight:5,opacity:.92,dashArray:'1,16',lineCap:'round'}:{color:'#FFC233',weight:5,opacity:.95,dashArray:'1,16',lineCap:'round'};
       baseLine=L.polyline(waypoints,style).addTo(map);
     }
     if(waypoints.length>=1){
@@ -1328,7 +1328,7 @@
   function drawProgress(traveled,segs){
     const done=[];for(const s of segs){if(s.start+s.d<=traveled)done.push(s.a,s.b);else{done.push(s.a);break;}}
     const pos=placeCarAt(traveled,segs);
-    if(!progLine)progLine=L.polyline([...done,pos],{color:'#7E9B86',weight:5,opacity:.95}).addTo(map);
+    if(!progLine)progLine=L.polyline([...done,pos],{color:'#ffffff',weight:5,opacity:.95,lineCap:'round'}).addTo(map);
     else progLine.setLatLngs([...done,pos]);
     return pos;
   }
