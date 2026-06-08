@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Animador de Ruta</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/dist/tabler-icons.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -566,6 +567,29 @@
   .mon-simstop.show{display:inline-flex;}
   .route-label{pointer-events:none;}
   .route-label span{display:inline-block;transform:translate(9px,-9px);color:#fff;font:600 11px/1 -apple-system,'Segoe UI',sans-serif;padding:3px 8px;border-radius:9px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.28);}
+  .mon-tinybtn{flex:1;height:30px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:#fff;color:#23211D;font-size:12px;font-family:inherit;cursor:pointer;}
+  .mon-tinybtn.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
+  .mon-row{background:#fff;border:1px solid rgba(30,28,24,0.07);border-radius:12px;padding:9px 11px;margin-bottom:7px;display:flex;align-items:center;gap:9px;}
+  .mon-row .nm{flex:1;font-size:13.5px;font-weight:500;cursor:pointer;}
+  .mon-row .ic{border:none;background:transparent;color:#807E77;cursor:pointer;font-size:15px;padding:2px;}
+  .mon-row .ic.on{color:#CF9A4A;}
+  .rd-ov{position:fixed;top:0;right:0;bottom:0;width:384px;max-width:93vw;z-index:4000;transform:translateX(106%);transition:transform .25s ease;background:#F4F3F0;border-left:1px solid rgba(30,28,24,0.10);box-shadow:-10px 0 34px rgba(0,0,0,0.13);display:flex;flex-direction:column;padding:18px;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;overflow-y:auto;}
+  .rd-ov.show{transform:none;}
+  .rd-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .rd-x{border:none;background:transparent;color:#807E77;font-size:21px;cursor:pointer;line-height:1;padding:0 4px;}
+  .rd-name{font-size:18px;font-weight:600;flex:1;}
+  .rd-tag{font-size:12px;background:rgba(207,154,74,0.16);color:#9A6A1C;padding:3px 9px;border-radius:8px;}
+  .rd-meta{font-size:12px;color:#807E77;margin-bottom:14px;}
+  .rd-tabs{display:flex;gap:5px;background:rgba(30,28,24,0.05);border-radius:11px;padding:3px;width:fit-content;margin-bottom:13px;}
+  .rd-tab{padding:7px 13px;border:none;background:transparent;color:#807E77;font-size:13px;font-family:inherit;border-radius:9px;cursor:pointer;}
+  .rd-tab.on{background:#fff;color:#23211D;}
+  .rd-dates{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+  .rd-dchip{padding:6px 11px;border-radius:20px;border:1px solid rgba(30,28,24,0.14);background:#fff;color:#807E77;font-size:12px;font-family:inherit;cursor:pointer;}
+  .rd-dchip.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
+  .rd-item{background:#fff;border:1px solid rgba(30,28,24,0.07);border-radius:13px;padding:12px;margin-bottom:9px;}
+  .rd-empty{font-size:12.5px;color:#ABA9A2;padding:22px 4px;text-align:center;}
+  .rd-fchip{padding:6px 11px;border-radius:20px;border:1px solid rgba(30,28,24,0.14);background:#fff;color:#23211D;font-size:12px;font-family:inherit;cursor:pointer;margin:0 7px 7px 0;}
+  .rd-fchip.on{border-color:#CF9A4A;background:rgba(207,154,74,0.12);}
   .fld-lbl{display:block;font-size:11px;color:var(--txt-dim);margin:9px 0 4px;}
   .fld{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;border:1px solid var(--brd);background:var(--glass-2);color:var(--txt);font-size:13px;font-family:inherit;}
   .cm-estado{font-size:11px;border:1px solid var(--brd);border-radius:8px;padding:4px 7px;background:transparent;color:inherit;font-family:inherit;margin-left:auto;margin-right:8px;}
@@ -765,7 +789,8 @@
   <button class="adm-barbtn" id="admOpenBtn">⚙ Administración</button>
 </div>
 <div class="mon-panel" id="monPanel">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px"><span style="width:8px;height:8px;border-radius:50%;background:#CF9A4A"></span><span style="font-size:15px;font-weight:600;flex:1">Monitoreo</span></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="width:8px;height:8px;border-radius:50%;background:#CF9A4A"></span><span style="font-size:15px;font-weight:600;flex:1">Monitoreo</span></div>
+  <div style="display:flex;gap:7px;margin-bottom:12px"><button class="mon-tinybtn" id="monAllBtn">Ver todas</button><button class="mon-tinybtn" id="monRepBtn">Reportes</button></div>
   <div class="mon-days" id="monDays"></div>
   <div class="mon-sec">RUTAS ACTIVAS</div>
   <div id="monActive"></div>
@@ -775,6 +800,21 @@
   <div class="mon-dash-body" id="monInactive" style="margin-top:10px"></div>
 </div>
 <button class="mon-simstop" id="simStop"><i class="ti ti-player-stop" aria-hidden="true"></i> Detener simulación</button>
+
+<div class="rd-ov" id="rdOv">
+  <div class="rd-head"><button class="rd-x" id="rdBack" title="Volver">←</button><span class="rd-name" id="rdName">Ruta</span><span class="rd-tag" id="rdCamion"></span></div>
+  <div class="rd-meta" id="rdMeta"></div>
+  <div class="rd-tabs"><button class="rd-tab on" data-rt="datos">Datos</button><button class="rd-tab" data-rt="viajes">Viajes</button><button class="rd-tab" data-rt="reportes">Reportes</button></div>
+  <div class="rd-dates" id="rdDates"></div>
+  <div id="rdBody"></div>
+</div>
+
+<div class="rd-ov" id="repOv">
+  <div class="rd-head"><button class="rd-x" id="repBack" title="Volver">←</button><span class="rd-name">Reportes</span></div>
+  <div class="rd-meta">Filtra los reportes y viajes por ruta, chofer o supervisor.</div>
+  <div class="rd-fchip-wrap" id="repFilt" style="margin-bottom:13px"></div>
+  <div id="repBody"></div>
+</div>
 
 <div class="start-guide" id="startGuide"><span class="sg-tx">🚩 Dirígete al punto de inicio</span></div>
 <div class="mgmt-ov" id="mgmtOv">
@@ -1821,25 +1861,30 @@
         +'<div class="mon-line"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'—')+'</div>'
         +'<div class="mon-line"><i class="ti ti-user" aria-hidden="true"></i> '+((t.code||r.choferCode||'—'))+(t.name?(' '+t.name):'')+'</div>'
         +'<div class="mon-line"><i class="ti ti-eye" aria-hidden="true"></i> '+(r.supCode||'sin supervisor')+'</div>';
-      card.addEventListener('click',()=>{ if(t.lat!=null)map.setView([t.lat,t.lng],16,{animate:true}); });
+      card.addEventListener('click',()=>openRouteDetail(id));
       act.appendChild(card); });
     if(!nAct)act.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Ninguna en curso.</div>';
     const inact=document.getElementById('monInactive'); inact.innerHTML=''; let nIn=0;
     Object.keys(mgmtRutas).forEach(id=>{ const r=mgmtRutas[id]; if(byRuta[id])return;
       if(monDay && !((r.freq||[]).includes(monDay)))return; nIn++;
       const on=!!routeLayers[id];
-      const chip=document.createElement('span'); chip.className='mon-chip'+(on?' on':'');
-      chip.innerHTML=(on?'<span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+';display:inline-block"></span>':'<i class="ti ti-eye-off" aria-hidden="true"></i>')+' '+(r.nombre||'(sin nombre)');
-      chip.addEventListener('click',()=>toggleRouteLayer(id)); inact.appendChild(chip);
-      const sim=document.createElement('span'); sim.className='mon-chip sim'; sim.innerHTML='<i class="ti ti-player-play" aria-hidden="true"></i> simular';
-      sim.addEventListener('click',()=>startSim(id)); inact.appendChild(sim); });
+      const row=document.createElement('div'); row.className='mon-row';
+      const nm=document.createElement('span'); nm.className='nm'; nm.style.display='flex'; nm.style.alignItems='center'; nm.style.gap='8px';
+      nm.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+';display:inline-block;flex:none"></span>'+(r.nombre||'(sin nombre)');
+      nm.addEventListener('click',()=>openRouteDetail(id));
+      const eye=document.createElement('button'); eye.className='ic'+(on?' on':''); eye.title=on?'Ocultar trazado':'Ver trazado'; eye.innerHTML='<i class="ti ti-'+(on?'eye':'eye-off')+'"></i>';
+      eye.addEventListener('click',()=>{ toggleRouteLayer(id); if(routeLayers[id])fitRoute(id); });
+      const play=document.createElement('button'); play.className='ic'; play.title='Simular recorrido'; play.innerHTML='<i class="ti ti-player-play"></i>';
+      play.addEventListener('click',()=>startSim(id));
+      row.appendChild(nm); row.appendChild(eye); row.appendChild(play); inact.appendChild(row); });
     if(!nIn)inact.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Sin rutas inactivas'+(monDay?(' el '+monDay):'')+'.</div>';
   }
+  let simStartTs=0;
   function startSim(id){ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2){toast('Esa ruta no tiene trazado');return;}
-    stopSim(); const code='SIM-'+(r.camion||id).toString().replace(/\s/g,''); let i=0,f=0;
+    stopSim(); const code='SIM-'+(r.camion||id).toString().replace(/\s/g,''); let i=0,f=0; simStartTs=Date.now();
     document.getElementById('simStop').classList.add('show');
     simTimer=setInterval(()=>{
-      if(i>=pts.length-1){ if(fbDb)fbDb.ref('live/'+fbKey(code)).update({status:'termino',ts:Date.now()}); stopSim(); return; }
+      if(i>=pts.length-1){ if(fbDb)fbDb.ref('live/'+fbKey(code)).update({status:'termino',ts:Date.now()}); logViaje(id,r,code,100); stopSim(); toast('Viaje simulado registrado en '+(r.nombre||'ruta')); return; }
       f+=0.18; if(f>=1){f=0;i++;}
       const a=pts[i], b=pts[Math.min(i+1,pts.length-1)];
       const lat=a[0]+(b[0]-a[0])*f, lng=a[1]+(b[1]-a[1])*f;
@@ -1848,10 +1893,108 @@
     },1000);
     toast('Simulando '+(r.nombre||'ruta')+'…'); }
   function stopSim(){ if(simTimer){clearInterval(simTimer);simTimer=null;} const s=document.getElementById('simStop'); if(s)s.classList.remove('show'); }
+  function logViaje(id,r,code,prog){ if(!fbDb)return;
+    const now=new Date(); const fecha=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    fbDb.ref('rutas/'+id+'/viajes/'+fecha).push({ inicio:simStartTs||Date.now(), fin:Date.now(), choferCode:(r.choferCode||code), supCode:r.supCode||null, progress:prog, paradas:(decode(r.wp||'')||[]).length, sim:true });
+    fbDb.ref('rutas/'+id+'/reportes').push({ tipo:'chofer', choferCode:(r.choferCode||code), supCode:r.supCode||null, fecha:fecha, texto:'Recorrido completado ('+prog+'%).', ts:Date.now() }); }
+  function fitRoute(id){ const g=routeLayers[id]; if(!g)return; let b=null; g.eachLayer(l=>{ if(l.getBounds){ b=b?b.extend(l.getBounds()):l.getBounds(); } }); if(b&&b.isValid())map.fitBounds(b,{padding:[60,60],maxZoom:16}); }
+  function routeBoundsAll(){ let b=null; Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l.getBounds){ b=b?b.extend(l.getBounds()):l.getBounds(); } }); }); return (b&&b.isValid())?b:null; }
+  let allOn=false;
+  function showAllRoutes(){ Object.keys(mgmtRutas).forEach(id=>showRouteLayer(id)); allOn=true; const b=routeBoundsAll(); if(b)map.fitBounds(b,{padding:[50,50]}); const btn=document.getElementById('monAllBtn'); if(btn){btn.classList.add('on');btn.textContent='Ocultar todas';} renderMonitor(); }
+  function hideAllRoutes(){ Object.keys(routeLayers).slice().forEach(id=>hideRouteLayer(id)); allOn=false; const btn=document.getElementById('monAllBtn'); if(btn){btn.classList.remove('on');btn.textContent='Ver todas';} renderMonitor(); }
+  function toggleAllRoutes(){ if(allOn)hideAllRoutes(); else showAllRoutes(); }
+
+  // ---- Detalle de ruta ----
+  let rdId=null, rdTab='datos', rdDate=null, rdViajes={}, rdReportes={};
+  function fmtTime(ts){ if(!ts)return '—'; const d=new Date(ts); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  function fmtFecha(f){ if(!f)return '—'; const p=String(f).split('-'); if(p.length!==3)return f; const ms=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return parseInt(p[2],10)+' '+ms[parseInt(p[1],10)-1]+' '+p[0]; }
+  function openRouteDetail(id){ rdId=id; rdTab='datos'; rdDate=null; rdViajes={}; rdReportes={};
+    document.getElementById('rdOv').classList.add('show');
+    document.querySelectorAll('#rdOv .rd-tab').forEach(t=>t.classList.toggle('on',t.dataset.rt==='datos'));
+    renderDetail();
+    if(fbDb){ Promise.all([fbDb.ref('rutas/'+id+'/viajes').once('value'),fbDb.ref('rutas/'+id+'/reportes').once('value')]).then(function(res){ rdViajes=res[0].val()||{}; rdReportes=res[1].val()||{}; renderDetail(); }).catch(function(){}); } }
+  function closeRouteDetail(){ document.getElementById('rdOv').classList.remove('show'); rdId=null; }
+  function renderDetail(){ if(!rdId)return; const r=mgmtRutas[rdId]||{};
+    document.getElementById('rdName').textContent=r.nombre||'Ruta';
+    const tag=document.getElementById('rdCamion'); tag.textContent=r.camion||'sin camión'; tag.style.display=r.camion?'':'none';
+    document.getElementById('rdMeta').textContent='Chofer: '+(r.choferCode||'—')+'  ·  Sup: '+(r.supCode||'—')+(r.freq&&r.freq.length?('  ·  '+r.freq.join('·')):'');
+    const dates=document.getElementById('rdDates'), body=document.getElementById('rdBody'); dates.innerHTML=''; body.innerHTML='';
+    if(rdTab==='datos'){
+      const pts=(decode(r.wp||'')||[]).length;
+      body.innerHTML='<div class="rd-item">'
+        +'<div class="mon-line" style="color:#23211D"><i class="ti ti-map-pin"></i> '+pts+' puntos de recorrido</div>'
+        +'<div class="mon-line"><i class="ti ti-truck"></i> Camión: '+(r.camion||'sin asignar')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-user"></i> Chofer: '+(r.choferCode||'sin asignar')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-eye"></i> Supervisor: '+(r.supCode||'sin asignar')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-calendar"></i> Frecuencia: '+((r.freq&&r.freq.length)?r.freq.join('·'):'sin definir')+'</div></div>'
+        +'<button class="mon-tinybtn" id="rdShowMap" style="width:100%;margin-top:4px;flex:none">Ver trazado en el mapa</button>';
+      const sm=document.getElementById('rdShowMap'); if(sm)sm.addEventListener('click',()=>{ showRouteLayer(rdId); fitRoute(rdId); closeRouteDetail(); });
+    } else if(rdTab==='viajes'){
+      const fechas=Object.keys(rdViajes).sort().reverse();
+      if(!fechas.length){ body.innerHTML='<div class="rd-empty">Aún no hay viajes registrados.<br>Usa "simular" en una ruta para generar uno de prueba.</div>'; return; }
+      if(!rdDate||!rdViajes[rdDate])rdDate=fechas[0];
+      fechas.forEach(f=>{ const c=document.createElement('button'); c.className='rd-dchip'+(f===rdDate?' on':''); c.textContent=fmtFecha(f); c.addEventListener('click',()=>{ rdDate=f; renderDetail(); }); dates.appendChild(c); });
+      const trips=rdViajes[rdDate]||{}; const keys=Object.keys(trips);
+      body.innerHTML='<div class="mon-sec" style="color:#807E77">'+keys.length+' viaje(s) · '+fmtFecha(rdDate)+'</div>';
+      keys.sort((a,b)=>(trips[a].inicio||0)-(trips[b].inicio||0)).forEach((k,n)=>{ const v=trips[k]; const it=document.createElement('div'); it.className='rd-item';
+        it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:600;flex:1">Viaje '+(n+1)+' · '+fmtTime(v.inicio)+'–'+fmtTime(v.fin)+'</span><span class="mon-pct">'+(v.progress!=null?v.progress+'%':'—')+'</span></div>'
+          +'<div class="mon-line"><i class="ti ti-user"></i> '+(v.choferCode||'—')+'</div>'
+          +'<div class="mon-line"><i class="ti ti-map-pin"></i> '+(v.paradas||0)+' puntos'+(v.sim?' · simulado':'')+'</div>';
+        body.appendChild(it); });
+    } else {
+      const keys=Object.keys(rdReportes);
+      if(!keys.length){ body.innerHTML='<div class="rd-empty">Aún no hay reportes de esta ruta.</div>'; return; }
+      keys.sort((a,b)=>(rdReportes[b].ts||0)-(rdReportes[a].ts||0)).forEach(k=>{ const rp=rdReportes[k]; const it=document.createElement('div'); it.className='rd-item';
+        it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;text-transform:capitalize;flex:1">'+(rp.tipo||'reporte')+'</span><span style="font-size:11px;color:#ABA9A2">'+fmtFecha(rp.fecha||'')+'</span></div>'
+          +'<div class="mon-line" style="color:#23211D">'+(rp.texto||'')+'</div>'
+          +'<div class="mon-line"><i class="ti ti-user"></i> '+(rp.choferCode||rp.supCode||'—')+'</div>';
+        body.appendChild(it); });
+    }
+  }
+
+  // ---- Reportes globales ----
+  let repFilter={tipo:'todos',val:null}, repCache=[];
+  function openReportes(){ document.getElementById('repOv').classList.add('show'); repFilter={tipo:'todos',val:null}; loadReportes(); }
+  function closeReportes(){ document.getElementById('repOv').classList.remove('show'); }
+  function loadReportes(){ const body=document.getElementById('repBody');
+    if(!fbDb){ body.innerHTML='<div class="rd-empty">Sin conexión.</div>'; return; }
+    const ids=Object.keys(mgmtRutas); repCache=[];
+    if(!ids.length){ renderReportes(); return; }
+    let pending=ids.length;
+    ids.forEach(id=>{ fbDb.ref('rutas/'+id+'/reportes').once('value').then(s=>{ const o=s.val()||{}; Object.keys(o).forEach(k=>{ const rp=Object.assign({},o[k]); rp._ruta=id; rp._rutaName=(mgmtRutas[id]||{}).nombre||id; repCache.push(rp); }); }).catch(()=>{}).then(()=>{ if(--pending<=0)renderReportes(); }); });
+  }
+  function renderReportes(){
+    const filt=document.getElementById('repFilt'), body=document.getElementById('repBody');
+    const chofers=[...new Set(repCache.map(r=>r.choferCode).filter(Boolean))];
+    const sups=[...new Set(repCache.map(r=>r.supCode).filter(Boolean))];
+    const rutas=[...new Set(repCache.map(r=>r._ruta))];
+    filt.innerHTML='';
+    const mk=(label,tipo,val)=>{ const b=document.createElement('button'); b.className='rd-fchip'+(repFilter.tipo===tipo&&repFilter.val===val?' on':''); b.textContent=label; b.addEventListener('click',()=>{ repFilter={tipo:tipo,val:val}; renderReportes(); }); filt.appendChild(b); };
+    mk('Todos','todos',null);
+    rutas.forEach(id=>mk((mgmtRutas[id]||{}).nombre||id,'ruta',id));
+    chofers.forEach(c=>mk('Chofer '+c,'chofer',c));
+    sups.forEach(s=>mk('Sup '+s,'sup',s));
+    let list=repCache.slice();
+    if(repFilter.tipo==='ruta')list=list.filter(r=>r._ruta===repFilter.val);
+    else if(repFilter.tipo==='chofer')list=list.filter(r=>r.choferCode===repFilter.val);
+    else if(repFilter.tipo==='sup')list=list.filter(r=>r.supCode===repFilter.val);
+    if(!list.length){ body.innerHTML='<div class="rd-empty">No hay reportes'+(repFilter.tipo!=='todos'?' con ese filtro':' todavía')+'.<br>Simula una ruta para generar datos de prueba.</div>'; return; }
+    body.innerHTML=''; list.sort((a,b)=>(b.ts||0)-(a.ts||0)).forEach(rp=>{ const it=document.createElement('div'); it.className='rd-item';
+      it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">'+(rp._rutaName||'')+'</span><span style="font-size:11px;color:#ABA9A2">'+fmtFecha(rp.fecha||'')+'</span></div>'
+        +'<div class="mon-line" style="color:#23211D">'+(rp.texto||'')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-user"></i> '+(rp.choferCode||'—')+(rp.supCode?(' · Sup '+rp.supCode):'')+'</div>';
+      body.appendChild(it); });
+  }
+
   function monSetup(){
     const head=document.getElementById('monDashHead');
     if(head)head.addEventListener('click',()=>{ const d=document.getElementById('monDash'); d.classList.toggle('min'); const c=document.getElementById('monDashChev'); if(c)c.className='ti ti-chevron-'+(d.classList.contains('min')?'up':'down'); });
     const ss=document.getElementById('simStop'); if(ss)ss.addEventListener('click',stopSim);
+    const ab=document.getElementById('monAllBtn'); if(ab)ab.addEventListener('click',toggleAllRoutes);
+    const rb=document.getElementById('monRepBtn'); if(rb)rb.addEventListener('click',openReportes);
+    const rdb=document.getElementById('rdBack'); if(rdb)rdb.addEventListener('click',closeRouteDetail);
+    const rpb=document.getElementById('repBack'); if(rpb)rpb.addEventListener('click',closeReportes);
+    document.querySelectorAll('#rdOv .rd-tab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('#rdOv .rd-tab').forEach(x=>x.classList.remove('on')); t.classList.add('on'); rdTab=t.dataset.rt; rdDate=null; renderDetail(); }));
   }
   function gateError(id){
     const c=document.querySelector('#'+id+' .acc-card'); if(!c)return;
