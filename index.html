@@ -458,6 +458,7 @@
     background:#FBFAF6;border:1px solid rgba(68,65,58,0.16);border-radius:20px;padding:6px 12px;
     font-family:-apple-system,'Segoe UI',sans-serif;font-size:12px;color:#8C887E;}
   .fb-status.hide{display:none;}
+  .fb-status.br{left:auto;right:14px;bottom:14px;}
   .fb-dot{width:8px;height:8px;border-radius:50%;background:#A8A398;display:inline-block;}
   /* ===== PANEL SUPERVISOR EN VIVO (Fase 3) ===== */
   .sup-panel{position:fixed;top:14px;left:14px;z-index:2500;width:282px;max-height:calc(100vh - 28px);
@@ -561,8 +562,10 @@
   .mon-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid rgba(30,28,24,0.12);border-radius:20px;padding:6px 12px;font-size:12.5px;color:#23211D;cursor:pointer;margin:0 7px 7px 0;}
   .mon-chip.on{border-color:#CF9A4A;background:rgba(207,154,74,0.10);}
   .mon-chip.sim{color:#807E77;}
-  .mon-simstop{position:fixed;left:14px;bottom:64px;z-index:2350;display:none;align-items:center;gap:7px;background:#2E2C27;color:#fff;border:none;border-radius:24px;padding:9px 14px;font-size:13px;font-family:inherit;cursor:pointer;}
+  .mon-simstop{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:2400;display:none;align-items:center;gap:7px;background:#2E2C27;color:#fff;border:none;border-radius:24px;padding:9px 14px;font-size:13px;font-family:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.18);}
   .mon-simstop.show{display:inline-flex;}
+  .route-label{pointer-events:none;}
+  .route-label span{display:inline-block;transform:translate(9px,-9px);color:#fff;font:600 11px/1 -apple-system,'Segoe UI',sans-serif;padding:3px 8px;border-radius:9px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.28);}
   .fld-lbl{display:block;font-size:11px;color:var(--txt-dim);margin:9px 0 4px;}
   .fld{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;border:1px solid var(--brd);background:var(--glass-2);color:var(--txt);font-size:13px;font-family:inherit;}
   .cm-estado{font-size:11px;border:1px solid var(--brd);border-radius:8px;padding:4px 7px;background:transparent;color:inherit;font-family:inherit;margin-left:auto;margin-right:8px;}
@@ -1759,11 +1762,14 @@
     const editor=document.getElementById('panel');
     const ve=document.getElementById('viewEditor'), vm=document.getElementById('viewMonitor');
     const monP=document.getElementById('monPanel'), monD=document.getElementById('monDash');
+    const fb=document.getElementById('fbStatus');
     if(v==='monitor'){ if(editor)editor.style.display='none';
       if(monP)monP.classList.add('show'); if(monD)monD.classList.add('show');
+      if(fb)fb.classList.add('br');
       subscribeUnits(); renderMonitor();
       if(vm)vm.classList.add('on'); if(ve)ve.classList.remove('on'); }
     else { if(monP)monP.classList.remove('show'); if(monD)monD.classList.remove('show');
+      if(fb)fb.classList.remove('br');
       if(editor)editor.style.display='';
       refreshRutaSelects();
       if(ve)ve.classList.add('on'); if(vm)vm.classList.remove('on'); }
@@ -1788,9 +1794,16 @@
 
   // ===== MONITOREO (pantalla principal) =====
   let routeLayers={}, monDay=null, simTimer=null;
+  const ROUTE_COLORS=['#CF9A4A','#C56B4E','#5E8B7E','#7A6FA8','#B0843C','#4E7FA8','#A85C7A','#6E8B3D'];
+  function routeColor(id){ const ids=Object.keys(mgmtRutas||{}).sort(); const i=ids.indexOf(id); return ROUTE_COLORS[(i<0?0:i)%ROUTE_COLORS.length]; }
   function showRouteLayer(id){ const r=mgmtRutas[id]; if(!r||routeLayers[id])return;
     const pts=decode(r.wp||''); if(!pts||pts.length<2)return;
-    routeLayers[id]=L.polyline(pts,{color:'#CF9A4A',weight:5,opacity:.95,dashArray:'1,14',lineCap:'round',interactive:false}).addTo(map); }
+    const col=routeColor(id); const g=L.layerGroup();
+    L.polyline(pts,{color:'#FFFFFF',weight:9,opacity:.75,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+    L.polyline(pts,{color:col,weight:5,opacity:1,dashArray:'11,9',lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+    L.circleMarker(pts[0],{radius:6,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(g);
+    L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+'</span>',iconSize:[0,0]})}).addTo(g);
+    g.addTo(map); routeLayers[id]=g; }
   function hideRouteLayer(id){ if(routeLayers[id]){map.removeLayer(routeLayers[id]);delete routeLayers[id];} }
   function toggleRouteLayer(id){ if(routeLayers[id])hideRouteLayer(id); else showRouteLayer(id); renderMonitor(); }
   function applyDayLayers(){ if(monDay){ Object.keys(mgmtRutas).forEach(id=>{ if((mgmtRutas[id].freq||[]).includes(monDay))showRouteLayer(id); }); } }
@@ -1804,7 +1817,7 @@
     const act=document.getElementById('monActive'); act.innerHTML=''; let nAct=0;
     Object.keys(mgmtRutas).forEach(id=>{ const r=mgmtRutas[id], t=byRuta[id]; if(!t)return; nAct++; showRouteLayer(id);
       const card=document.createElement('div'); card.className='mon-card';
-      card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#2E2C27"></span><span style="font-size:14px;font-weight:600;flex:1">'+(r.nombre||'(sin nombre)')+'</span><span class="mon-pct">'+(t.progress!=null?t.progress+'%':'—')+'</span></div>'
+      card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+'"></span><span style="font-size:14px;font-weight:600;flex:1">'+(r.nombre||'(sin nombre)')+'</span><span class="mon-pct">'+(t.progress!=null?t.progress+'%':'—')+'</span></div>'
         +'<div class="mon-line"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'—')+'</div>'
         +'<div class="mon-line"><i class="ti ti-user" aria-hidden="true"></i> '+((t.code||r.choferCode||'—'))+(t.name?(' '+t.name):'')+'</div>'
         +'<div class="mon-line"><i class="ti ti-eye" aria-hidden="true"></i> '+(r.supCode||'sin supervisor')+'</div>';
@@ -1816,7 +1829,7 @@
       if(monDay && !((r.freq||[]).includes(monDay)))return; nIn++;
       const on=!!routeLayers[id];
       const chip=document.createElement('span'); chip.className='mon-chip'+(on?' on':'');
-      chip.innerHTML='<i class="ti ti-'+(on?'eye':'eye-off')+'" aria-hidden="true"></i> '+(r.nombre||'(sin nombre)');
+      chip.innerHTML=(on?'<span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+';display:inline-block"></span>':'<i class="ti ti-eye-off" aria-hidden="true"></i>')+' '+(r.nombre||'(sin nombre)');
       chip.addEventListener('click',()=>toggleRouteLayer(id)); inact.appendChild(chip);
       const sim=document.createElement('span'); sim.className='mon-chip sim'; sim.innerHTML='<i class="ti ti-player-play" aria-hidden="true"></i> simular';
       sim.addEventListener('click',()=>startSim(id)); inact.appendChild(sim); });
