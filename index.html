@@ -599,6 +599,26 @@
   .ru-acts{display:flex;gap:7px;margin-top:11px;}
   .rd-addnew{background:none;border:none;color:#5f7a66;font-size:12px;font-family:inherit;cursor:pointer;padding:5px 0 2px;}
   .rd-addnew:hover{text-decoration:underline;}
+  /* ===== ADMINISTRACIÓN (sección) ===== */
+  #secAdmin{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;}
+  body.sec-admin #secAdmin{display:block;}
+  .adm2-tabs{display:flex;gap:6px;background:rgba(30,28,24,.05);border-radius:12px;padding:4px;width:fit-content;margin-bottom:18px;}
+  .adm2-tab{padding:8px 16px;border:none;background:transparent;color:#807E77;font-size:13.5px;font-family:inherit;border-radius:9px;cursor:pointer;}
+  .adm2-tab.on{background:#fff;color:#23211D;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .adm2-pane{display:none;} .adm2-pane.on{display:block;}
+  .adm2-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .cam-badge{font-size:11px;padding:2px 8px;border-radius:8px;white-space:nowrap;}
+  .cam-op{color:#1f6e3d;background:rgba(39,163,91,.16);}
+  .cam-no{color:#9c5532;background:rgba(207,154,74,.20);}
+  .cam-meta{display:flex;align-items:center;gap:5px;font-size:11.5px;color:#807E77;margin-top:4px;}
+  .adm2-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:12px;padding:10px 13px;margin-bottom:8px;}
+  .adm2-row .code{font-weight:500;font-size:13.5px;min-width:62px;}
+  .adm2-row .nm{flex:1;color:#807E77;font-size:13px;}
+  .adm2-row .st{font-size:11px;padding:2px 8px;border-radius:8px;cursor:pointer;border:1px solid rgba(30,28,24,.12);background:#fff;color:#44413A;}
+  .adm2-row .x{border:none;background:transparent;color:#C0705F;cursor:pointer;font-size:18px;}
+  .cam-field{margin-bottom:11px;}
+  .cam-field label{display:block;font-size:11px;color:#807E77;margin-bottom:3px;letter-spacing:.2px;}
+  .cam-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 11px;}
   body.adm-shell #monInactiveWrap{display:none;}
   body.adm-shell .adm-bar,body.adm-shell .mgmt-btn,body.adm-shell .units-btn{display:none !important;}
   /* Inicio */
@@ -701,6 +721,33 @@
 </div>
 <div class="map-cover" id="mapCover"><div id="iniBody"></div></div>
 <div id="secRutas"><div class="ini-wrap" id="rutasBody"></div></div>
+<div id="secAdmin"><div class="ini-wrap">
+  <div class="adm2-tabs">
+    <button class="adm2-tab on" data-at="cam">Camiones</button>
+    <button class="adm2-tab" data-at="cho">Choferes</button>
+    <button class="adm2-tab" data-at="sup">Supervisores</button>
+  </div>
+  <div class="adm2-pane on" id="adm2Cam">
+    <div class="adm2-bar">
+      <input id="acFicha" class="fld" placeholder="Ficha (ej: F-60)" style="max-width:200px;margin:0">
+      <button class="mon-tinybtn" id="acAdd" style="flex:none;width:auto;padding:0 16px">Agregar</button>
+      <button class="ru-new" id="acImport" style="margin-left:auto"><i class="ti ti-download" aria-hidden="true"></i> Importar levantamiento</button>
+    </div>
+    <div id="acGrid" class="ru-grid" style="margin-top:16px"></div>
+  </div>
+  <div class="adm2-pane" id="adm2Cho">
+    <div class="adm2-bar"><input id="acoName" class="fld" placeholder="Nombre del chofer" style="max-width:280px;margin:0"><button class="mon-tinybtn" id="acoAdd" style="flex:none;width:auto;padding:0 16px">Agregar</button></div>
+    <div id="acoList" style="margin-top:14px"></div>
+  </div>
+  <div class="adm2-pane" id="adm2Sup">
+    <div class="adm2-bar"><input id="asuName" class="fld" placeholder="Nombre del supervisor" style="max-width:280px;margin:0"><button class="mon-tinybtn" id="asuAdd" style="flex:none;width:auto;padding:0 16px">Agregar</button></div>
+    <div id="asuList" style="margin-top:14px"></div>
+  </div>
+</div></div>
+<div class="rd-ov" id="camOv">
+  <div class="rd-head"><button class="rd-x" id="camBack" title="Volver">←</button><span class="rd-name" id="camTitle">Camión</span><span class="rd-tag" id="camTag"></span></div>
+  <div id="camBody"></div>
+</div>
 <button class="rutas-back" id="rutasBack"><i class="ti ti-arrow-left" aria-hidden="true"></i> Rutas</button>
 <div class="toast" id="toast">Copiado ✓</div>
 <div class="gps-alert" id="gpsAlert">⚠️ <span id="gpsAlertText">Te has salido de la ruta</span></div>
@@ -969,7 +1016,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.5 · 2026-06-08</div>
+<div class="ver-badge" id="verBadge">v3.6 · 2026-06-08</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1745,9 +1792,9 @@
   }
   function startMgmt(){
     if(!fbDb || mgmtSub) return; mgmtSub=true;
-    fbDb.ref('config/choferes').on('value',s=>{ mgmtChoferes=s.val()||{}; mgmtList('chList',mgmtChoferes,id=>fbDb.ref('config/choferes/'+id).remove()); refreshRutaSelects(); });
-    fbDb.ref('config/supervisores').on('value',s=>{ mgmtSup=s.val()||{}; mgmtList('spList',mgmtSup,id=>fbDb.ref('config/supervisores/'+id).remove()); refreshRutaSelects(); });
-    fbDb.ref('config/camiones').on('value',s=>{ mgmtCamiones=s.val()||{}; camionList(); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); });
+    fbDb.ref('config/choferes').on('value',s=>{ mgmtChoferes=s.val()||{}; mgmtList('chList',mgmtChoferes,id=>fbDb.ref('config/choferes/'+id).remove()); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
+    fbDb.ref('config/supervisores').on('value',s=>{ mgmtSup=s.val()||{}; mgmtList('spList',mgmtSup,id=>fbDb.ref('config/supervisores/'+id).remove()); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
+    fbDb.ref('config/camiones').on('value',s=>{ mgmtCamiones=s.val()||{}; camionList(); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
   }
   function mgmtSetup(){
     const ov=document.getElementById('mgmtOv'); if(!ov)return;
@@ -1899,7 +1946,7 @@
     if(name==='inicio'){ buildInicio(); }
     if(name==='monitoreo'){ subscribeUnits(); renderMonitor(); if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); }
     if(name==='rutas'){ if(typeof setRutasView==='function')setRutasView('list'); if(editor)editor.style.display=''; refreshRutaSelects(); if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); }
-    if(name==='admin'){ document.getElementById('mgmtOv').classList.add('show'); }
+    if(name==='admin'){ if(typeof renderAdmin==='function')renderAdmin(); }
     else { const mo=document.getElementById('mgmtOv'); if(mo)mo.classList.remove('show'); }
     if(name==='reportes'){ if(typeof openReportes==='function')openReportes(); }
     else { const ro=document.getElementById('repOv'); if(ro)ro.classList.remove('show'); }
@@ -1924,7 +1971,7 @@
     const showIds=ids.filter(id=>iniShowAll || (rutas[id].freq||[]).includes(today));
     const nCurso=Object.keys(live).length;
     const cam=mgmtCamiones||{}; let disp=0,rep=0;
-    Object.keys(cam).forEach(k=>{ const e=cam[k]||{}; if(e.estado==='disponible'||!e.estado)disp++; if(e.estado==='dañado'||e.estado==='mantenimiento')rep++; });
+    Object.keys(cam).forEach(k=>{ if(camActivo((cam[k]||{}).estado))disp++; else rep++; });
     let h='<div class="ini-wrap">';
     h+='<div class="ini-daterow"><span class="ini-day">'+(DAY_FULL[today]||'')+'</span><span class="ini-date">'+fecha+'</span></div>';
     h+='<div class="ini-sub">'+showIds.length+' ruta'+(showIds.length===1?'':'s')+(iniShowAll?' en total':' para hoy')+'</div>';
@@ -2192,6 +2239,7 @@
       const c=document.createElement('div'); c.className='mon-line'; c.style.color='#23211D'; c.innerHTML='Código del supervisor: <b style="color:#9A6A1C">'+supAccess+'</b>'; box.appendChild(c); }
     toast('Enlaces generados ✓'); }
 
+  const CAMIONES_SEED=[{"ficha":"F-2","marca":"MACK","color":"BLANCO","anio":"2009","capacidad":"18 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2AU04C99M001386","placa":"L-361968","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-2"},{"ficha":"F-8","marca":"INTERNATIONAL","color":"AMARILLO","anio":"2003","capacidad":"6 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1HTMPAFM93H589393","placa":"L-361957","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-8"},{"ficha":"F-9","marca":"MACK","color":"BLANCO","anio":"2004","capacidad":"8.3 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2K194C44M025539","placa":"L-361970","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-9"},{"ficha":"F-45","marca":"FORLAND","color":"BLANCO","anio":"2023","capacidad":"1.9 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"LVBDCJD58PN005337","placa":"PP954251","estructura":"ABIERTO TIPO VOLTEO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-45"},{"ficha":"F-46","marca":"FORLAND","color":"NARANJA","anio":"2023","capacidad":"1.9 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"LVBDCJD58PN005338","placa":"PP820597","estructura":"ABIERTO TIPO VOLTEO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-46"},{"ficha":"F-50","marca":"FORLAND","color":"BLANCO","anio":"2023","capacidad":"1.9 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"LVBDCJD59MN005066","placa":"En Tramite","estructura":"ABIERTO TIPO VOLTEO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-50"},{"ficha":"EQ-DW670CX584","marca":"JOHN DEERE 670B","color":"AMARILLO","anio":"2002","capacidad":"","estado":"en operación","tenencia":"PROPIO","chasis":"DW670CX584322","placa":"En tramite","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"EQ-DW670CX584"},{"ficha":"F-22","marca":"FREIGHTLINE","color":"ROJO","anio":"2007","capacidad":"6 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1FVACWCS97DY55041","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-22"},{"ficha":"F-23","marca":"STERLING","color":"VERDE","anio":"2008","capacidad":"4 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"2FZACFDK78AZ55570","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-23"},{"ficha":"F-28","marca":"ISUZU","color":"AZUL","anio":"2007","capacidad":"2.2 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"NKR81-7054400","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-28"},{"ficha":"F-30","marca":"MACK","color":"BLANCO","anio":"2010","capacidad":"18 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2AU02C5AM003661","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-30"},{"ficha":"F-32","marca":"MACK","color":"BLANCO","anio":"2010","capacidad":"18 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"123QMX251324263","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-32"},{"ficha":"F-33","marca":"MACK","color":"BLANCO","anio":"2007","capacidad":"13 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2K194C2738973","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-33"},{"ficha":"F-35","marca":"MACK","color":"BLANCO","anio":"2007","capacidad":"13 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2K95C67M032060","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-35"},{"ficha":"F-36","marca":"MACK","color":"BLANCO","anio":"2012","capacidad":"13 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2AU02C3M005556","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-36"},{"ficha":"F-37","marca":"MACK","color":"BLANCO","anio":"2012","capacidad":"13 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2AU02C5CM006417","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-37"},{"ficha":"F-38","marca":"MACK","color":"BLANCO","anio":"2008","capacidad":"10 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2AC07C26M011137","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-38"},{"ficha":"F-39","marca":"MACK","color":"BLANCO","anio":"2008","capacidad":"18 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2AU0C5AM003899","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-39"},{"ficha":"F-40","marca":"MACK","color":"BLANCO","anio":"2008","capacidad":"10 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2K195C45M026416","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-40"},{"ficha":"F-43","marca":"FREIGHTLINE","color":"AZUL","anio":"2010","capacidad":"38 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1HTMMAATM07H420742","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-43"},{"ficha":"F-47","marca":"MITSUBISHI","color":"NARANJA","anio":"2021","capacidad":"1.9 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"FE85CGA65419","placa":"X722648","estructura":"ABIERTO TIPO VOLTEO","seguro":"","vigencia":"","_key":"F-47"},{"ficha":"F-48","marca":"MACK","color":"BLANCO","anio":"2023","capacidad":"27 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2AU92C5M006417","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-48"},{"ficha":"F-49","marca":"MACK","color":"AZUL CON BLANCO","anio":"2012","capacidad":"27 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2K189CX5M029356","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-49"},{"ficha":"F-51","marca":"JAC","color":"BLANCO","anio":"2023","capacidad":"3.5 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"LJ13KFBC13000711","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-51"},{"ficha":"F-52","marca":"JAC","color":"BLANCO","anio":"2023","capacidad":"3.5 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"LJ13KFBC5P3000727","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-52"},{"ficha":"F-53","marca":"JAC","color":"BLANCO","anio":"2023","capacidad":"3.5 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"LJ13KFBC7P3000728","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-53"},{"ficha":"F-54","marca":"ISUZU","color":"CREMA","anio":"2023","capacidad":"4.8 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"JAANPR71HR7101118","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-54"},{"ficha":"F-55","marca":"ISUZU","color":"CREMA","anio":"2023","capacidad":"4.8 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"JAANPR71HR7101141","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-55"},{"ficha":"F-56","marca":"ISUZU","color":"CREMA","anio":"2023","capacidad":"4.8 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"AGC23000012","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-56"},{"ficha":"F-57","marca":"ISUZU","color":"CREMA","anio":"2023","capacidad":"4.8 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"JAANPR71HR7101226","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-57"},{"ficha":"F-58","marca":"MACK","color":"BLANCO","anio":"2009","capacidad":"13 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"LZZ1BBNF1PN267402","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-58"},{"ficha":"F20-56","marca":"INTERNATIONAL","color":"AZUL CON BLANCO","anio":"2023","capacidad":"8 TONELADAS","estado":"en operación","tenencia":"PROPIO","chasis":"1M2K189CX5M029356","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F20-56"},{"ficha":"F-5","marca":"MACK","color":"BLANCO","anio":"2008","capacidad":"18 TONELADAS","estado":"en reparación","tenencia":"PROPIO","chasis":"1M2AU04C78M001353","placa":"L-361960","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-5"},{"ficha":"F-11","marca":"INTERNATIONAL","color":"BLANCO","anio":"2005","capacidad":"3.8 TONELADAS","estado":"en reparación","tenencia":"PROPIO","chasis":"1HTMPAFL35H105891","placa":"L-361972","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-11"},{"ficha":"F-12","marca":"STERLING","color":"BLANCO","anio":"2005","capacidad":"8.3 TONELADAS","estado":"en reparación","tenencia":"PROPIO","chasis":"2FZABYCS52AJ66471","placa":"L-334273","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-12"},{"ficha":"F-14","marca":"INTERNATIONAL","color":"AMARILLO","anio":"2006","capacidad":"10 TONELADAS","estado":"en reparación","tenencia":"PROPIO","chasis":"1HTTMMAAN17H364805","placa":"En Tramite","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-14"},{"ficha":"F-29","marca":"MACK","color":"BLANCO","anio":"2007","capacidad":"18 TONELADAS","estado":"en reparación","tenencia":"PROPIO","chasis":"1M2AU02C7AM003600","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-29"},{"ficha":"F-34","marca":"MACK","color":"BLANCO","anio":"2012","capacidad":"13 TONELADAS","estado":"en reparación","tenencia":"PROPIO","chasis":"1M2AU02C5M006398","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-34"},{"ficha":"F-42","marca":"HINO","color":"BLANCO","anio":"2010","capacidad":"38 TONELADAS","estado":"en reparación","tenencia":"PROPIO","chasis":"5PVND8JP272550200","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-42"},{"ficha":"F-44","marca":"INTERNATIONAL","color":"VERDE","anio":"2008","capacidad":"10 TONELADAS","estado":"en reparación","tenencia":"PROPIO","chasis":"1HTMKAA29H113058","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-44"},{"ficha":"F-1","marca":"IVECO","color":"BLANCO","anio":"2002","capacidad":"20 TONELADAS","estado":"análisis","tenencia":"PROPIO","chasis":"LC-K3EHK4B1000038","placa":"En Tramite","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-1"},{"ficha":"F-3","marca":"MACK","color":"BLANCO","anio":"2008","capacidad":"18 TONELADAS","estado":"análisis","tenencia":"PROPIO","chasis":"1M2AU04C19M001396","placa":"L-356565","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-3"},{"ficha":"F-4","marca":"MACK","color":"BLANCO","anio":"2001","capacidad":"5 TONELADAS","estado":"análisis","tenencia":"PROPIO","chasis":"VG6M118B11B304370","placa":"L-336046","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-4"},{"ficha":"F-6","marca":"INTERNATIONAL","color":"VERDE","anio":"2001","capacidad":"4.8 TONELADAS","estado":"análisis","tenencia":"PROPIO","chasis":"1HTSCAAN91H367050","placa":"L-361971","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-6"},{"ficha":"F-10","marca":"STERLING","color":"BLANCO","anio":"2010","capacidad":"8.3 TONELADAS","estado":"análisis","tenencia":"PROPIO","chasis":"2FZAATAK63AK65116","placa":"L-361958","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-10"},{"ficha":"F-13","marca":"MACK","color":"BLANCO","anio":"2008","capacidad":"18 TONELADAS","estado":"análisis","tenencia":"PROPIO","chasis":"1M2AU04CX8M001198","placa":"L-356566","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-13"},{"ficha":"F-18","marca":"MERCEDES BENZ","color":"BLANCO","anio":"2004","capacidad":"15 TONELADAS","estado":"análisis","tenencia":"PROPIO","chasis":"9BM6933868B574628","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-18"},{"ficha":"F-41","marca":"FREIGHTLINE","color":"AZUL Y BLANCO","anio":"2008","capacidad":"10 TONELADAS","estado":"análisis","tenencia":"PROPIO","chasis":"IFVHC5CV38HAA4946","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-41"},{"ficha":"F-7","marca":"MACK","color":"BLANCO","anio":"2008","capacidad":"18 TONELADAS","estado":"sin uso","tenencia":"PROPIO","chasis":"1M2AU04C88M001152","placa":"L-361969","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-7"},{"ficha":"F-19","marca":"JHON DEAR (PALA 544)","color":"AMARILLO","anio":"2004","capacidad":"7 TONELADAS CAPACIDAD DE CARGA","estado":"sin uso","tenencia":"PROPIO","chasis":"DW544HX583185","placa":"En Tramite","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"F-19"},{"ficha":"EQ-31K1357","marca":"CATERPILLAR GREDA 950","color":"AMARILLO","anio":"2002","capacidad":"","estado":"sin uso","tenencia":"PROPIO","chasis":"31K1357","placa":"En Tramite","estructura":"CERRADO","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"EQ-31K1357"},{"ficha":"F-20","marca":"DOOSAN RETRO EXCAVADORA 340","color":"NARANJA","anio":"2007","capacidad":"30 TONELADAS CAPACIDAD DE CARGA","estado":"sin uso","tenencia":"PROPIO","chasis":"V340DHKLWOP80002251","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-20"},{"ficha":"F-21","marca":"CATERPILLAR GREDA 670C","color":"AMARILLO","anio":"2006","capacidad":"30 TONELADAS CAPACIDAD DE CARGA","estado":"sin uso","tenencia":"PROPIO","chasis":"CX584322","placa":"En tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-21"},{"ficha":"EQ-NKR8170535","marca":"ISUZU","color":"AZUL","anio":"2007","capacidad":"2.2 TONELADAS","estado":"sin uso","tenencia":"PROPIO","chasis":"NKR81-7053533","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"EQ-NKR8170535"},{"ficha":"F-31","marca":"MACK","color":"BLANCO","anio":"2010","capacidad":"18 TONELADAS","estado":"sin uso","tenencia":"PROPIO","chasis":"1M2K194C47M038974","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-31"},{"ficha":"Danny Holguin","marca":"Land Crucer","color":"Negra","anio":"2011","capacidad":"4-Pasajeros","estado":"en operación","tenencia":"PROPIO","chasis":"JTMHV05J005018023","placa":"G244797","estructura":"Yipeta","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"Danny Holguin"},{"ficha":"Joan Cruz","marca":"Toyota Hilux","color":"Blanca","anio":"2011","capacidad":"4-Pasajeros","estado":"en operación","tenencia":"PROPIO","chasis":"MR0FZ29GX01624884","placa":"L300037","estructura":"Doble Cabina","seguro":"","vigencia":"","_key":"Joan Cruz"},{"ficha":"Juan de Dios","marca":"Toyota Hilux","color":"Blanca","anio":"2011","capacidad":"4-Pasajeros","estado":"en operación","tenencia":"PROPIO","chasis":"MR0FZ29G201625796","placa":"L299295","estructura":"Doble Cabina","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"Juan de Dios"},{"ficha":"Teodoro Rosario","marca":"Toyota Hilux","color":"Blanca","anio":"2011","capacidad":"4-Pasajeros","estado":"en operación","tenencia":"PROPIO","chasis":"MR0FZ29G901627321","placa":"L299288","estructura":"Doble Cabina","seguro":"","vigencia":"","_key":"Teodoro Rosario"},{"ficha":"Genao","marca":"Nissan Navara","color":"Dorada","anio":"2011","capacidad":"4-Pasajeros","estado":"en reparación","tenencia":"PROPIO","chasis":"MNTVCUD40Z0038980","placa":"L299665","estructura":"Doble Cabina","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"Genao"},{"ficha":"Policia","marca":"Toyota Hilux","color":"Blanca","anio":"2011","capacidad":"4-Pasajeros","estado":"en operación","tenencia":"PROPIO","chasis":"MR0FZ29G801625298","placa":"L299292","estructura":"Doble Cabina","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"Policia"},{"ficha":"Planeamiento Urbano","marca":"Nissan Navara","color":"Blanca","anio":"2011","capacidad":"4-Pasajeros","estado":"análisis","tenencia":"PROPIO","chasis":"MNTVCUD40Z0032553","placa":"TRAMITE","estructura":"Doble Cabina","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"Planeamiento Urbano"},{"ficha":"Campamento","marca":"Toyota Hilux","color":"Blanca","anio":"2011","capacidad":"4-Pasajeros","estado":"sin uso","tenencia":"PROPIO","chasis":"8AJFZ29G906024658","placa":"N/A","estructura":"Doble Cabina","seguro":"","vigencia":"","_key":"Campamento"},{"ficha":"Campamento","marca":"Toyota Hilux","color":"Blanca","anio":"2011","capacidad":"2-Pasajeros","estado":"sin uso","tenencia":"PROPIO","chasis":"JTFWE726000003784","placa":"N/A","estructura":"Cabina y Media","seguro":"","vigencia":"","_key":"Campamento-2"},{"ficha":"Policia","marca":"Toyota Hilux","color":"Blanca","anio":"2011","capacidad":"4-Pasajeros","estado":"en operación","tenencia":"PROPIO","chasis":"MR0FZ29GX01624847","placa":"L300036","estructura":"Doble Cabina","seguro":"ACTIVO","vigencia":"31/03/2024-31/03/2025","_key":"Policia-2"},{"ficha":"F-15","marca":"INTERNATIONAL","color":"AMARILLO","anio":"2002","capacidad":"4 TONELADAS","estado":"sin uso","tenencia":"PRESTADO","chasis":"1HSCAANOXH689777","placa":"L-285425","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-15"},{"ficha":"F-16","marca":"INTERNATIONAL","color":"AMARILLO","anio":"2002","capacidad":"8.3 TONELADAS","estado":"sin uso","tenencia":"PRESTADO","chasis":"1HTSCAAN9XH689776","placa":"L-285423","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-16"},{"ficha":"F-17","marca":"INTERNATIONAL","color":"AMARILLO","anio":"2002","capacidad":"4 TONELADAS","estado":"sin uso","tenencia":"PRESTADO","chasis":"1HTSCAAN2XH6898778","placa":"L-285424","estructura":"CERRADO","seguro":"","vigencia":"","_key":"F-17"},{"ficha":"EQ-1M2AT13037","marca":"MACK","color":"BLANCO CON VERDE","anio":"2002","capacidad":"30 TONELADAS","estado":"sin uso","tenencia":"PRESTADO","chasis":"1M2AT13037M002525","placa":"En Tramite","estructura":"CERRADO","seguro":"","vigencia":"","_key":"EQ-1M2AT13037"},{"ficha":"F-24","marca":"DAIHATSU","color":"ROJO","anio":"1993","capacidad":"1.9 TONELADAS","estado":"en operación","tenencia":"ALQUILADO","chasis":"V118052851","placa":"S001596","estructura":"ABIERTO CON LONA","seguro":"","vigencia":"","_key":"F-24"},{"ficha":"F-25","marca":"DAIHATSU","color":"AZUL","anio":"2002","capacidad":"1.9 TONELADAS","estado":"en operación","tenencia":"ALQUILADO","chasis":"V11862978","placa":"S011829","estructura":"ABIERTO CON LONA","seguro":"","vigencia":"","_key":"F-25"},{"ficha":"F-26","marca":"DAIHATSU","color":"BLANCO","anio":"2001","capacidad":"1.9 TONELADAS","estado":"en operación","tenencia":"ALQUILADO","chasis":"V11862107","placa":"S011829","estructura":"ABIERTO CON LONA","seguro":"","vigencia":"","_key":"F-26"},{"ficha":"F-27","marca":"DAIHATSU","color":"ROJO","anio":"2007","capacidad":"1.9 TONELADAS","estado":"en operación","tenencia":"ALQUILADO","chasis":"JDA00V11800072904","placa":"S012517","estructura":"ABIERTO CON LONA","seguro":"","vigencia":"","_key":"F-27"}];
   function kmOf(pts){ if(!pts||pts.length<2)return 0; let d=0; for(let i=1;i<pts.length;i++)d+=haversine(pts[i-1],pts[i]); return d/1000; }
   function liveChoferCodes(){ const s={}; const live=supLast||{}; Object.keys(live).forEach(k=>{ const t=live[k]; if(t&&t.rutaId&&t.status!=='offline'&&t.status!=='termino'){ if(t.choferCode)s[t.choferCode]=1; if(t.code)s[t.code]=1; } }); return s; }
   function buildGroupedSelect(sel,placeholder,groups,val){ sel.innerHTML='<option value="">'+placeholder+'</option>';
@@ -2210,7 +2258,7 @@
     const rec=[],disp=[],no=[];
     Object.keys(mgmtCamiones||{}).sort().forEach(k=>{ const v=mgmtCamiones[k]||{}; const f=v.ficha||k; const est=v.estado||'disponible';
       if(assigned&&f===assigned)rec.push([f,f+' · asignado',false]);
-      else if(est==='disponible')disp.push([f,f,false]);
+      else if(camActivo(est))disp.push([f,f,false]);
       else no.push([f,f+' · '+est,true]); });
     buildGroupedSelect(sel,'(sin camión)',[['Recomendado',rec],['Disponibles',disp],['No disponibles',no]],assigned); }
   function addActor(kind){ const name=(prompt(kind==='chofer'?'Nombre del nuevo chofer:':'Nombre del nuevo supervisor:')||'').trim(); if(!name||!fbDb)return;
@@ -2250,6 +2298,66 @@
       card.querySelector('[data-act="perfil"]').addEventListener('click',e=>{ e.stopPropagation(); openRouteDetail(id); });
       card.querySelector('[data-act="editar"]').addEventListener('click',e=>{ e.stopPropagation(); const pts=decode((mgmtRutas[id]||{}).wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(mgmtRutas[id]); setRutasView('editor'); toast('Ruta cargada — edita y guarda'); });
       card.addEventListener('click',()=>openRouteDetail(id)); }); }
+
+  // ----- ADMINISTRACIÓN (sección) -----
+  const CAM_ESTADOS=['en operación','en reparación','análisis','sin uso'];
+  function camActivo(est){ const e=(est||'').toString().toLowerCase(); return e.indexOf('opera')>=0||e==='disponible'||e===''; }
+  let admTab='cam';
+  function renderAdmin(){ if(admTab==='cam')renderCamGrid(); else renderActorList(admTab); }
+  function renderCamGrid(){ const host=document.getElementById('acGrid'); if(!host)return;
+    const cam=mgmtCamiones||{}; const keys=Object.keys(cam).sort();
+    if(!keys.length){ host.innerHTML='<div class="ini-empty">Ningún camión. Agrega uno o pulsa "Importar levantamiento".</div>'; return; }
+    let h=''; keys.forEach(k=>{ const v=cam[k]||{}; const op=camActivo(v.estado);
+      h+='<div class="ru-card" data-k="'+k+'">'
+        +'<div class="ru-head"><span class="ru-name">'+((v.ficha||k))+'</span><span class="cam-badge '+(op?'cam-op':'cam-no')+'">'+(v.estado||'en operación')+'</span></div>'
+        +'<div class="cam-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+((v.marca||'—'))+(v.capacidad?(' · '+v.capacidad):'')+'</div>'
+        +'<div class="cam-meta"><i class="ti ti-license" aria-hidden="true"></i> '+(v.placa||'sin placa')+'</div>'
+        +'</div>'; });
+    host.innerHTML=h;
+    host.querySelectorAll('.ru-card').forEach(c=>c.addEventListener('click',()=>openCamProfile(c.dataset.k))); }
+  function openCamProfile(key){ const v=mgmtCamiones[key]||{};
+    document.getElementById('camTitle').textContent=v.ficha||key;
+    const tag=document.getElementById('camTag'); tag.textContent=v.estado||'en operación'; tag.style.display='';
+    const f=(lbl,id,val)=>'<div class="cam-field"><label>'+lbl+'</label><input class="fld" id="'+id+'" value="'+(val||'').toString().replace(/"/g,'&quot;')+'" style="margin:0"></div>';
+    let h='<div class="cam-field"><label>Estado operativo</label><select class="fld" id="cf_estado" style="margin:0">'
+      +CAM_ESTADOS.map(e=>'<option value="'+e+'"'+(((v.estado||'en operación')===e)?' selected':'')+'>'+e+'</option>').join('')+'</select></div>'
+      +'<div class="cam-grid2">'+f('Ficha','cf_ficha',v.ficha||key)+f('Marca','cf_marca',v.marca)
+      +f('Color','cf_color',v.color)+f('Año','cf_anio',v.anio)
+      +f('Capacidad','cf_capacidad',v.capacidad)+f('Tenencia','cf_tenencia',v.tenencia)
+      +f('Placa','cf_placa',v.placa)+f('Estructura','cf_estructura',v.estructura)+'</div>'
+      +f('Chasis','cf_chasis',v.chasis)
+      +'<div class="cam-grid2">'+f('Estatus seguro','cf_seguro',v.seguro)+f('Vigencia','cf_vigencia',v.vigencia)+'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:14px"><button class="mon-tinybtn" id="cfSave" style="flex:1;background:#2E2C27;color:#fff;border-color:#2E2C27">Guardar</button>'
+      +'<button class="mon-tinybtn" id="cfDel" style="flex:none;width:auto;padding:0 14px;color:#C0705F;border-color:rgba(192,112,95,.4)">Eliminar</button></div>';
+    document.getElementById('camBody').innerHTML=h;
+    document.getElementById('camOv').classList.add('show');
+    document.getElementById('cfSave').addEventListener('click',()=>{ const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+      const data={ficha:g('cf_ficha')||key,marca:g('cf_marca'),color:g('cf_color'),anio:g('cf_anio'),capacidad:g('cf_capacidad'),tenencia:g('cf_tenencia'),placa:g('cf_placa'),estructura:g('cf_estructura'),chasis:g('cf_chasis'),seguro:g('cf_seguro'),vigencia:g('cf_vigencia'),estado:g('cf_estado'),ts:Date.now()};
+      if(fbDb)fbDb.ref('config/camiones/'+key).update(data); mgmtCamiones[key]=Object.assign(mgmtCamiones[key]||{},data);
+      document.getElementById('camOv').classList.remove('show'); toast('Camión guardado ✓'); renderCamGrid(); });
+    document.getElementById('cfDel').addEventListener('click',()=>{ if(!confirm('¿Eliminar el camión '+(v.ficha||key)+'?'))return; if(fbDb)fbDb.ref('config/camiones/'+key).remove(); delete mgmtCamiones[key]; document.getElementById('camOv').classList.remove('show'); renderCamGrid(); }); }
+  function importLevantamiento(){ if(!fbDb){toast('Sin conexión a Firebase');return;}
+    if(!confirm('¿Importar '+CAMIONES_SEED.length+' camiones del levantamiento? Se agregan/actualizan en el registro.'))return;
+    const updates={}; CAMIONES_SEED.forEach(c=>{ const o=Object.assign({},c); delete o._key; o.ts=Date.now(); updates[fbKey(c._key)]=o; });
+    fbDb.ref('config/camiones').update(updates).then(()=>toast(CAMIONES_SEED.length+' camiones importados ✓')).catch(e=>toast('Error importando: '+e.message)); }
+  function renderActorList(kind){ const host=document.getElementById(kind==='cho'?'acoList':'asuList'); if(!host)return;
+    const data=kind==='cho'?mgmtChoferes:mgmtSup; const path=kind==='cho'?'config/choferes/':'config/supervisores/'; const keys=data?Object.keys(data).sort():[];
+    if(!keys.length){ host.innerHTML='<div class="ini-empty">Ninguno todavía.</div>'; return; }
+    let h=''; keys.forEach(code=>{ const v=data[code]||{}; const act=v.active!==false;
+      h+='<div class="adm2-row"><span class="code">'+code+'</span><span class="nm">'+((v.name||'').replace(/</g,'&lt;'))+'</span>'
+        +'<button class="st" data-code="'+code+'" data-a="toggle">'+(act?'activo':'inactivo')+'</button>'
+        +'<button class="x" data-code="'+code+'" data-a="del">×</button></div>'; });
+    host.innerHTML=h;
+    host.querySelectorAll('[data-a="toggle"]').forEach(b=>b.addEventListener('click',()=>{ const code=b.dataset.code; const cur=(data[code]||{}).active!==false; if(fbDb)fbDb.ref(path+code+'/active').set(!cur); }));
+    host.querySelectorAll('[data-a="del"]').forEach(b=>b.addEventListener('click',()=>{ const code=b.dataset.code; if(!confirm('¿Eliminar '+code+'?'))return; if(fbDb)fbDb.ref(path+code).remove(); })); }
+  function admSetup2(){
+    document.querySelectorAll('#secAdmin .adm2-tab').forEach(t=>t.addEventListener('click',()=>{ admTab=t.dataset.at; document.querySelectorAll('#secAdmin .adm2-tab').forEach(x=>x.classList.toggle('on',x===t)); document.querySelectorAll('#secAdmin .adm2-pane').forEach(p=>p.classList.remove('on')); document.getElementById(admTab==='cam'?'adm2Cam':(admTab==='cho'?'adm2Cho':'adm2Sup')).classList.add('on'); renderAdmin(); }));
+    const acAdd=document.getElementById('acAdd'); if(acAdd)acAdd.addEventListener('click',()=>{ const i=document.getElementById('acFicha'); const f=(i.value||'').trim(); if(!f||!fbDb)return; fbDb.ref('config/camiones/'+fbKey(f)).set({ficha:f,estado:'en operación',ts:Date.now()}); i.value=''; toast(f+' agregado ✓'); });
+    const acImp=document.getElementById('acImport'); if(acImp)acImp.addEventListener('click',importLevantamiento);
+    const acoAdd=document.getElementById('acoAdd'); if(acoAdd)acoAdd.addEventListener('click',()=>{ const i=document.getElementById('acoName'); const n=(i.value||'').trim(); if(!n||!fbDb)return; const code=nextCode('CH-',mgmtChoferes); fbDb.ref('config/choferes/'+fbKey(code)).set({name:n,active:true,ts:Date.now()}); i.value=''; toast(code+' agregado ✓'); });
+    const asuAdd=document.getElementById('asuAdd'); if(asuAdd)asuAdd.addEventListener('click',()=>{ const i=document.getElementById('asuName'); const n=(i.value||'').trim(); if(!n||!fbDb)return; const code=nextCode('Sup-',mgmtSup); fbDb.ref('config/supervisores/'+fbKey(code)).set({name:n,active:true,ts:Date.now()}); i.value=''; toast(code+' agregado ✓'); });
+    const cb=document.getElementById('camBack'); if(cb)cb.addEventListener('click',()=>document.getElementById('camOv').classList.remove('show'));
+  }
 
   function monSetup(){
     const dt=document.getElementById('monDockToggle');
@@ -2313,6 +2421,7 @@
     startRutas();
     subscribeUnits();
     shellSetup();
+    if(typeof admSetup2==='function')admSetup2();
     setSection('inicio');
     const h=location.hash||'';
     let rParam=null;
