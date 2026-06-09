@@ -568,6 +568,14 @@
   .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
   .nav-item.on{background:rgba(126,155,134,.22);color:#fff;border-left-color:#7E9B86;}
   .nav-item i{font-size:17px;width:18px;text-align:center;}
+  .nav-chev{margin-left:auto;font-size:14px !important;transition:transform .15s;}
+  #navReportes.open .nav-chev{transform:rotate(180deg);}
+  .nav-sub{display:none;flex-direction:column;margin:2px 0 4px;}
+  .nav-sub.open{display:flex;}
+  .nav-subitem{display:flex;align-items:center;gap:9px;padding:8px 11px 8px 22px;color:#B7B4AC;font-size:12.5px;cursor:pointer;border-radius:9px;margin-bottom:2px;}
+  .nav-subitem i{font-size:14px;width:16px;text-align:center;}
+  .nav-subitem:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .nav-subitem.on{background:rgba(126,155,134,.22);color:#fff;}
   .shell-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding:9px 6px 2px;font-size:11px;color:#8E8B82;}
   .shell-foot .row{display:flex;align-items:center;gap:8px;cursor:pointer;}
   .shell-foot .dot{width:7px;height:7px;border-radius:50%;background:#7E9B86;flex:none;}
@@ -588,6 +596,15 @@
   .rep-vis{display:flex;align-items:center;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(30,28,24,.07);}
   .rep-num{font-size:30px;font-weight:600;line-height:1;}
   .rep-scope{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+  .rep-range{display:inline-flex;align-items:center;gap:6px;margin-left:6px;}
+  .rep-range label{font-size:12px;color:#807E77;}
+  .rep-range input[type="date"]{width:auto;margin:0;height:32px;}
+  .rep-inds{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .rep-ind{background:rgba(30,28,24,.04);border:1px solid rgba(30,28,24,.07);border-radius:10px;padding:7px 11px;min-width:78px;}
+  .rep-ind b{display:block;font-size:17px;font-weight:600;}
+  .rep-ind span{font-size:10.5px;color:#807E77;}
+  body.dark .rep-ind{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.08);}
+  body.dark .rep-ind span,body.dark .rep-range label{color:#A8A49B;}
   body.dark .rep-vis{border-top-color:rgba(255,255,255,.08);}
   body.dark .rep-count{color:#9fc4ab;background:rgba(126,155,134,.18);}
   body.adm-shell .panel{left:calc(var(--rail) + 12px);top:calc(var(--topbar) + 12px);display:none;}
@@ -767,10 +784,16 @@
   <div class="nav-item" data-sec="monitoreo"><i class="ti ti-broadcast" aria-hidden="true"></i>Monitoreo</div>
   <div class="nav-item" data-sec="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
   <div class="nav-item" data-sec="admin"><i class="ti ti-settings" aria-hidden="true"></i>Administración</div>
-  <div class="nav-item" data-sec="reportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes</div>
+  <div class="nav-item" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <i class="ti ti-chevron-down nav-chev" aria-hidden="true"></i></div>
+  <div class="nav-sub" id="navRepSub">
+    <div class="nav-subitem" data-rv="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
+    <div class="nav-subitem" data-rv="choferes"><i class="ti ti-user" aria-hidden="true"></i>Choferes</div>
+    <div class="nav-subitem" data-rv="supervisores"><i class="ti ti-eye" aria-hidden="true"></i>Supervisores</div>
+    <div class="nav-subitem" data-rv="camiones"><i class="ti ti-truck" aria-hidden="true"></i>Camiones</div>
+  </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.12 · 2026-06-08</div>
+    <div class="ver" style="padding-top:4px">v3.14 · 2026-06-08</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1081,7 +1104,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.12 · 2026-06-08</div>
+<div class="ver-badge" id="verBadge">v3.14 · 2026-06-08</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2004,6 +2027,9 @@
     document.body.classList.add('adm-shell');
     ['inicio','monitoreo','rutas','admin','reportes'].forEach(s=>document.body.classList.toggle('sec-'+s,s===name));
     document.querySelectorAll('#shellNav .nav-item').forEach(n=>n.classList.toggle('on',n.dataset.sec===name));
+    const nrep=document.getElementById('navReportes'), nrsub=document.getElementById('navRepSub');
+    if(nrep)nrep.classList.toggle('on',name==='reportes');
+    if(nrsub){ nrsub.classList.toggle('open',name==='reportes'); if(nrep)nrep.classList.toggle('open',name==='reportes'); if(name==='reportes')document.querySelectorAll('#navRepSub .nav-subitem').forEach(x=>x.classList.toggle('on',x.dataset.rv===repView)); }
     const t=document.getElementById('shellTitle'); if(t)t.textContent=SEC_TITLE[name]||name;
     const monP=document.getElementById('monPanel'), editor=document.getElementById('panel');
     if(monP)monP.classList.toggle('show',name==='monitoreo');
@@ -2019,7 +2045,10 @@
   function applyTheme(t){ document.body.classList.toggle('dark',t==='dark'); const tx=document.getElementById('umThemeTx'); if(tx)tx.textContent=(t==='dark'?'Modo claro':'Modo oscuro'); const ic=document.querySelector('#umTheme i'); if(ic)ic.className='ti ti-'+(t==='dark'?'sun':'moon'); try{localStorage.setItem('animador_theme',t);}catch(_){ } }
   function toggleTheme(){ applyTheme(document.body.classList.contains('dark')?'light':'dark'); }
   function shellSetup(){
-    document.querySelectorAll('#shellNav .nav-item').forEach(n=>n.addEventListener('click',()=>setSection(n.dataset.sec)));
+    document.querySelectorAll('#shellNav .nav-item[data-sec]').forEach(n=>n.addEventListener('click',()=>setSection(n.dataset.sec)));
+    const nr=document.getElementById('navReportes'), nrs=document.getElementById('navRepSub');
+    if(nr&&nrs)nr.addEventListener('click',()=>{ const o=nrs.classList.toggle('open'); nr.classList.toggle('open',o); });
+    document.querySelectorAll('#navRepSub .nav-subitem').forEach(s=>s.addEventListener('click',()=>{ repView=s.dataset.rv; repSel=null; repScope='hoy'; repFrom=null; repTo=null; document.querySelectorAll('#navRepSub .nav-subitem').forEach(x=>x.classList.toggle('on',x===s)); setSection('reportes'); }));
     const lo=document.getElementById('shellLogout'); if(lo)lo.addEventListener('click',logout);
     const su=document.getElementById('shellUser'), um=document.getElementById('userMenu');
     if(su&&um){ su.addEventListener('click',e=>{ e.stopPropagation(); um.classList.toggle('open'); }); document.addEventListener('click',()=>um.classList.remove('open')); um.addEventListener('click',e=>e.stopPropagation()); }
@@ -2130,7 +2159,10 @@
   function syncMonLayers(){ const live=liveByRuta(); Object.keys(mgmtRutas).forEach(id=>{ const show=monAllOn||live[id]||(monDaysSel.size&&[...monDaysSel].some(d=>(mgmtRutas[id].freq||[]).includes(d))); if(show)showRouteLayer(id); else hideRouteLayer(id); }); }
   function updateLiveTrails(){ const live=liveByRuta();
     Object.keys(liveTrails).forEach(id=>{ if(!live[id]){ map.removeLayer(liveTrails[id]); delete liveTrails[id]; } });
-    Object.keys(live).forEach(id=>{ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2)return; const prog=Math.max(0,Math.min(100,live[id].progress||0)); const n=Math.max(1,Math.round(prog/100*(pts.length-1))); const done=pts.slice(0,n+1);
+    Object.keys(live).forEach(id=>{ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2)return; const t=live[id];
+      let done; if(t._idx!=null){ done=pts.slice(0,t._idx+1); if(t.lat!=null&&t.lng!=null)done=done.concat([[t.lat,t.lng]]); }
+      else { const prog=Math.max(0,Math.min(100,t.progress||0)); const n=Math.max(1,Math.round(prog/100*(pts.length-1))); done=pts.slice(0,n+1); }
+      if(done.length<2)done=[pts[0],pts[0]];
       if(liveTrails[id])liveTrails[id].setLatLngs(done); else liveTrails[id]=L.polyline(done,{color:'#27A35B',weight:routeWeights().main+1.6,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map); }); }
   function liveByRuta(){ const live=supLast||{}, m={}; Object.keys(live).forEach(k=>{ const t=live[k]; const age=(Date.now()-((t&&t.ts)||0))/1000; if(t&&t.rutaId&&t.status!=='offline'&&t.status!=='termino'&&age<=40)m[t.rutaId]=t; }); return m; }
   function renderMonitor(){
@@ -2178,20 +2210,22 @@
   }
   let simStartTs=0;
   function startSim(id){ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2){toast('Esa ruta no tiene trazado');return;}
-    stopSim(); const code='SIM-'+(r.camion||id).toString().replace(/\s/g,''); let i=0,f=0; simStartTs=Date.now();
-    document.getElementById('simStop').classList.add('show');
-    const seed={code:code,name:'Simulación',lat:pts[0][0],lng:pts[0][1],progress:0,status:'en_ruta',route:r.nombre||null,rutaId:id,ts:Date.now()};
-    if(fbDb)fbDb.ref('live/'+fbKey(code)).update(seed);
-    supLast=supLast||{}; supLast[fbKey(code)]=seed; showRouteLayer(id); renderMonitor();
-    simTimer=setInterval(()=>{
-      if(i>=pts.length-1){ if(fbDb)fbDb.ref('live/'+fbKey(code)).update({status:'termino',ts:Date.now()}); logViaje(id,r,code,100); stopSim(); toast('Viaje simulado registrado en '+(r.nombre||'ruta')); return; }
-      f+=0.18; if(f>=1){f=0;i++;}
-      const a=pts[i], b=pts[Math.min(i+1,pts.length-1)];
-      const lat=a[0]+(b[0]-a[0])*f, lng=a[1]+(b[1]-a[1])*f;
-      const prog=Math.round((i/(pts.length-1))*100);
-      if(fbDb)fbDb.ref('live/'+fbKey(code)).update({code:code,name:'Simulación',lat:lat,lng:lng,progress:prog,status:'en_ruta',route:r.nombre||null,rutaId:id,ts:Date.now()});
-    },1000);
-    toast('Simulando '+(r.nombre||'ruta')+'…'); }
+    stopSim(); const code='SIM-'+(r.camion||id).toString().replace(/\s/g,''); const key=fbKey(code); simStartTs=Date.now();
+    const cum=[0]; for(let k=1;k<pts.length;k++)cum.push(cum[k-1]+haversine(pts[k-1],pts[k])); const L=cum[cum.length-1]||1;
+    const DUR=10000; let lastFb=0;
+    const seed={code:code,name:'Simulación',lat:pts[0][0],lng:pts[0][1],progress:0,status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:0,ts:Date.now()};
+    if(fbDb)fbDb.ref('live/'+key).update(seed); supLast=supLast||{}; supLast[key]=seed; showRouteLayer(id); renderMonitor();
+    simTimer=setInterval(()=>{ const el=Date.now()-simStartTs; let f=el/DUR; if(f>=1)f=1;
+      const d=f*L; let idx=0; while(idx<cum.length-1 && cum[idx+1]<d)idx++;
+      const segLen=(cum[idx+1]-cum[idx])||1; const fr=Math.max(0,Math.min(1,(d-cum[idx])/segLen));
+      const a=pts[idx], b=pts[Math.min(idx+1,pts.length-1)]; const lat=a[0]+(b[0]-a[0])*fr, lng=a[1]+(b[1]-a[1])*fr;
+      const o={code:code,name:'Simulación',lat:lat,lng:lng,progress:Math.round(f*100),status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:idx,ts:Date.now()};
+      supLast[key]=o;
+      if(Date.now()-lastFb>900){ lastFb=Date.now(); if(fbDb)fbDb.ref('live/'+key).update(o); }
+      if(typeof renderSupervisor==='function')renderSupervisor(supLast); updateLiveTrails();
+      if(f>=1){ if(fbDb)fbDb.ref('live/'+key).update({status:'termino',ts:Date.now()}); logViaje(id,r,code,100); stopSim(); toast('Viaje simulado registrado en '+(r.nombre||'ruta')); }
+    },100);
+    toast('Simulando '+(r.nombre||'ruta')+'… (10s)'); }
   function stopSim(){ if(simTimer){clearInterval(simTimer);simTimer=null;} const s=document.getElementById('simStop'); if(s)s.classList.remove('show'); }
   function logViaje(id,r,code,prog){ if(!fbDb)return;
     const now=new Date(); const fecha=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
@@ -2275,8 +2309,8 @@
   }
 
   // ---- Reportes globales ----
-  let repView='home', repScope='hoy', repCustom=null, repCache=[], repSel=null;
-  function openReportes(){ repView='home'; repScope='hoy'; repCustom=null; repSel=null; loadReportes(); }
+  let repView='rutas', repScope='hoy', repFrom=null, repTo=null, repCache=[], repSel=null, repShown=[];
+  function openReportes(){ repScope='hoy'; repFrom=null; repTo=null; repSel=null; loadReportes(); }
   function closeReportes(){ if(document.body.classList.contains('adm-shell'))setSection('inicio'); }
   function loadReportes(){ const body=document.getElementById('repBody'); if(!body)return;
     if(!fbDb){ body.innerHTML='<div class="rd-empty">Sin conexión.</div>'; return; }
@@ -2289,48 +2323,70 @@
   function scopeMatch(fecha){ const t=new Date(); if(repScope==='todos')return true; if(repScope==='hoy')return fecha===dkey(t);
     if(repScope==='ayer')return fecha===dkey(new Date(t.getTime()-86400000));
     if(repScope==='semana')return fecha>=dkey(new Date(t.getTime()-6*86400000));
-    if(repScope==='custom')return fecha===repCustom; return true; }
+    if(repScope==='range'){ if(repFrom&&fecha<repFrom)return false; if(repTo&&fecha>repTo)return false; return true; } return true; }
   function ratingColor(s){ s=Number(s)||0; return s>=80?'#27A35B':(s>=50?'#C7A765':'#C0705F'); }
-  function repItemHtml(rp){ const sc=rp.rating; const col=ratingColor(sc);
+  function repInd(l,v){ return v!=null?('<div class="rep-ind"><b>'+v+'%</b><span>'+l+'</span></div>'):''; }
+  function repItemHtml(rp,i){ const sc=rp.rating; const col=ratingColor(sc);
     return '<div class="rd-item">'
       +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">'+(rp._rutaName||'')+'</span>'
       +(sc!=null?'<span class="rep-badge" style="background:'+col+'22;color:'+col+'">'+sc+'/100</span>':'')
       +'<span style="font-size:11px;color:#ABA9A2">'+fmtFecha(rp.fecha||'')+'</span></div>'
       +'<div class="mon-line"><i class="ti ti-clock"></i> '+fmtTime(rp.inicio)+' → '+fmtTime(rp.fin||rp.ts)+' · <i class="ti ti-user"></i> '+(rp.choferCode||'—')+(rp.supCode?(' · Sup '+rp.supCode):'')+(rp._camion?(' · <i class="ti ti-truck"></i> '+rp._camion):'')+'</div>'
-      +(rp.routeCompletion!=null?'<div class="mon-line"><i class="ti ti-route"></i> Completado '+rp.routeCompletion+'%'+(rp.kmFin!=null?(' · odómetro '+fmtKm(rp.kmFin)):'')+(rp.distancia!=null?(' · recorrió '+fmtKm(rp.distancia)):'')+'</div>':'')
+      +(rp.kmFin!=null?'<div class="mon-line"><i class="ti ti-gauge"></i> Odómetro '+fmtKm(rp.kmFin)+(rp.distancia!=null?(' · recorrió '+fmtKm(rp.distancia)):'')+'</div>':'')
       +'<div class="mon-line" style="color:var(--tx0)">'+(rp.texto||'')+'</div>'
-      +(sc!=null?('<div class="rep-vis"><div class="rep-num" style="color:'+col+'">'+sc+'</div><div><div style="font-weight:600">'+(rp.ratingLevel||'')+'</div><div class="mon-line" style="margin:0">'+(rp.message||'Calificación del recorrido.')+'</div></div></div>'):'')
+      +(sc!=null?('<div class="rep-vis"><div class="rep-num" style="color:'+col+'">'+sc+'</div><div><div style="font-weight:600">'+(rp.ratingLevel||'')+'</div><div class="mon-line" style="margin:0">'+(rp.message||'Calificación del recorrido.')+'</div></div></div>'
+        +'<div class="rep-inds">'+repInd('Completado',rp.routeCompletion)+repInd('Fidelidad ruta',rp.routeFidelity)+repInd('Eficiencia tiempo',rp.timeEfficiency)+(rp.criticalPct!=null?repInd('Críticas omitidas',rp.criticalPct):'')+'</div>'):'')
+      +'<button class="mon-tinybtn rep-word" data-i="'+i+'" style="margin-top:11px;width:auto;flex:none;padding:0 13px"><i class="ti ti-download"></i> Descargar reporte</button>'
       +'</div>'; }
-  function renderReportes(){ const filt=document.getElementById('repFilt'), body=document.getElementById('repBody'); if(!body)return; if(filt)filt.innerHTML='';
-    if(repView==='home'){ const nRep=repCache.length; const cho=new Set(repCache.map(r=>r.choferCode).filter(Boolean)).size; const cam=new Set(repCache.map(r=>r._camion).filter(Boolean)).size;
-      body.innerHTML='<div class="ru-grid">'
-        +'<div class="ru-card rep-dash" data-v="rutas"><div class="ru-head"><i class="ti ti-route" style="color:#7E9B86;font-size:18px"></i><span class="ru-name">Reporte de rutas</span></div><div class="cam-meta">Inicio/fin, quién la hizo y calificación</div><div class="rep-count">'+nRep+' reportes</div></div>'
-        +'<div class="ru-card rep-dash" data-v="choferes"><div class="ru-head"><i class="ti ti-user" style="color:#7E9B86;font-size:18px"></i><span class="ru-name">Reporte de choferes</span></div><div class="cam-meta">Historial y calificaciones por chofer</div><div class="rep-count">'+cho+' con reportes</div></div>'
-        +'<div class="ru-card rep-dash" data-v="camiones"><div class="ru-head"><i class="ti ti-truck" style="color:#7E9B86;font-size:18px"></i><span class="ru-name">Reporte de camiones</span></div><div class="cam-meta">Días trabajados y recorridos por ficha</div><div class="rep-count">'+cam+' con recorridos</div></div>'
-        +'</div>';
-      body.querySelectorAll('.rep-dash').forEach(c=>c.addEventListener('click',()=>{ repView=c.dataset.v; repSel=null; renderReportes(); }));
-      return; }
-    let h='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button class="mon-tinybtn" id="repBack" style="flex:none;width:auto;padding:0 13px"><i class="ti ti-arrow-left"></i> Volver</button><span style="font-size:15px;font-weight:500">'+(repView==='rutas'?'Reporte de rutas':(repView==='choferes'?'Reporte de choferes':'Reporte de camiones'))+'</span></div>';
+  function repListHtml(list){ repShown=list; return list.length?list.map((rp,i)=>repItemHtml(rp,i)).join(''):'<div class="rd-empty">Sin reportes.</div>'; }
+  function downloadReportWord(rp){ if(!rp)return; if(typeof docx==='undefined'||!docx.Document){ toast('Librería Word cargando · reintenta'); return; }
+    const P=docx.Paragraph,T=docx.TextRun; const line=(t,b,sz)=>new P({children:[new T({text:t,bold:!!b,size:sz||22})]});
+    const doc=new docx.Document({sections:[{children:[
+      new P({children:[new T({text:'Reporte de recorrido',bold:true,size:40})]}),
+      line('Ruta: '+(rp._rutaName||''),true),
+      line('Fecha: '+fmtFecha(rp.fecha||'')+'   '+fmtTime(rp.inicio)+' → '+fmtTime(rp.fin||rp.ts)),
+      line('Chofer: '+(rp.choferCode||'—')+(rp.supCode?('     Supervisor: '+rp.supCode):'')),
+      line('Camión: '+(rp._camion||'—')),
+      new P({text:''}),
+      new P({children:[new T({text:'Calificación: '+(rp.rating!=null?rp.rating:'—')+'/100   '+(rp.ratingLevel||''),bold:true,size:34})]}),
+      line('Ruta completada: '+(rp.routeCompletion!=null?rp.routeCompletion+'%':'—')),
+      line('Fidelidad a la ruta: '+(rp.routeFidelity!=null?rp.routeFidelity+'%':'—')),
+      line('Eficiencia de tiempo: '+(rp.timeEfficiency!=null?rp.timeEfficiency+'%':'—')),
+      line('Paradas críticas omitidas: '+(rp.criticalPct!=null?rp.criticalPct+'%':'—')),
+      line('Odómetro final: '+(rp.kmFin!=null?fmtKm(rp.kmFin):'—')+'    Distancia recorrida: '+(rp.distancia!=null?fmtKm(rp.distancia):'—')),
+      new P({text:''}),
+      line(rp.message||''), line(rp.texto||'')
+    ]}]});
+    docx.Packer.toBlob(doc).then(blob=>{ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='reporte_'+String(rp._rutaName||'ruta').replace(/\s+/g,'_')+'_'+(rp.fecha||'')+'.docx'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); toast('Reporte descargado ✓'); }).catch(()=>toast('No se pudo generar el Word')); }
+  function renderReportes(){ const body=document.getElementById('repBody'); const filt=document.getElementById('repFilt'); if(filt)filt.innerHTML=''; if(!body)return;
+    body.innerHTML='<div class="adm2-tabs" style="margin-bottom:16px">'+[['rutas','Rutas'],['choferes','Choferes'],['supervisores','Supervisores'],['camiones','Camiones']].map(s=>'<button class="adm2-tab'+(repView===s[0]?' on':'')+'" data-v="'+s[0]+'">'+s[1]+'</button>').join('')+'</div><div id="repContent"></div>';
+    body.querySelectorAll('.adm2-tab').forEach(t=>t.addEventListener('click',()=>{ repView=t.dataset.v; repSel=null; renderReportes(); }));
+    const c=document.getElementById('repContent'); let ch='';
     if(repView==='rutas'){
-      h+='<div class="rep-scope">'+[['hoy','Hoy'],['ayer','Ayer'],['semana','Últimos 7 días'],['todos','Todos']].map(s=>'<button class="rd-fchip'+(repScope===s[0]?' on':'')+'" data-sc="'+s[0]+'">'+s[1]+'</button>').join('')+'<input type="date" id="repDate" class="fld" style="width:auto;margin:0;height:32px">'+(repScope==='custom'?'<span class="cam-meta">'+repCustom+'</span>':'')+'</div>';
+      ch+='<div class="rep-scope">'+[['hoy','Hoy'],['ayer','Ayer'],['semana','7 días'],['todos','Todos']].map(s=>'<button class="rd-fchip'+(repScope===s[0]?' on':'')+'" data-sc="'+s[0]+'">'+s[1]+'</button>').join('')
+        +'<span class="rep-range"><label>Desde</label><input type="date" id="repFrom" class="fld" value="'+(repFrom||'')+'"><label>Hasta</label><input type="date" id="repTo" class="fld" value="'+(repTo||'')+'"></span></div>';
       const list=repCache.filter(rp=>scopeMatch(rp.fecha||'')).sort((a,b)=>(b.ts||0)-(a.ts||0));
-      h+='<div style="margin-top:14px">'+(list.length?list.map(repItemHtml).join(''):'<div class="rd-empty">No hay reportes en este rango.<br>Simula una ruta (Monitoreo → ▶) para generar datos de prueba.</div>')+'</div>';
-      body.innerHTML=h;
-      const dd=document.getElementById('repDate'); if(dd)dd.addEventListener('change',()=>{ if(dd.value){ repScope='custom'; repCustom=dd.value; renderReportes(); } });
+      ch+='<div style="margin-top:14px">'+(list.length?repListHtml(list):'<div class="rd-empty">No hay reportes en este rango.<br>Simula una ruta (Monitoreo → ▶) para generar datos.</div>')+'</div>';
     } else if(repView==='choferes'){
-      const set={}; Object.keys(mgmtChoferes||{}).forEach(c=>set[c]=(mgmtChoferes[c]||{}).name||''); repCache.forEach(r=>{ if(r.choferCode&&!(r.choferCode in set))set[r.choferCode]=''; });
-      if(!repSel){ h+='<div class="ru-grid">'+Object.keys(set).map(c=>{ const n=repCache.filter(r=>r.choferCode===c).length; return '<div class="ru-card rep-ent" data-e="'+c+'"><div class="ru-head"><i class="ti ti-user" style="color:#7E9B86"></i><span class="ru-name">'+c+'</span></div><div class="cam-meta">'+(set[c]||'—')+'</div><div class="rep-count">'+n+' reportes</div></div>'; }).join('')+'</div>'; }
-      else { const list=repCache.filter(r=>r.choferCode===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); h+='<div class="cam-meta" style="margin-bottom:10px">Chofer '+repSel+(set[repSel]?(' · '+set[repSel]):'')+' · '+list.length+' reportes</div>'+(list.length?list.map(repItemHtml).join(''):'<div class="rd-empty">Sin reportes.</div>'); }
-      body.innerHTML=h; body.querySelectorAll('.rep-ent').forEach(e=>e.addEventListener('click',()=>{ repSel=e.dataset.e; renderReportes(); }));
-    } else if(repView==='camiones'){
-      const set={}; Object.keys(mgmtCamiones||{}).forEach(k=>{ set[(mgmtCamiones[k]||{}).ficha||k]=1; }); repCache.forEach(r=>{ if(r._camion)set[r._camion]=1; });
-      if(!repSel){ h+='<div class="ru-grid">'+Object.keys(set).filter(f=>repCache.some(r=>r._camion===f)).map(f=>{ const rps=repCache.filter(r=>r._camion===f); const dias=new Set(rps.map(r=>r.fecha)).size; return '<div class="ru-card rep-ent" data-e="'+f+'"><div class="ru-head"><i class="ti ti-truck" style="color:#7E9B86"></i><span class="ru-name">'+f+'</span></div><div class="cam-meta">'+dias+' día(s) trabajado(s)</div><div class="rep-count">'+rps.length+' recorridos</div></div>'; }).join('')+'</div>';
-        if(!repCache.some(r=>r._camion))h+='<div class="rd-empty">Aún no hay recorridos por camión. Simula una ruta con camión asignado.</div>'; }
-      else { const list=repCache.filter(r=>r._camion===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); const dias=new Set(list.map(r=>r.fecha)).size; h+='<div class="cam-meta" style="margin-bottom:10px">Camión '+repSel+' · '+dias+' día(s) trabajados · '+list.length+' recorridos</div>'+(list.length?list.map(repItemHtml).join(''):'<div class="rd-empty">Sin recorridos.</div>'); }
-      body.innerHTML=h; body.querySelectorAll('.rep-ent').forEach(e=>e.addEventListener('click',()=>{ repSel=e.dataset.e; renderReportes(); }));
+      const set={}; Object.keys(mgmtChoferes||{}).forEach(co=>set[co]=(mgmtChoferes[co]||{}).name||''); repCache.forEach(r=>{ if(r.choferCode&&!(r.choferCode in set))set[r.choferCode]=''; });
+      if(!repSel){ const ks=Object.keys(set); ch+=ks.length?('<div class="ru-grid">'+ks.map(co=>{ const n=repCache.filter(r=>r.choferCode===co).length; return '<div class="ru-card rep-ent" data-e="'+co+'"><div class="ru-head"><i class="ti ti-user" style="color:#7E9B86"></i><span class="ru-name">'+co+'</span></div><div class="cam-meta">'+(set[co]||'—')+'</div><div class="rep-count">'+n+' reportes</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">No hay choferes.</div>'; }
+      else { const list=repCache.filter(r=>r.choferCode===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Choferes</button><div class="cam-meta" style="margin-bottom:10px">Chofer '+repSel+(set[repSel]?(' · '+set[repSel]):'')+' · '+list.length+' reportes</div>'+repListHtml(list); }
+    } else if(repView==='supervisores'){
+      const set={}; Object.keys(mgmtSup||{}).forEach(co=>set[co]=(mgmtSup[co]||{}).name||''); repCache.forEach(r=>{ if(r.supCode&&!(r.supCode in set))set[r.supCode]=''; });
+      if(!repSel){ const ks=Object.keys(set); ch+=ks.length?('<div class="ru-grid">'+ks.map(co=>{ const n=repCache.filter(r=>r.supCode===co).length; return '<div class="ru-card rep-ent" data-e="'+co+'"><div class="ru-head"><i class="ti ti-eye" style="color:#7E9B86"></i><span class="ru-name">'+co+'</span></div><div class="cam-meta">'+(set[co]||'—')+'</div><div class="rep-count">'+n+' reportes</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">No hay supervisores.</div>'; }
+      else { const list=repCache.filter(r=>r.supCode===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Supervisores</button><div class="cam-meta" style="margin-bottom:10px">Supervisor '+repSel+(set[repSel]?(' · '+set[repSel]):'')+' · '+list.length+' reportes</div>'+repListHtml(list); }
+    } else {
+      if(!repSel){ const ks=Object.keys(set).filter(f=>repCache.some(r=>r._camion===f)); ch+=ks.length?('<div class="ru-grid">'+ks.map(f=>{ const rps=repCache.filter(r=>r._camion===f); const dias=new Set(rps.map(r=>r.fecha)).size; return '<div class="ru-card rep-ent" data-e="'+f+'"><div class="ru-head"><i class="ti ti-truck" style="color:#7E9B86"></i><span class="ru-name">'+f+'</span></div><div class="cam-meta">'+dias+' día(s) trabajado(s)</div><div class="rep-count">'+rps.length+' recorridos</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">Aún no hay recorridos por camión. Simula una ruta con camión asignado.</div>'; }
+      else { const list=repCache.filter(r=>r._camion===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); const dias=new Set(list.map(r=>r.fecha)).size; ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Camiones</button><div class="cam-meta" style="margin-bottom:10px">Camión '+repSel+' · '+dias+' día(s) trabajados · '+list.length+' recorridos</div>'+repListHtml(list); }
     }
-    const bk=document.getElementById('repBack'); if(bk)bk.addEventListener('click',()=>{ if(repSel)repSel=null; else repView='home'; renderReportes(); });
-    document.querySelectorAll('.rep-scope [data-sc]').forEach(b=>b.addEventListener('click',()=>{ repScope=b.dataset.sc; repCustom=null; renderReportes(); }));
+    c.innerHTML=ch;
+    c.querySelectorAll('[data-sc]').forEach(b=>b.addEventListener('click',()=>{ repScope=b.dataset.sc; repFrom=null; repTo=null; renderReportes(); }));
+    const ff=document.getElementById('repFrom'), tt=document.getElementById('repTo');
+    const updR=()=>{ repFrom=(ff&&ff.value)||null; repTo=(tt&&tt.value)||null; repScope='range'; renderReportes(); };
+    if(ff)ff.addEventListener('change',updR); if(tt)tt.addEventListener('change',updR);
+    c.querySelectorAll('.rep-ent').forEach(e=>e.addEventListener('click',()=>{ repSel=e.dataset.e; renderReportes(); }));
+    c.querySelectorAll('.rep-back2').forEach(b=>b.addEventListener('click',()=>{ repSel=null; renderReportes(); }));
+    c.querySelectorAll('.rep-word').forEach(b=>b.addEventListener('click',()=>downloadReportWord(repShown[+b.dataset.i])));
   }
 
   function fillSelInto(id,data,val){ const sel=document.getElementById(id); if(!sel)return; sel.innerHTML='<option value="">(ninguno)</option>'; Object.keys(data||{}).sort().forEach(code=>{ const v=data[code]||{}; const o=document.createElement('option'); o.value=code; o.textContent=code+(v.name?(' · '+v.name):''); sel.appendChild(o); }); sel.value=val||''; }
