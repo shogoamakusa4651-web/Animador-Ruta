@@ -577,7 +577,10 @@
   .shell-user{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#44413A;}
   .shell-user .av{width:28px;height:28px;border-radius:50%;background:#7E9B86;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;}
   .map-cover{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;}
-  body.sec-inicio .map-cover,body.sec-reportes .map-cover{display:block;}
+  body.sec-inicio .map-cover{display:block;}
+  #secReportes{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;}
+  body.sec-reportes #secReportes{display:block;}
+  body.dark #secReportes{background:#1A1916;color:#ECEAE3;}
   body.adm-shell .panel{left:calc(var(--rail) + 12px);top:calc(var(--topbar) + 12px);display:none;}
   body.adm-shell .mon-panel{left:calc(var(--rail) + 12px);top:calc(var(--topbar) + 10px);display:none;}
   body.sec-monitoreo .mon-panel.show{display:flex;}
@@ -662,7 +665,6 @@
   body.dark .um-item:hover{background:rgba(255,255,255,.06);}
   body.dark .mon-crear,body.dark .ru-new{background:#7E9B86;color:#1A1916;}
   body.dark .mon-pct,body.dark .ini-mini{background:rgba(39,163,91,.22);color:#7fd6a3;}
-  body.adm-shell #monInactiveWrap{display:none;}
   body.adm-shell .adm-bar,body.adm-shell .mgmt-btn,body.adm-shell .units-btn{display:none !important;}
   /* Inicio */
   .ini-wrap{max-width:780px;margin:0 auto;padding:24px 22px 60px;}
@@ -755,7 +757,7 @@
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
     <div class="row" id="shellLogout"><i class="ti ti-logout" aria-hidden="true" style="font-size:14px"></i><span>Cerrar sesión</span></div>
-    <div class="ver" style="padding-top:4px">v3.7 · 2026-06-08</div>
+    <div class="ver" style="padding-top:4px">v3.8 · 2026-06-08</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1003,7 +1005,7 @@
   <div id="monActive"></div>
   <div id="monInactiveWrap">
   <div class="mon-divider"></div>
-  <div class="mon-sec">INACTIVAS · tócalas para ver su trazado</div>
+  <div class="mon-sec">OTRAS RUTAS · enciende / apaga / simula</div>
   <div id="monInactive" style="margin-top:2px"></div>
   </div>
 </div>
@@ -1017,12 +1019,12 @@
   <div id="rdBody"></div>
 </div>
 
-<div class="rd-ov" id="repOv">
-  <div class="rd-head"><button class="rd-x" id="repBack" title="Volver">←</button><span class="rd-name">Reportes</span></div>
-  <div class="rd-meta">Filtra los reportes y viajes por ruta, chofer o supervisor.</div>
-  <div class="rd-fchip-wrap" id="repFilt" style="margin-bottom:13px"></div>
+<div id="secReportes"><div class="ini-wrap">
+  <div class="ini-daterow" style="margin-bottom:4px"><span class="ini-day" style="font-size:20px">Reportes</span></div>
+  <div class="ini-sub">Filtra por ruta, chofer o supervisor.</div>
+  <div class="rd-fchip-wrap" id="repFilt" style="margin-bottom:16px"></div>
   <div id="repBody"></div>
-</div>
+</div></div>
 
 <div class="start-guide" id="startGuide"><span class="sg-tx">🚩 Dirígete al punto de inicio</span></div>
 <div class="mgmt-ov" id="mgmtOv">
@@ -1066,7 +1068,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.7 · 2026-06-08</div>
+<div class="ver-badge" id="verBadge">v3.8 · 2026-06-08</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2016,44 +2018,47 @@
   // ----- INICIO -----
   const DAY_FULL={L:'lunes',M:'martes',X:'miércoles',J:'jueves',V:'viernes',S:'sábado',D:'domingo'};
   function todayLetter(){ return DAYS[(new Date().getDay()+6)%7]; }
-  let iniShowAll=false;
+  let iniShowAll=false, iniDaysSel=null;
   function buildInicio(){
     const host=document.getElementById('iniBody'); if(!host)return;
     const today=todayLetter();
+    if(iniDaysSel===null)iniDaysSel=new Set([today]);
     const now=new Date();
     const fecha=now.toLocaleDateString('es-DO',{day:'numeric',month:'long',year:'numeric'});
     const rutas=mgmtRutas||{};
     const live=(typeof liveByRuta==='function')?liveByRuta():{};
     const ids=Object.keys(rutas);
-    const showIds=ids.filter(id=>iniShowAll || (rutas[id].freq||[]).includes(today));
+    const sel=iniDaysSel;
+    const showIds=ids.filter(id=>iniShowAll || sel.size===0 || [...sel].some(d=>(rutas[id].freq||[]).includes(d)));
     const nCurso=Object.keys(live).length;
     const cam=mgmtCamiones||{}; let disp=0,rep=0;
     Object.keys(cam).forEach(k=>{ if(camActivo((cam[k]||{}).estado))disp++; else rep++; });
     let h='<div class="ini-wrap">';
     h+='<div class="ini-daterow"><span class="ini-day">'+(DAY_FULL[today]||'')+'</span><span class="ini-date">'+fecha+'</span></div>';
-    h+='<div class="ini-sub">'+showIds.length+' ruta'+(showIds.length===1?'':'s')+(iniShowAll?' en total':' para hoy')+'</div>';
+    h+='<div class="ini-sub">'+showIds.length+' ruta'+(showIds.length===1?'':'s')+(iniShowAll?' en total':(sel.size?(' · '+[...sel].join('·')):' (todas)'))+'</div>';
     h+='<div class="ini-kpis">'
       +'<div class="ini-kpi"><b>'+nCurso+'</b><span>En curso ahora</span></div>'
       +'<div class="ini-kpi"><b>'+ids.length+'</b><span>Rutas registradas</span></div>'
       +'<div class="ini-kpi"><b>'+disp+'</b><span>Camiones disponibles</span></div>'
       +'<div class="ini-kpi"><b>'+rep+'</b><span>En reparación</span></div></div>';
-    h+='<div class="ini-bar"><span class="sec-head">RUTAS DEL DÍA</span>'
-      +'<button class="ini-toggle" id="iniToggle">'+(iniShowAll?'Ver solo hoy':'Ver todas')+'</button></div>';
+    h+='<div class="ini-bar"><span class="sec-head">RUTAS POR DÍA</span>'
+      +'<button class="ini-toggle" id="iniToggle">'+(iniShowAll?'Filtrar por día':'Ver todas')+'</button></div>';
     h+='<div class="ini-dayschips" id="iniDays">';
-    DAYS.forEach(d=>{ h+='<div class="ini-daychip'+(d===today?' on':'')+'" data-day="'+d+'" title="'+(DAY_FULL[d]||'')+'">'+d+'</div>'; });
+    DAYS.forEach(d=>{ h+='<div class="ini-daychip'+((!iniShowAll&&sel.has(d))?' on':'')+'" data-day="'+d+'" title="'+(DAY_FULL[d]||'')+' · clic filtra · arrastra una ruta aquí para asignarla">'+d+'</div>'; });
     h+='</div>';
-    if(!showIds.length){ h+='<div class="ini-empty">No hay rutas '+(iniShowAll?'registradas':'asignadas para hoy')+'. Arrastra una ruta a un día para asignarla, o créala en Rutas.</div>'; }
+    if(!showIds.length){ h+='<div class="ini-empty">No hay rutas '+(iniShowAll?'registradas':'en esos días')+'. Arrastra una ruta a un día para asignarla, o créala en Rutas.</div>'; }
+    h+='<div class="ru-grid">';
     showIds.forEach(id=>{ const r=rutas[id]; const t=live[id];
       h+='<div class="ini-rtcard" draggable="true" data-id="'+id+'">'
         +'<div class="ini-rthead"><i class="ti ti-grip-vertical ini-grip" aria-hidden="true"></i>'
         +'<span class="ini-rtname">'+((r.nombre||'(sin nombre)').replace(/</g,'&lt;'))+'</span>'
         +(t?'<span class="ini-mini">en curso '+(t.progress!=null?t.progress+'%':'')+'</span>':'')
         +'</div>'
-        +'<div class="ini-rtmeta"><i class="ti ti-truck" aria-hidden="true"></i>'+(r.camion||'sin camión')
-        +' · <i class="ti ti-user" aria-hidden="true"></i>'+(r.choferCode||'sin chofer')
-        +' · <i class="ti ti-calendar" aria-hidden="true"></i>'+((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
+        +'<div class="ini-rtmeta"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'sin camión')+'</div>'
+        +'<div class="ini-rtmeta"><i class="ti ti-user" aria-hidden="true"></i> '+(r.choferCode||'sin chofer')+' · <i class="ti ti-calendar" aria-hidden="true"></i> '+((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
         +'</div>';
     });
+    h+='</div>';
     h+='</div>';
     host.innerHTML=h;
     const tg=document.getElementById('iniToggle'); if(tg)tg.addEventListener('click',()=>{ iniShowAll=!iniShowAll; buildInicio(); });
@@ -2063,6 +2068,7 @@
       card.addEventListener('dragend',()=>{ card.classList.remove('dragging'); card.dataset.dragged='1'; });
     });
     host.querySelectorAll('.ini-daychip').forEach(chip=>{
+      chip.addEventListener('click',()=>{ const d=chip.dataset.day; if(iniShowAll)iniShowAll=false; if(iniDaysSel.has(d))iniDaysSel.delete(d); else iniDaysSel.add(d); buildInicio(); });
       chip.addEventListener('dragover',e=>{ e.preventDefault(); chip.classList.add('drop'); });
       chip.addEventListener('dragleave',()=>chip.classList.remove('drop'));
       chip.addEventListener('drop',e=>{ e.preventDefault(); chip.classList.remove('drop');
@@ -2091,7 +2097,7 @@
   }
 
   // ===== MONITOREO (pantalla principal) =====
-  let routeLayers={}, monDay=null, simTimer=null;
+  let routeLayers={}, monDaysSel=new Set(), simTimer=null;
   const ROUTE_COLORS=['#CF9A4A','#C56B4E','#5E8B7E','#7A6FA8','#B0843C','#4E7FA8','#A85C7A','#6E8B3D'];
   function routeColor(id){ const ids=Object.keys(mgmtRutas||{}).sort(); const i=ids.indexOf(id); return ROUTE_COLORS[(i<0?0:i)%ROUTE_COLORS.length]; }
   function showRouteLayer(id){ const r=mgmtRutas[id]; if(!r||routeLayers[id])return;
@@ -2104,13 +2110,13 @@
     g.addTo(map); routeLayers[id]=g; }
   function hideRouteLayer(id){ if(routeLayers[id]){map.removeLayer(routeLayers[id]);delete routeLayers[id];} }
   function toggleRouteLayer(id){ if(routeLayers[id])hideRouteLayer(id); else showRouteLayer(id); renderMonitor(); }
-  function applyDayLayers(){ if(monDay){ Object.keys(mgmtRutas).forEach(id=>{ if((mgmtRutas[id].freq||[]).includes(monDay))showRouteLayer(id); }); } }
+  function applyDay(d,on){ Object.keys(mgmtRutas).forEach(id=>{ if((mgmtRutas[id].freq||[]).includes(d)){ if(on){showRouteLayer(id);} else { const other=[...monDaysSel].some(x=>x!==d&&(mgmtRutas[id].freq||[]).includes(x)); if(!other)hideRouteLayer(id); } } }); }
   function liveByRuta(){ const live=supLast||{}, m={}; Object.keys(live).forEach(k=>{ const t=live[k]; const age=(Date.now()-((t&&t.ts)||0))/1000; if(t&&t.rutaId&&t.status!=='offline'&&t.status!=='termino'&&age<=40)m[t.rutaId]=t; }); return m; }
   function renderMonitor(){
     const mp=document.getElementById('monPanel'); if(!mp||!mp.classList.contains('show'))return;
     const days=document.getElementById('monDays'); days.innerHTML='';
-    DAYS.forEach(d=>{ const b=document.createElement('button'); b.className='mon-day'+(monDay===d?' on':''); b.textContent=d;
-      b.addEventListener('click',()=>{ monDay=(monDay===d?null:d); applyDayLayers(); renderMonitor(); }); days.appendChild(b); });
+    DAYS.forEach(d=>{ const b=document.createElement('button'); b.className='mon-day'+(monDaysSel.has(d)?' on':''); b.textContent=d;
+      b.addEventListener('click',()=>{ if(monDaysSel.has(d)){ monDaysSel.delete(d); applyDay(d,false); } else { monDaysSel.add(d); applyDay(d,true); } renderMonitor(); }); days.appendChild(b); });
     const byRuta=liveByRuta();
     const act=document.getElementById('monActive'); act.innerHTML=''; let nAct=0;
     Object.keys(mgmtRutas).forEach(id=>{ const r=mgmtRutas[id], t=byRuta[id]; if(!t)return; nAct++; showRouteLayer(id);
@@ -2132,7 +2138,7 @@
     if(!nAct)act.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Ninguna en curso.</div>';
     const inact=document.getElementById('monInactive'); inact.innerHTML=''; let nIn=0;
     Object.keys(mgmtRutas).forEach(id=>{ const r=mgmtRutas[id]; if(byRuta[id])return;
-      if(monDay && !((r.freq||[]).includes(monDay)))return; nIn++;
+      if(monDaysSel.size && ![...monDaysSel].some(d=>(r.freq||[]).includes(d)))return; nIn++;
       const on=!!routeLayers[id];
       const row=document.createElement('div'); row.className='mon-row';
       const nm=document.createElement('span'); nm.className='nm'; nm.style.display='flex'; nm.style.alignItems='center'; nm.style.gap='8px';
@@ -2143,7 +2149,7 @@
       const play=document.createElement('button'); play.className='ic'; play.title='Simular recorrido'; play.innerHTML='<i class="ti ti-player-play"></i>';
       play.addEventListener('click',()=>startSim(id));
       row.appendChild(nm); row.appendChild(eye); row.appendChild(play); inact.appendChild(row); });
-    if(!nIn)inact.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Sin rutas inactivas'+(monDay?(' el '+monDay):'')+'.</div>';
+    if(!nIn)inact.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Sin otras rutas'+(monDaysSel.size?(' los días '+[...monDaysSel].join('·')):'')+'.</div>';
   }
   let simStartTs=0;
   function startSim(id){ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2){toast('Esa ruta no tiene trazado');return;}
@@ -2242,8 +2248,8 @@
 
   // ---- Reportes globales ----
   let repFilter={tipo:'todos',val:null}, repCache=[];
-  function openReportes(){ document.getElementById('repOv').classList.add('show'); repFilter={tipo:'todos',val:null}; loadReportes(); }
-  function closeReportes(){ document.getElementById('repOv').classList.remove('show'); if(document.body.classList.contains('adm-shell')&&curSec==='reportes')setSection('inicio'); }
+  function openReportes(){ repFilter={tipo:'todos',val:null}; loadReportes(); }
+  function closeReportes(){ if(document.body.classList.contains('adm-shell'))setSection('inicio'); }
   function loadReportes(){ const body=document.getElementById('repBody');
     if(!fbDb){ body.innerHTML='<div class="rd-empty">Sin conexión.</div>'; return; }
     const ids=Object.keys(mgmtRutas); repCache=[];
@@ -2453,7 +2459,7 @@
     const rbk=document.getElementById('rutasBack'); if(rbk)rbk.addEventListener('click',()=>setRutasView('list'));
     const ss=document.getElementById('simStop'); if(ss)ss.addEventListener('click',stopSim);
     const ab=document.getElementById('monAllBtn'); if(ab)ab.addEventListener('click',toggleAllRoutes);
-    const rb=document.getElementById('monRepBtn'); if(rb)rb.addEventListener('click',openReportes);
+    const rb=document.getElementById('monRepBtn'); if(rb)rb.addEventListener('click',()=>{ if(typeof setSection==='function')setSection('reportes'); else openReportes(); });
     const rdb=document.getElementById('rdBack'); if(rdb)rdb.addEventListener('click',closeRouteDetail);
     const rpb=document.getElementById('repBack'); if(rpb)rpb.addEventListener('click',closeReportes);
     document.querySelectorAll('#rdOv .rd-tab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('#rdOv .rd-tab').forEach(x=>x.classList.remove('on')); t.classList.add('on'); rdTab=t.dataset.rt; rdDate=null; renderDetail(); }));
