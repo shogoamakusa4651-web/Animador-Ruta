@@ -544,9 +544,18 @@
   .start-guide.show{display:flex;}
   .start-flag{font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));}
   /* ===== MONITOREO PRINCIPAL (reconstrucción) ===== */
-  .mon-panel{position:fixed;top:64px;right:14px;z-index:2300;width:266px;max-height:calc(100vh - 150px);overflow-y:auto;display:none;flex-direction:column;
-    background:#F4F3F0;border:1px solid rgba(30,28,24,0.08);border-radius:18px;padding:14px;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;}
+  .mon-panel{position:fixed;top:64px;left:14px;z-index:2300;width:300px;max-height:calc(100vh - 88px);overflow-y:auto;display:none;flex-direction:column;
+    background:#F4F3F0;border:1px solid rgba(30,28,24,0.08);border-radius:18px;padding:14px;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;box-shadow:0 12px 36px rgba(0,0,0,.10);}
   .mon-panel.show{display:flex;}
+  .mon-panel.collapsed{width:auto;padding:9px 11px;overflow:visible;}
+  .mon-panel.collapsed > *:not(.mon-dockhead){display:none !important;}
+  .mon-panel.collapsed .mon-dockhead{margin-bottom:0;}
+  .mon-dockhead{display:flex;align-items:center;gap:8px;margin-bottom:13px;}
+  .mon-dock-title{font-size:15px;font-weight:600;}
+  .mon-dock-toggle{margin-left:auto;border:none;background:rgba(30,28,24,0.05);color:#807E77;cursor:pointer;font-size:15px;width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;}
+  .mon-crear{width:100%;height:37px;border:none;border-radius:11px;background:#2E2C27;color:#fff;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:12px;}
+  .mon-crear:hover{background:#44413A;}
+  .mon-divider{height:1px;background:rgba(30,28,24,0.08);margin:14px 0 4px;}
   .mon-days{display:flex;gap:5px;margin-bottom:13px;}
   .mon-day{flex:1;height:30px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:#fff;color:#3A3833;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;}
   .mon-day.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
@@ -789,15 +798,19 @@
   <button class="adm-barbtn" id="admOpenBtn">⚙ Administración</button>
 </div>
 <div class="mon-panel" id="monPanel">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="width:8px;height:8px;border-radius:50%;background:#CF9A4A"></span><span style="font-size:15px;font-weight:600;flex:1">Monitoreo</span></div>
+  <div class="mon-dockhead">
+    <span style="width:8px;height:8px;border-radius:50%;background:#7E9B86;flex:none"></span>
+    <span class="mon-dock-title">Monitoreo</span>
+    <button class="mon-dock-toggle" id="monDockToggle" title="Contraer"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+  </div>
+  <button class="mon-crear" id="monCrearBtn"><i class="ti ti-plus" aria-hidden="true"></i> Crear ruta</button>
   <div style="display:flex;gap:7px;margin-bottom:12px"><button class="mon-tinybtn" id="monAllBtn">Ver todas</button><button class="mon-tinybtn" id="monRepBtn">Reportes</button></div>
   <div class="mon-days" id="monDays"></div>
-  <div class="mon-sec">RUTAS ACTIVAS</div>
+  <div class="mon-sec">RUTAS EN CURSO</div>
   <div id="monActive"></div>
-</div>
-<div class="mon-dash" id="monDash">
-  <div class="mon-dash-head" id="monDashHead"><span style="font-size:13px;font-weight:600">Rutas inactivas</span><span style="font-size:11px;color:#ABA9A2">tócalas para ver su trazado</span><i class="ti ti-chevron-down" id="monDashChev" style="margin-left:auto;color:#807E77" aria-hidden="true"></i></div>
-  <div class="mon-dash-body" id="monInactive" style="margin-top:10px"></div>
+  <div class="mon-divider"></div>
+  <div class="mon-sec">INACTIVAS · tócalas para ver su trazado</div>
+  <div id="monInactive" style="margin-top:2px"></div>
 </div>
 <button class="mon-simstop" id="simStop"><i class="ti ti-player-stop" aria-hidden="true"></i> Detener simulación</button>
 
@@ -1837,6 +1850,9 @@
   function startSim(id){ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2){toast('Esa ruta no tiene trazado');return;}
     stopSim(); const code='SIM-'+(r.camion||id).toString().replace(/\s/g,''); let i=0,f=0; simStartTs=Date.now();
     document.getElementById('simStop').classList.add('show');
+    const seed={code:code,name:'Simulación',lat:pts[0][0],lng:pts[0][1],progress:0,status:'en_ruta',route:r.nombre||null,rutaId:id,ts:Date.now()};
+    if(fbDb)fbDb.ref('live/'+fbKey(code)).update(seed);
+    supLast=supLast||{}; supLast[fbKey(code)]=seed; showRouteLayer(id); renderMonitor();
     simTimer=setInterval(()=>{
       if(i>=pts.length-1){ if(fbDb)fbDb.ref('live/'+fbKey(code)).update({status:'termino',ts:Date.now()}); logViaje(id,r,code,100); stopSim(); toast('Viaje simulado registrado en '+(r.nombre||'ruta')); return; }
       f+=0.18; if(f>=1){f=0;i++;}
@@ -1973,8 +1989,10 @@
     toast('Enlaces generados ✓'); }
 
   function monSetup(){
-    const head=document.getElementById('monDashHead');
-    if(head)head.addEventListener('click',()=>{ const d=document.getElementById('monDash'); d.classList.toggle('min'); const c=document.getElementById('monDashChev'); if(c)c.className='ti ti-chevron-'+(d.classList.contains('min')?'up':'down'); });
+    const dt=document.getElementById('monDockToggle');
+    if(dt)dt.addEventListener('click',()=>{ const p=document.getElementById('monPanel'); const c=p.classList.toggle('collapsed'); const ic=dt.querySelector('i'); if(ic)ic.className='ti ti-chevron-'+(c?'right':'left'); dt.title=c?'Expandir':'Contraer'; });
+    const cb=document.getElementById('monCrearBtn');
+    if(cb)cb.addEventListener('click',()=>{ if(typeof newRuta==='function')newRuta(); setAdmView('editor'); });
     const ss=document.getElementById('simStop'); if(ss)ss.addEventListener('click',stopSim);
     const ab=document.getElementById('monAllBtn'); if(ab)ab.addEventListener('click',toggleAllRoutes);
     const rb=document.getElementById('monRepBtn'); if(rb)rb.addEventListener('click',openReportes);
