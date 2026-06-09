@@ -571,7 +571,7 @@
   .shell-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding:9px 6px 2px;font-size:11px;color:#8E8B82;}
   .shell-foot .row{display:flex;align-items:center;gap:8px;cursor:pointer;}
   .shell-foot .dot{width:7px;height:7px;border-radius:50%;background:#7E9B86;flex:none;}
-  .shell-top{position:fixed;top:0;left:var(--rail);right:0;height:var(--topbar);z-index:2600;display:none;align-items:center;gap:11px;padding:0 18px;background:#FBFAF6;border-bottom:1px solid rgba(30,28,24,.10);font-family:-apple-system,'Segoe UI',sans-serif;}
+  .shell-top{position:fixed;top:0;left:var(--rail);right:0;height:var(--topbar);z-index:2600;display:none;align-items:center;gap:11px;padding:0 18px;background:#FBFAF6;border-bottom:1px solid rgba(30,28,24,.12);box-shadow:0 2px 10px rgba(30,28,24,.05);font-family:-apple-system,'Segoe UI',sans-serif;}
   body.adm-shell .shell-top{display:flex;}
   .shell-title{font-size:16px;font-weight:500;color:var(--tx0);}
   .shell-badge{font-size:12px;color:#5f7a66;background:rgba(126,155,134,.16);padding:3px 9px;border-radius:8px;}
@@ -649,11 +649,11 @@
   body.dark .mon-row .ic{color:#A8A49B;}
   body.dark option{background:#26241F;color:#ECEAE3;}
   body.dark .mon-dock-title,body.dark .ru-name,body.dark .mon-pct{color:#ECEAE3;}
-  body.dark .shell-top{background:var(--tx0);border-bottom-color:rgba(255,255,255,.08);}
+  body.dark .shell-top{background:#26241F;border-bottom-color:rgba(255,255,255,.08);box-shadow:0 1px 0 rgba(255,255,255,.03);}
   body.dark .shell-title,body.dark .shell-user{color:#ECEAE3;}
   body.dark .map-cover,body.dark #secRutas,body.dark #secAdmin{background:#1A1916;color:#ECEAE3;}
   body.dark .ini-kpi,body.dark .ru-card,body.dark .mon-card,body.dark .ini-rtcard,body.dark .adm2-row,body.dark .rd-item{background:#26241F;border-color:rgba(255,255,255,.08);color:#ECEAE3;}
-  body.dark .mon-panel,body.dark .rd-ov,body.dark #camOv{background:var(--tx0);color:#ECEAE3;border-color:rgba(255,255,255,.08);}
+  body.dark .mon-panel,body.dark .rd-ov,body.dark #camOv{background:#23211D;color:#ECEAE3;border-color:rgba(255,255,255,.08);}
   body.dark .panel{background:rgba(35,33,29,.94);color:#ECEAE3;border-color:rgba(255,255,255,.10);}
   body.dark .ini-day,body.dark .ru-name,body.dark .rd-name,body.dark .ini-rtname,body.dark .adm2-row .code{color:#F4F2EC;}
   body.dark .ini-date,body.dark .ru-meta,body.dark .cam-meta,body.dark .ini-sub,body.dark .mon-line,body.dark .rd-meta,body.dark .adm2-row .nm,body.dark .sec-head{color:#A8A49B;}
@@ -762,7 +762,7 @@
   <div class="nav-item" data-sec="reportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes</div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.10 · 2026-06-08</div>
+    <div class="ver" style="padding-top:4px">v3.11 · 2026-06-08</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1073,7 +1073,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.10 · 2026-06-08</div>
+<div class="ver-badge" id="verBadge">v3.11 · 2026-06-08</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
