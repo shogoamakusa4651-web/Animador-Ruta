@@ -556,6 +556,64 @@
   .mon-crear{width:100%;height:37px;border:none;border-radius:11px;background:#2E2C27;color:#fff;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:12px;}
   .mon-crear:hover{background:#44413A;}
   .mon-divider{height:1px;background:rgba(30,28,24,0.08);margin:14px 0 4px;}
+  /* ===== APP SHELL (ADM) ===== */
+  :root{--rail:204px;--topbar:54px;}
+  .shell-nav{position:fixed;top:0;left:0;bottom:0;width:var(--rail);z-index:3000;background:#2E2C27;color:#fff;display:none;flex-direction:column;padding:14px 11px;font-family:-apple-system,'Segoe UI',sans-serif;}
+  body.adm-shell .shell-nav{display:flex;}
+  .shell-logo{display:flex;align-items:center;gap:9px;padding:2px 6px 16px;}
+  .shell-logo .ic{width:26px;height:26px;border-radius:8px;background:#7E9B86;display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+  .shell-logo .tx{font-size:13.5px;font-weight:500;line-height:1.15;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:10px;color:#C9C6BE;font-size:13px;cursor:pointer;border-left:3px solid transparent;margin-bottom:3px;}
+  .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .nav-item.on{background:rgba(126,155,134,.22);color:#fff;border-left-color:#7E9B86;}
+  .nav-item i{font-size:17px;width:18px;text-align:center;}
+  .shell-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding:9px 6px 2px;font-size:11px;color:#8E8B82;}
+  .shell-foot .row{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .shell-foot .dot{width:7px;height:7px;border-radius:50%;background:#7E9B86;flex:none;}
+  .shell-top{position:fixed;top:0;left:var(--rail);right:0;height:var(--topbar);z-index:2600;display:none;align-items:center;gap:11px;padding:0 18px;background:#FBFAF6;border-bottom:1px solid rgba(30,28,24,.10);font-family:-apple-system,'Segoe UI',sans-serif;}
+  body.adm-shell .shell-top{display:flex;}
+  .shell-title{font-size:16px;font-weight:500;color:#23211D;}
+  .shell-badge{font-size:12px;color:#5f7a66;background:rgba(126,155,134,.16);padding:3px 9px;border-radius:8px;}
+  .shell-user{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#44413A;}
+  .shell-user .av{width:28px;height:28px;border-radius:50%;background:#7E9B86;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;}
+  .map-cover{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;}
+  body.sec-inicio .map-cover,body.sec-reportes .map-cover{display:block;}
+  body.adm-shell .panel{left:calc(var(--rail) + 12px);top:calc(var(--topbar) + 12px);display:none;}
+  body.adm-shell .mon-panel{left:calc(var(--rail) + 12px);top:calc(var(--topbar) + 10px);display:none;}
+  body.sec-monitoreo .mon-panel.show{display:flex;}
+  body.sec-rutas .panel{display:block;}
+  body.adm-shell #monInactiveWrap{display:none;}
+  body.adm-shell .adm-bar,body.adm-shell .mgmt-btn,body.adm-shell .units-btn{display:none !important;}
+  /* Inicio */
+  .ini-wrap{max-width:780px;margin:0 auto;padding:24px 22px 60px;}
+  .ini-daterow{display:flex;align-items:baseline;gap:11px;margin-bottom:2px;}
+  .ini-day{font-size:23px;font-weight:500;text-transform:capitalize;}
+  .ini-date{font-size:13px;color:#807E77;}
+  .ini-sub{font-size:13px;color:#807E77;margin-bottom:18px;}
+  .ini-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:24px;}
+  .ini-kpi{background:#fff;border:1px solid rgba(30,28,24,.07);border-radius:14px;padding:13px 14px;}
+  .ini-kpi b{display:block;font-size:24px;font-weight:500;color:#23211D;}
+  .ini-kpi span{font-size:12px;color:#807E77;}
+  .ini-bar{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+  .ini-bar .sec-head{margin:0;}
+  .ini-toggle{margin-left:auto;font-size:12px;color:#5f7a66;background:rgba(126,155,134,.14);border:none;border-radius:9px;padding:6px 11px;cursor:pointer;font-family:inherit;}
+  .ini-dayschips{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+  .ini-daychip{height:36px;min-width:48px;padding:0 11px;border-radius:10px;border:1px solid rgba(30,28,24,.12);background:#fff;color:#3A3833;font-size:13px;display:inline-flex;align-items:center;justify-content:center;}
+  .ini-daychip.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
+  .ini-daychip.drop{outline:2px dashed #7E9B86;outline-offset:2px;background:rgba(126,155,134,.12);}
+  .ini-rtcard{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:14px;padding:12px 13px;margin-bottom:9px;cursor:grab;}
+  .ini-rtcard.dragging{opacity:.45;}
+  .ini-rthead{display:flex;align-items:center;gap:9px;}
+  .ini-rtname{font-size:14.5px;font-weight:500;flex:1;}
+  .ini-rtmeta{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#807E77;margin-top:5px;}
+  .ini-grip{color:#C2BFB7;font-size:16px;cursor:grab;}
+  .ini-mini{font-size:11px;color:#1f6e3d;background:rgba(39,163,91,.16);padding:2px 8px;border-radius:8px;}
+  .ini-empty{color:#ABA9A2;font-size:13px;padding:14px 2px;}
+  .sec-head{font-size:11px;color:#ABA9A2;letter-spacing:.4px;margin:18px 0 9px 2px;}
+  .mon-iconbtn{border:none;background:rgba(30,28,24,.05);color:#807E77;cursor:pointer;width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;}
+  .mon-iconbtn:hover{background:rgba(30,28,24,.10);}
+  .mon-iconbtn.on{color:#7E9B86;background:rgba(126,155,134,.16);}
+  .mon-cardacts{display:flex;gap:6px;margin-top:9px;}
   .mon-days{display:flex;gap:5px;margin-bottom:13px;}
   .mon-day{flex:1;height:30px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:#fff;color:#3A3833;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;}
   .mon-day.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
@@ -574,6 +632,7 @@
   .mon-chip.sim{color:#807E77;}
   .mon-simstop{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:2400;display:none;align-items:center;gap:7px;background:#2E2C27;color:#fff;border:none;border-radius:24px;padding:9px 14px;font-size:13px;font-family:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.18);}
   .mon-simstop.show{display:inline-flex;}
+  .ver-badge{position:fixed;left:10px;bottom:8px;z-index:5000;font:500 10px/1 -apple-system,'Segoe UI',sans-serif;letter-spacing:.3px;color:#807E77;background:rgba(244,243,240,.9);border:1px solid rgba(30,28,24,.10);padding:3px 7px;border-radius:7px;pointer-events:none;}
   .route-label{pointer-events:none;}
   .route-label span{display:inline-block;transform:translate(9px,-9px);color:#fff;font:600 11px/1 -apple-system,'Segoe UI',sans-serif;padding:3px 8px;border-radius:9px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.28);}
   .mon-tinybtn{flex:1;height:30px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:#fff;color:#23211D;font-size:12px;font-family:inherit;cursor:pointer;}
@@ -606,6 +665,24 @@
 </head>
 <body>
 <div id="map"></div>
+<nav class="shell-nav" id="shellNav">
+  <div class="shell-logo"><span class="ic"><i class="ti ti-truck" aria-hidden="true"></i></span><span class="tx">Animador<br>de Ruta</span></div>
+  <div class="nav-item" data-sec="inicio"><i class="ti ti-home" aria-hidden="true"></i>Inicio</div>
+  <div class="nav-item" data-sec="monitoreo"><i class="ti ti-broadcast" aria-hidden="true"></i>Monitoreo</div>
+  <div class="nav-item" data-sec="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
+  <div class="nav-item" data-sec="admin"><i class="ti ti-settings" aria-hidden="true"></i>Administración</div>
+  <div class="nav-item" data-sec="reportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes</div>
+  <div class="shell-foot">
+    <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
+    <div class="row" id="shellLogout"><i class="ti ti-logout" aria-hidden="true" style="font-size:14px"></i><span>Cerrar sesión</span></div>
+  </div>
+</nav>
+<div class="shell-top" id="shellTop">
+  <span class="shell-title" id="shellTitle">Inicio</span>
+  <span class="shell-badge" id="shellBadge" style="display:none"></span>
+  <span class="shell-user"><span class="av">A</span>ADM</span>
+</div>
+<div class="map-cover" id="mapCover"><div id="iniBody"></div></div>
 <div class="toast" id="toast">Copiado ✓</div>
 <div class="gps-alert" id="gpsAlert">⚠️ <span id="gpsAlertText">Te has salido de la ruta</span></div>
 
@@ -808,9 +885,11 @@
   <div class="mon-days" id="monDays"></div>
   <div class="mon-sec">RUTAS EN CURSO</div>
   <div id="monActive"></div>
+  <div id="monInactiveWrap">
   <div class="mon-divider"></div>
   <div class="mon-sec">INACTIVAS · tócalas para ver su trazado</div>
   <div id="monInactive" style="margin-top:2px"></div>
+  </div>
 </div>
 <button class="mon-simstop" id="simStop"><i class="ti ti-player-stop" aria-hidden="true"></i> Detener simulación</button>
 
@@ -871,6 +950,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
+<div class="ver-badge" id="verBadge">v3.4 · 2026-06-08</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1533,6 +1613,9 @@
   let txTimer=null, choferName=null;
 
   function setFbStatus(state){
+    const sd=document.getElementById('shellFbDot'), stx=document.getElementById('shellFbTx');
+    const sm={on:['#7E9B86','Firebase conectado'],off:['#BD8475','Sin conexión'],wait:['#C7A765','Conectando…'],tx:['#7E9B86','Transmitiendo'],nolib:['#BD8475','Librería no cargó']};
+    const sv=sm[state]||sm.off; if(sd)sd.style.background=sv[0]; if(stx)stx.textContent=sv[1];
     const el=document.getElementById('fbStatus'); if(!el)return;
     const m={on:['#7E9B86','conectado'],off:['#BD8475','sin conexión'],wait:['#C7A765','conectando…'],tx:['#7E9B86','transmitiendo'],nolib:['#BD8475','librería no cargó']};
     const v=m[state]||m.off;
@@ -1645,12 +1728,12 @@
     if(!fbDb || mgmtSub) return; mgmtSub=true;
     fbDb.ref('config/choferes').on('value',s=>{ mgmtChoferes=s.val()||{}; mgmtList('chList',mgmtChoferes,id=>fbDb.ref('config/choferes/'+id).remove()); refreshRutaSelects(); });
     fbDb.ref('config/supervisores').on('value',s=>{ mgmtSup=s.val()||{}; mgmtList('spList',mgmtSup,id=>fbDb.ref('config/supervisores/'+id).remove()); refreshRutaSelects(); });
-    fbDb.ref('config/camiones').on('value',s=>{ mgmtCamiones=s.val()||{}; camionList(); refreshRutaSelects(); });
+    fbDb.ref('config/camiones').on('value',s=>{ mgmtCamiones=s.val()||{}; camionList(); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); });
   }
   function mgmtSetup(){
     const ov=document.getElementById('mgmtOv'); if(!ov)return;
     const b=document.getElementById('mgmtBtn'); if(b)b.addEventListener('click',()=>ov.classList.add('show'));
-    const x=document.getElementById('mgmtX'); if(x)x.addEventListener('click',()=>ov.classList.remove('show'));
+    const x=document.getElementById('mgmtX'); if(x)x.addEventListener('click',()=>{ ov.classList.remove('show'); if(document.body.classList.contains('adm-shell')&&curSec==='admin')setSection('inicio'); });
     ov.addEventListener('click',e=>{ if(e.target===ov)ov.classList.remove('show'); });
     const chAdd=document.getElementById('chAdd'); if(chAdd)chAdd.addEventListener('click',()=>{
       const i=document.getElementById('chName'); const name=(i.value||'').trim(); if(!name||!fbDb)return;
@@ -1674,7 +1757,7 @@
   function loadRutaFromFb(id,cb){ if(!fbDb){cb&&cb(null);return;} fbDb.ref('rutas/'+id).once('value').then(s=>cb&&cb(s.val())).catch(()=>cb&&cb(null)); }
   function subscribeUnits(){
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
-    if(!supSub){ supSub=true; fbDb.ref('live').on('value', s=>{ supLast=s.val(); renderSupervisor(supLast); updateKpis(); renderMonitor(); }); }
+    if(!supSub){ supSub=true; fbDb.ref('live').on('value', s=>{ supLast=s.val(); renderSupervisor(supLast); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); }); }
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
   }
   function toggleUnits(){ const sp=document.getElementById('supPanel'); if(!sp)return;
@@ -1698,7 +1781,7 @@
       card.innerHTML='<div class="ruta-top"><span class="ruta-name">'+(r.nombre||'(sin nombre)')+'</span>'+(r.camion?'<span class="ruta-tag">'+r.camion+'</span>':'')+'</div><div class="ruta-meta">'+(meta.join(' · ')||'sin asignaciones')+'</div>';
       const acts=document.createElement('div'); acts.className='ruta-acts';
       const mk=(txt,fn,cls)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.addEventListener('click',fn);return b;};
-      acts.appendChild(mk('✏️ Editar',()=>{ const pts=decode(r.wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(r); document.getElementById('mgmtOv').classList.remove('show'); setAdmView('editor'); toast('Ruta cargada — edita y guarda al final'); }));
+      acts.appendChild(mk('✏️ Editar',()=>{ const pts=decode(r.wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(r); document.getElementById('mgmtOv').classList.remove('show'); if(typeof setSection==='function')setSection('rutas'); else setAdmView('editor'); toast('Ruta cargada — edita y guarda al final'); }));
       acts.appendChild(mk('🔗 Link chofer',async()=>{ const link=location.href.split('#')[0]+'#chofer&ruta='+id; await copy(link); toast('Link de chofer copiado ✓'); }));
       if(r.supCode){
         acts.appendChild(mk('🔗 Link supervisor',async()=>{ const link=location.href.split('#')[0]+'#sup&ruta='+id; await copy(link); toast('Link supervisor copiado · código '+(r.supAccess||'—')); }));
@@ -1708,7 +1791,7 @@
       card.appendChild(acts); el.appendChild(card);
     });
   }
-  function startRutas(){ if(!fbDb)return; fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; rutaListRender(); updateKpis(); renderMonitor(); }); }
+  function startRutas(){ if(!fbDb)return; fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; rutaListRender(); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); }); }
   function fillSelect(id,data){ const sel=document.getElementById(id); if(!sel)return;
     sel.innerHTML='<option value="">(ninguno)</option>';
     Object.keys(data||{}).sort().forEach(code=>{ const v=data[code]||{}; const o=document.createElement('option'); o.value=code; o.textContent=code+(v.name?(' · '+v.name):''); sel.appendChild(o); }); }
@@ -1781,6 +1864,91 @@
       refreshRutaSelects();
       if(ve)ve.classList.add('on'); if(vm)vm.classList.remove('on'); }
   }
+
+  // ===== APP SHELL =====
+  const SEC_TITLE={inicio:'Inicio',monitoreo:'Monitoreo',rutas:'Rutas',admin:'Administración',reportes:'Reportes'};
+  let curSec=null;
+  function setSection(name){
+    curSec=name;
+    document.body.classList.add('adm-shell');
+    ['inicio','monitoreo','rutas','admin','reportes'].forEach(s=>document.body.classList.toggle('sec-'+s,s===name));
+    document.querySelectorAll('#shellNav .nav-item').forEach(n=>n.classList.toggle('on',n.dataset.sec===name));
+    const t=document.getElementById('shellTitle'); if(t)t.textContent=SEC_TITLE[name]||name;
+    const monP=document.getElementById('monPanel'), editor=document.getElementById('panel');
+    if(monP)monP.classList.toggle('show',name==='monitoreo');
+    const badge=document.getElementById('shellBadge'); if(badge)badge.style.display='none';
+    if(name==='inicio'){ buildInicio(); }
+    if(name==='monitoreo'){ subscribeUnits(); renderMonitor(); if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); }
+    if(name==='rutas'){ if(editor)editor.style.display=''; refreshRutaSelects(); if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); }
+    if(name==='admin'){ document.getElementById('mgmtOv').classList.add('show'); }
+    else { const mo=document.getElementById('mgmtOv'); if(mo)mo.classList.remove('show'); }
+    if(name==='reportes'){ if(typeof openReportes==='function')openReportes(); }
+    else { const ro=document.getElementById('repOv'); if(ro)ro.classList.remove('show'); }
+  }
+  function shellSetup(){
+    document.querySelectorAll('#shellNav .nav-item').forEach(n=>n.addEventListener('click',()=>setSection(n.dataset.sec)));
+    const lo=document.getElementById('shellLogout'); if(lo)lo.addEventListener('click',logout);
+  }
+
+  // ----- INICIO -----
+  const DAY_FULL={L:'lunes',M:'martes',X:'miércoles',J:'jueves',V:'viernes',S:'sábado',D:'domingo'};
+  function todayLetter(){ return DAYS[(new Date().getDay()+6)%7]; }
+  let iniShowAll=false;
+  function buildInicio(){
+    const host=document.getElementById('iniBody'); if(!host)return;
+    const today=todayLetter();
+    const now=new Date();
+    const fecha=now.toLocaleDateString('es-DO',{day:'numeric',month:'long',year:'numeric'});
+    const rutas=mgmtRutas||{};
+    const live=(typeof liveByRuta==='function')?liveByRuta():{};
+    const ids=Object.keys(rutas);
+    const showIds=ids.filter(id=>iniShowAll || (rutas[id].freq||[]).includes(today));
+    const nCurso=Object.keys(live).length;
+    const cam=mgmtCamiones||{}; let disp=0,rep=0;
+    Object.keys(cam).forEach(k=>{ const e=cam[k]||{}; if(e.estado==='disponible'||!e.estado)disp++; if(e.estado==='dañado'||e.estado==='mantenimiento')rep++; });
+    let h='<div class="ini-wrap">';
+    h+='<div class="ini-daterow"><span class="ini-day">'+(DAY_FULL[today]||'')+'</span><span class="ini-date">'+fecha+'</span></div>';
+    h+='<div class="ini-sub">'+showIds.length+' ruta'+(showIds.length===1?'':'s')+(iniShowAll?' en total':' para hoy')+'</div>';
+    h+='<div class="ini-kpis">'
+      +'<div class="ini-kpi"><b>'+nCurso+'</b><span>En curso ahora</span></div>'
+      +'<div class="ini-kpi"><b>'+ids.length+'</b><span>Rutas registradas</span></div>'
+      +'<div class="ini-kpi"><b>'+disp+'</b><span>Camiones disponibles</span></div>'
+      +'<div class="ini-kpi"><b>'+rep+'</b><span>En reparación</span></div></div>';
+    h+='<div class="ini-bar"><span class="sec-head">RUTAS DEL DÍA</span>'
+      +'<button class="ini-toggle" id="iniToggle">'+(iniShowAll?'Ver solo hoy':'Ver todas')+'</button></div>';
+    h+='<div class="ini-dayschips" id="iniDays">';
+    DAYS.forEach(d=>{ h+='<div class="ini-daychip'+(d===today?' on':'')+'" data-day="'+d+'" title="'+(DAY_FULL[d]||'')+'">'+d+'</div>'; });
+    h+='</div>';
+    if(!showIds.length){ h+='<div class="ini-empty">No hay rutas '+(iniShowAll?'registradas':'asignadas para hoy')+'. Arrastra una ruta a un día para asignarla, o créala en Rutas.</div>'; }
+    showIds.forEach(id=>{ const r=rutas[id]; const t=live[id];
+      h+='<div class="ini-rtcard" draggable="true" data-id="'+id+'">'
+        +'<div class="ini-rthead"><i class="ti ti-grip-vertical ini-grip" aria-hidden="true"></i>'
+        +'<span class="ini-rtname">'+((r.nombre||'(sin nombre)').replace(/</g,'&lt;'))+'</span>'
+        +(t?'<span class="ini-mini">en curso '+(t.progress!=null?t.progress+'%':'')+'</span>':'')
+        +'</div>'
+        +'<div class="ini-rtmeta"><i class="ti ti-truck" aria-hidden="true"></i>'+(r.camion||'sin camión')
+        +' · <i class="ti ti-user" aria-hidden="true"></i>'+(r.choferCode||'sin chofer')
+        +' · <i class="ti ti-calendar" aria-hidden="true"></i>'+((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
+        +'</div>';
+    });
+    h+='</div>';
+    host.innerHTML=h;
+    const tg=document.getElementById('iniToggle'); if(tg)tg.addEventListener('click',()=>{ iniShowAll=!iniShowAll; buildInicio(); });
+    host.querySelectorAll('.ini-rtcard').forEach(card=>{
+      card.addEventListener('click',()=>{ if(card.dataset.dragged){card.dataset.dragged='';return;} openRouteDetail(card.dataset.id); });
+      card.addEventListener('dragstart',e=>{ card.classList.add('dragging'); e.dataTransfer.setData('text/plain',card.dataset.id); e.dataTransfer.effectAllowed='move'; });
+      card.addEventListener('dragend',()=>{ card.classList.remove('dragging'); card.dataset.dragged='1'; });
+    });
+    host.querySelectorAll('.ini-daychip').forEach(chip=>{
+      chip.addEventListener('dragover',e=>{ e.preventDefault(); chip.classList.add('drop'); });
+      chip.addEventListener('dragleave',()=>chip.classList.remove('drop'));
+      chip.addEventListener('drop',e=>{ e.preventDefault(); chip.classList.remove('drop');
+        const id=e.dataTransfer.getData('text/plain'); const day=chip.dataset.day; if(!id||!mgmtRutas[id])return;
+        const freq=(mgmtRutas[id].freq||[]).slice(); if(!freq.includes(day))freq.push(day);
+        if(fbDb)fbDb.ref('rutas/'+id+'/freq').set(freq);
+        mgmtRutas[id].freq=freq; toast((mgmtRutas[id].nombre||'Ruta')+' → '+(DAY_FULL[day]||day)); buildInicio(); });
+    });
+  }
   function admSetup(){
     document.querySelectorAll('.adm-tab').forEach(t=>t.addEventListener('click',()=>{
       document.querySelectorAll('.adm-tab').forEach(x=>x.classList.remove('on'));
@@ -1824,10 +1992,18 @@
     const act=document.getElementById('monActive'); act.innerHTML=''; let nAct=0;
     Object.keys(mgmtRutas).forEach(id=>{ const r=mgmtRutas[id], t=byRuta[id]; if(!t)return; nAct++; showRouteLayer(id);
       const card=document.createElement('div'); card.className='mon-card';
+      const on=!!routeLayers[id];
       card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+'"></span><span style="font-size:14px;font-weight:600;flex:1">'+(r.nombre||'(sin nombre)')+'</span><span class="mon-pct">'+(t.progress!=null?t.progress+'%':'—')+'</span></div>'
         +'<div class="mon-line"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'—')+'</div>'
         +'<div class="mon-line"><i class="ti ti-user" aria-hidden="true"></i> '+((t.code||r.choferCode||'—'))+(t.name?(' '+t.name):'')+'</div>'
-        +'<div class="mon-line"><i class="ti ti-eye" aria-hidden="true"></i> '+(r.supCode||'sin supervisor')+'</div>';
+        +'<div class="mon-cardacts">'
+        +'<button class="mon-iconbtn" data-act="zoom" title="Acercar"><i class="ti ti-focus-2"></i></button>'
+        +'<button class="mon-iconbtn'+(on?' on':'')+'" data-act="toggle" title="'+(on?'Apagar trazado':'Prender trazado')+'"><i class="ti ti-'+(on?'eye':'eye-off')+'"></i></button>'
+        +'<button class="mon-iconbtn" data-act="info" title="Ver información"><i class="ti ti-info-circle"></i></button>'
+        +'</div>';
+      card.querySelector('[data-act="zoom"]').addEventListener('click',e=>{ e.stopPropagation(); showRouteLayer(id); fitRoute(id); });
+      card.querySelector('[data-act="toggle"]').addEventListener('click',e=>{ e.stopPropagation(); toggleRouteLayer(id); });
+      card.querySelector('[data-act="info"]').addEventListener('click',e=>{ e.stopPropagation(); openRouteDetail(id); });
       card.addEventListener('click',()=>openRouteDetail(id));
       act.appendChild(card); });
     if(!nAct)act.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Ninguna en curso.</div>';
@@ -1935,7 +2111,7 @@
   // ---- Reportes globales ----
   let repFilter={tipo:'todos',val:null}, repCache=[];
   function openReportes(){ document.getElementById('repOv').classList.add('show'); repFilter={tipo:'todos',val:null}; loadReportes(); }
-  function closeReportes(){ document.getElementById('repOv').classList.remove('show'); }
+  function closeReportes(){ document.getElementById('repOv').classList.remove('show'); if(document.body.classList.contains('adm-shell')&&curSec==='reportes')setSection('inicio'); }
   function loadReportes(){ const body=document.getElementById('repBody');
     if(!fbDb){ body.innerHTML='<div class="rd-empty">Sin conexión.</div>'; return; }
     const ids=Object.keys(mgmtRutas); repCache=[];
@@ -1992,7 +2168,7 @@
     const dt=document.getElementById('monDockToggle');
     if(dt)dt.addEventListener('click',()=>{ const p=document.getElementById('monPanel'); const c=p.classList.toggle('collapsed'); const ic=dt.querySelector('i'); if(ic)ic.className='ti ti-chevron-'+(c?'right':'left'); dt.title=c?'Expandir':'Contraer'; });
     const cb=document.getElementById('monCrearBtn');
-    if(cb)cb.addEventListener('click',()=>{ if(typeof newRuta==='function')newRuta(); setAdmView('editor'); });
+    if(cb)cb.addEventListener('click',()=>{ if(typeof newRuta==='function')newRuta(); if(typeof setSection==='function')setSection('rutas'); else setAdmView('editor'); });
     const ss=document.getElementById('simStop'); if(ss)ss.addEventListener('click',stopSim);
     const ab=document.getElementById('monAllBtn'); if(ab)ab.addEventListener('click',toggleAllRoutes);
     const rb=document.getElementById('monRepBtn'); if(rb)rb.addEventListener('click',openReportes);
@@ -2047,13 +2223,14 @@
     try{localStorage.setItem('animador_role','adm');}catch(_){}
     startMgmt();
     startRutas();
-    const bar=document.getElementById('admBar'); if(bar)bar.classList.add('show');
-    setAdmView('monitor');
+    subscribeUnits();
+    shellSetup();
+    setSection('inicio');
     const h=location.hash||'';
     let rParam=null;
     const parts=h.replace(/^#/,'').split('&');
     for(const p of parts){ if(p.indexOf('r=')===0){ rParam=p.slice(2); break; } }
-    if(rParam){ const pts=decode(rParam); if(pts)loadRoute(pts); }
+    if(rParam){ const pts=decode(rParam); if(pts){loadRoute(pts); setSection('rutas');} }
     hideWelcome();
   }
   function routeAccess(){
