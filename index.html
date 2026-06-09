@@ -581,7 +581,24 @@
   body.adm-shell .panel{left:calc(var(--rail) + 12px);top:calc(var(--topbar) + 12px);display:none;}
   body.adm-shell .mon-panel{left:calc(var(--rail) + 12px);top:calc(var(--topbar) + 10px);display:none;}
   body.sec-monitoreo .mon-panel.show{display:flex;}
-  body.sec-rutas .panel{display:block;}
+  body.sec-rutas:not(.rutas-list) .panel{display:block;}
+  #secRutas{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:#23211D;}
+  body.sec-rutas.rutas-list #secRutas{display:block;}
+  .rutas-back{position:fixed;top:calc(var(--topbar) + 12px);right:16px;z-index:1600;display:none;align-items:center;gap:6px;background:#FBFAF6;border:1px solid rgba(30,28,24,.14);border-radius:11px;padding:8px 13px;font-size:13px;color:#44413A;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.10);font-family:inherit;}
+  body.sec-rutas:not(.rutas-list) .rutas-back{display:inline-flex;}
+  .ru-top{display:flex;align-items:flex-end;gap:12px;margin-bottom:18px;}
+  .ru-new{margin-left:auto;display:inline-flex;align-items:center;gap:7px;background:#2E2C27;color:#fff;border:none;border-radius:11px;padding:10px 15px;font-size:13px;font-family:inherit;cursor:pointer;}
+  .ru-new:hover{background:#44413A;}
+  .ru-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:11px;}
+  .ru-card{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:14px;padding:13px 14px;cursor:pointer;}
+  .ru-card:hover{border-color:rgba(30,28,24,.18);}
+  .ru-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .ru-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .ru-name{font-size:14.5px;font-weight:500;flex:1;}
+  .ru-meta{display:flex;align-items:center;gap:5px;font-size:11.5px;color:#807E77;margin-top:4px;}
+  .ru-acts{display:flex;gap:7px;margin-top:11px;}
+  .rd-addnew{background:none;border:none;color:#5f7a66;font-size:12px;font-family:inherit;cursor:pointer;padding:5px 0 2px;}
+  .rd-addnew:hover{text-decoration:underline;}
   body.adm-shell #monInactiveWrap{display:none;}
   body.adm-shell .adm-bar,body.adm-shell .mgmt-btn,body.adm-shell .units-btn{display:none !important;}
   /* Inicio */
@@ -683,6 +700,8 @@
   <span class="shell-user"><span class="av">A</span>ADM</span>
 </div>
 <div class="map-cover" id="mapCover"><div id="iniBody"></div></div>
+<div id="secRutas"><div class="ini-wrap" id="rutasBody"></div></div>
+<button class="rutas-back" id="rutasBack"><i class="ti ti-arrow-left" aria-hidden="true"></i> Rutas</button>
 <div class="toast" id="toast">Copiado ✓</div>
 <div class="gps-alert" id="gpsAlert">⚠️ <span id="gpsAlertText">Te has salido de la ruta</span></div>
 
@@ -950,7 +969,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.4 · 2026-06-08</div>
+<div class="ver-badge" id="verBadge">v3.5 · 2026-06-08</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1791,7 +1810,7 @@
       card.appendChild(acts); el.appendChild(card);
     });
   }
-  function startRutas(){ if(!fbDb)return; fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; rutaListRender(); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); }); }
+  function startRutas(){ if(!fbDb)return; fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; rutaListRender(); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); if(typeof curSec!=='undefined'&&curSec==='rutas'&&rutasView==='list')buildRutasList(); }); }
   function fillSelect(id,data){ const sel=document.getElementById(id); if(!sel)return;
     sel.innerHTML='<option value="">(ninguno)</option>';
     Object.keys(data||{}).sort().forEach(code=>{ const v=data[code]||{}; const o=document.createElement('option'); o.value=code; o.textContent=code+(v.name?(' · '+v.name):''); sel.appendChild(o); }); }
@@ -1879,7 +1898,7 @@
     const badge=document.getElementById('shellBadge'); if(badge)badge.style.display='none';
     if(name==='inicio'){ buildInicio(); }
     if(name==='monitoreo'){ subscribeUnits(); renderMonitor(); if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); }
-    if(name==='rutas'){ if(editor)editor.style.display=''; refreshRutaSelects(); if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); }
+    if(name==='rutas'){ if(typeof setRutasView==='function')setRutasView('list'); if(editor)editor.style.display=''; refreshRutaSelects(); if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); }
     if(name==='admin'){ document.getElementById('mgmtOv').classList.add('show'); }
     else { const mo=document.getElementById('mgmtOv'); if(mo)mo.classList.remove('show'); }
     if(name==='reportes'){ if(typeof openReportes==='function')openReportes(); }
@@ -2066,24 +2085,33 @@
     document.getElementById('rdMeta').textContent='Chofer: '+(r.choferCode||'—')+'  ·  Sup: '+(r.supCode||'—')+(r.freq&&r.freq.length?('  ·  '+r.freq.join('·')):'');
     const dates=document.getElementById('rdDates'), body=document.getElementById('rdBody'); dates.innerHTML=''; body.innerHTML='';
     if(rdTab==='datos'){
-      const pts=(decode(r.wp||'')||[]).length;
+      const ptsArr=decode(r.wp||'')||[]; const km=kmOf(ptsArr);
       body.innerHTML='<div class="rd-item">'
-        +'<div class="mon-line" style="color:#23211D"><i class="ti ti-map-pin"></i> '+pts+' puntos de recorrido</div>'
+        +'<div class="mon-line" style="color:#23211D"><i class="ti ti-map-pin"></i> '+ptsArr.length+' puntos · '+km.toFixed(2)+' km</div>'
         +'<div class="mon-line"><i class="ti ti-truck"></i> Camión: '+(r.camion||'sin asignar')+'</div>'
         +'<div class="mon-line"><i class="ti ti-user"></i> Chofer: '+(r.choferCode||'sin asignar')+'</div>'
         +'<div class="mon-line"><i class="ti ti-eye"></i> Supervisor: '+(r.supCode||'sin asignar')+'</div>'
         +'<div class="mon-line"><i class="ti ti-calendar"></i> Frecuencia: '+((r.freq&&r.freq.length)?r.freq.join('·'):'sin definir')+'</div></div>'
-        +'<button class="mon-tinybtn" id="rdShowMap" style="width:100%;margin-top:4px;flex:none">Ver trazado en el mapa</button>'
-        +'<div class="rd-item" style="margin-top:11px">'
+        +'<div style="display:flex;gap:7px;margin-top:8px">'
+          +'<button class="mon-tinybtn" id="rdShowMap" style="flex:1">Ver en mapa</button>'
+          +'<button class="mon-tinybtn" id="rdWord" style="flex:1"><i class="ti ti-file-text"></i> Word</button>'
+          +'<button class="mon-tinybtn" id="rdEdit" style="flex:1"><i class="ti ti-edit"></i> Editar</button></div>'
+        +'<div class="rd-item" style="margin-top:13px">'
           +'<div style="font-size:13px;font-weight:600;margin-bottom:2px">Enviar esta ruta</div>'
-          +'<div style="font-size:11px;color:#807E77;margin-bottom:6px">Asigna camión y chofer para este envío y genera el enlace.</div>'
+          +'<div style="font-size:11px;color:#807E77;margin-bottom:8px">Elige camión, chofer y supervisor (separados por disponibilidad) y genera el enlace.</div>'
           +'<label class="fld-lbl">Camión</label><select class="fld" id="dsCamion"></select>'
           +'<label class="fld-lbl">Chofer</label><select class="fld" id="dsChofer"></select>'
+          +'<button class="rd-addnew" id="dsChNew">+ nuevo chofer</button>'
           +'<label class="fld-lbl">Supervisor (opcional)</label><select class="fld" id="dsSup"></select>'
-          +'<button class="mon-tinybtn" id="dsGen" style="width:100%;margin-top:11px;flex:none"><i class="ti ti-link"></i> Generar enlaces</button>'
+          +'<button class="rd-addnew" id="dsSpNew">+ nuevo supervisor</button>'
+          +'<button class="mon-tinybtn" id="dsGen" style="width:100%;margin-top:12px;flex:none"><i class="ti ti-link"></i> Generar enlaces</button>'
           +'<div id="dsLinks" style="margin-top:10px"></div></div>';
-      const sm=document.getElementById('rdShowMap'); if(sm)sm.addEventListener('click',()=>{ showRouteLayer(rdId); fitRoute(rdId); closeRouteDetail(); });
-      fillCamInto('dsCamion',r.camion); fillSelInto('dsChofer',mgmtChoferes,r.choferCode); fillSelInto('dsSup',mgmtSup,r.supCode);
+      const sm=document.getElementById('rdShowMap'); if(sm)sm.addEventListener('click',()=>{ showRouteLayer(rdId); fitRoute(rdId); closeRouteDetail(); if(typeof setSection==='function'){ setSection('monitoreo'); } });
+      const dw=document.getElementById('rdWord'); if(dw)dw.addEventListener('click',()=>downloadRutaWord(rdId));
+      const de=document.getElementById('rdEdit'); if(de)de.addEventListener('click',()=>{ const id=rdId; const rr=mgmtRutas[id]||{}; closeRouteDetail(); const pts=decode(rr.wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(rr); if(typeof setSection==='function'){ setSection('rutas'); setRutasView('editor'); } toast('Ruta cargada — edita y guarda'); });
+      fillGroupedCamion('dsCamion',r.camion); fillGroupedActor('dsChofer',mgmtChoferes,r.choferCode); fillGroupedActor('dsSup',mgmtSup,r.supCode);
+      const ch=document.getElementById('dsChNew'); if(ch)ch.addEventListener('click',()=>addActor('chofer'));
+      const sp=document.getElementById('dsSpNew'); if(sp)sp.addEventListener('click',()=>addActor('sup'));
       const dg=document.getElementById('dsGen'); if(dg)dg.addEventListener('click',genLinks);
     } else if(rdTab==='viajes'){
       const fechas=Object.keys(rdViajes).sort().reverse();
@@ -2164,11 +2192,71 @@
       const c=document.createElement('div'); c.className='mon-line'; c.style.color='#23211D'; c.innerHTML='Código del supervisor: <b style="color:#9A6A1C">'+supAccess+'</b>'; box.appendChild(c); }
     toast('Enlaces generados ✓'); }
 
+  function kmOf(pts){ if(!pts||pts.length<2)return 0; let d=0; for(let i=1;i<pts.length;i++)d+=haversine(pts[i-1],pts[i]); return d/1000; }
+  function liveChoferCodes(){ const s={}; const live=supLast||{}; Object.keys(live).forEach(k=>{ const t=live[k]; if(t&&t.rutaId&&t.status!=='offline'&&t.status!=='termino'){ if(t.choferCode)s[t.choferCode]=1; if(t.code)s[t.code]=1; } }); return s; }
+  function buildGroupedSelect(sel,placeholder,groups,val){ sel.innerHTML='<option value="">'+placeholder+'</option>';
+    groups.forEach(([title,arr])=>{ if(!arr.length)return; const g=document.createElement('optgroup'); g.label=title;
+      arr.forEach(([v,lab,dis])=>{ const o=document.createElement('option'); o.value=v; o.textContent=lab; if(dis)o.disabled=true; g.appendChild(o); }); sel.appendChild(g); });
+    sel.value=val||''; }
+  function fillGroupedActor(selId,data,assigned){ const sel=document.getElementById(selId); if(!sel)return;
+    const liveC=liveChoferCodes(); const rec=[],disp=[],no=[];
+    Object.keys(data||{}).sort().forEach(code=>{ const v=data[code]||{}; const lab=code+(v.name?(' · '+v.name):'');
+      if(assigned&&code===assigned)rec.push([code,lab+' · asignado',false]);
+      else if(v.active===false)no.push([code,lab+' · inactivo',true]);
+      else if(liveC[code])no.push([code,lab+' · en ruta',true]);
+      else disp.push([code,lab,false]); });
+    buildGroupedSelect(sel,'(ninguno)',[['Recomendado',rec],['Disponibles',disp],['No disponibles',no]],assigned); }
+  function fillGroupedCamion(selId,assigned){ const sel=document.getElementById(selId); if(!sel)return;
+    const rec=[],disp=[],no=[];
+    Object.keys(mgmtCamiones||{}).sort().forEach(k=>{ const v=mgmtCamiones[k]||{}; const f=v.ficha||k; const est=v.estado||'disponible';
+      if(assigned&&f===assigned)rec.push([f,f+' · asignado',false]);
+      else if(est==='disponible')disp.push([f,f,false]);
+      else no.push([f,f+' · '+est,true]); });
+    buildGroupedSelect(sel,'(sin camión)',[['Recomendado',rec],['Disponibles',disp],['No disponibles',no]],assigned); }
+  function addActor(kind){ const name=(prompt(kind==='chofer'?'Nombre del nuevo chofer:':'Nombre del nuevo supervisor:')||'').trim(); if(!name||!fbDb)return;
+    const code=kind==='chofer'?nextCode('CH-',mgmtChoferes):nextCode('Sup-',mgmtSup);
+    const path=kind==='chofer'?'config/choferes/':'config/supervisores/';
+    fbDb.ref(path+fbKey(code)).set({name:name,active:true,ts:Date.now()});
+    if(kind==='chofer'){ mgmtChoferes[fbKey(code)]={name:name,active:true}; fillGroupedActor('dsChofer',mgmtChoferes,code); }
+    else { mgmtSup[fbKey(code)]={name:name,active:true}; fillGroupedActor('dsSup',mgmtSup,code); }
+    toast(code+' · '+name+' agregado ✓'); }
+  function downloadRutaWord(id){ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2){toast('Esta ruta no tiene trazado');return;}
+    if(typeof docx==='undefined'||!docx.Document){toast('Librería Word cargando · reintenta');return;}
+    loadRoute(pts); if(typeof buildInstructions==='function')buildInstructions();
+    if(typeof generateWordDoc==='function')generateWordDoc(); else toast('No pude generar el Word'); }
+
+  // ----- RUTAS: lista + editor -----
+  let rutasView='list';
+  function setRutasView(v){ rutasView=v; document.body.classList.toggle('rutas-list',v==='list');
+    if(v==='list'){ buildRutasList(); }
+    else { if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); refreshRutaSelects(); } }
+  function buildRutasList(){ const host=document.getElementById('rutasBody'); if(!host)return;
+    const rutas=mgmtRutas||{}; const ids=Object.keys(rutas).sort((a,b)=>((rutas[a].nombre||'').localeCompare(rutas[b].nombre||'')));
+    const live=(typeof liveByRuta==='function')?liveByRuta():{};
+    let h='<div class="ru-top"><div><div class="ini-day" style="font-size:20px">Rutas</div><div class="ini-date">'+ids.length+' registrada'+(ids.length===1?'':'s')+'</div></div>'
+      +'<button class="ru-new" id="ruNew"><i class="ti ti-plus" aria-hidden="true"></i> Nueva ruta</button></div>';
+    if(!ids.length)h+='<div class="ini-empty">Aún no hay rutas. Crea la primera con "Nueva ruta": carga el KMZ, genera el Word y guarda.</div>';
+    h+='<div class="ru-grid">';
+    ids.forEach(id=>{ const r=rutas[id]; const km=kmOf(decode(r.wp||'')); const t=live[id];
+      h+='<div class="ru-card" data-id="'+id+'">'
+        +'<div class="ru-head"><span class="ru-dot" style="background:'+routeColor(id)+'"></span><span class="ru-name">'+((r.nombre||'(sin nombre)').replace(/</g,'&lt;'))+'</span>'+(t?'<span class="ini-mini">en curso</span>':'')+'</div>'
+        +'<div class="ru-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'sin camión')+' &nbsp; <i class="ti ti-user" aria-hidden="true"></i> '+(r.choferCode||'sin chofer')+'</div>'
+        +'<div class="ru-meta"><i class="ti ti-map-pin" aria-hidden="true"></i> '+km.toFixed(2)+' km &nbsp; <i class="ti ti-calendar" aria-hidden="true"></i> '+((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
+        +'<div class="ru-acts"><button class="mon-tinybtn" data-act="perfil">Perfil</button><button class="mon-tinybtn" data-act="editar">Editar</button></div>'
+        +'</div>'; });
+    h+='</div>'; host.innerHTML=h;
+    const nb=document.getElementById('ruNew'); if(nb)nb.addEventListener('click',()=>{ if(typeof newRuta==='function')newRuta(); setRutasView('editor'); });
+    host.querySelectorAll('.ru-card').forEach(card=>{ const id=card.dataset.id;
+      card.querySelector('[data-act="perfil"]').addEventListener('click',e=>{ e.stopPropagation(); openRouteDetail(id); });
+      card.querySelector('[data-act="editar"]').addEventListener('click',e=>{ e.stopPropagation(); const pts=decode((mgmtRutas[id]||{}).wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(mgmtRutas[id]); setRutasView('editor'); toast('Ruta cargada — edita y guarda'); });
+      card.addEventListener('click',()=>openRouteDetail(id)); }); }
+
   function monSetup(){
     const dt=document.getElementById('monDockToggle');
     if(dt)dt.addEventListener('click',()=>{ const p=document.getElementById('monPanel'); const c=p.classList.toggle('collapsed'); const ic=dt.querySelector('i'); if(ic)ic.className='ti ti-chevron-'+(c?'right':'left'); dt.title=c?'Expandir':'Contraer'; });
     const cb=document.getElementById('monCrearBtn');
-    if(cb)cb.addEventListener('click',()=>{ if(typeof newRuta==='function')newRuta(); if(typeof setSection==='function')setSection('rutas'); else setAdmView('editor'); });
+    if(cb)cb.addEventListener('click',()=>{ if(typeof newRuta==='function')newRuta(); if(typeof setSection==='function'){ setSection('rutas'); setRutasView('editor'); } else setAdmView('editor'); });
+    const rbk=document.getElementById('rutasBack'); if(rbk)rbk.addEventListener('click',()=>setRutasView('list'));
     const ss=document.getElementById('simStop'); if(ss)ss.addEventListener('click',stopSim);
     const ab=document.getElementById('monAllBtn'); if(ab)ab.addEventListener('click',toggleAllRoutes);
     const rb=document.getElementById('monRepBtn'); if(rb)rb.addEventListener('click',openReportes);
