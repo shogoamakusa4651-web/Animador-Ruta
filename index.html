@@ -821,6 +821,23 @@
     .ini-bar{flex-wrap:wrap;}
     .q-chip{display:none;}
   }
+  /* ===== Monitoreo: panel inteligente ===== */
+  .mon-pulse{margin:2px 0 8px;}
+  .mp-row{display:flex;align-items:center;gap:7px;font-size:12px;color:#55524B;flex-wrap:wrap;}
+  .mp-row b{font-size:13px;}
+  .mp-dot{width:9px;height:9px;border-radius:50%;flex:none;animation:mpulse 2s infinite;}
+  @keyframes mpulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .mon-inc{display:flex;align-items:center;gap:8px;font-size:11.5px;background:#fff;border:1px solid rgba(30,28,24,.08);border-left:3px solid #B0843C;border-radius:10px;padding:7px 9px;margin-bottom:5px;cursor:pointer;line-height:1.3;}
+  .mon-inc.grave{border-left-color:#C2402F;}
+  .mon-inc .mi-dot{width:7px;height:7px;border-radius:50%;background:#B0843C;flex:none;}
+  .mon-inc.grave .mi-dot{background:#C2402F;}
+  .mon-inc .mi-tx{flex:1;min-width:0;}
+  .mon-inc.more{border-left-color:rgba(30,28,24,.15);color:#8C887E;justify-content:center;cursor:default;}
+  .mon-prog{height:5px;border-radius:99px;background:rgba(30,28,24,.08);overflow:hidden;margin:7px 0 6px;}
+  .mon-prog i{display:block;height:100%;border-radius:99px;transition:width .4s;}
+  .mon-chip{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:999px;border:1px solid;flex:none;margin-left:2px;}
+  body.dark .mon-inc{background:#26241F;border-color:rgba(255,255,255,.08);}
+  body.dark .mp-row{color:#B7B4AC;}
   /* ===== Centro de control: grid ===== */
   .cc-wrap{max-width:1320px;}
   .cc-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-top:14px;}
@@ -923,7 +940,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.17 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.19 · 2026-06-10</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1161,17 +1178,19 @@
 <div class="mon-panel" id="monPanel">
   <div class="mon-dockhead">
     <span style="width:8px;height:8px;border-radius:50%;background:#7E9B86;flex:none"></span>
-    <span class="mon-dock-title">Monitoreo</span>
+    <span class="mon-dock-title">Sala de control</span>
     <button class="mon-dock-toggle" id="monDockToggle" title="Contraer"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
   </div>
+  <div class="mon-pulse" id="monPulse"></div>
+  <div id="monAlerts"></div>
   <button class="mon-crear" id="monCrearBtn"><i class="ti ti-plus" aria-hidden="true"></i> Crear ruta</button>
   <div style="display:flex;gap:7px;margin-bottom:12px"><button class="mon-tinybtn" id="monAllBtn" style="flex:1">Ver todas</button></div>
   <div class="mon-days" id="monDays"></div>
-  <div class="mon-sec">RUTAS EN CURSO</div>
+  <div class="mon-sec">EN VIVO</div>
   <div id="monActive"></div>
   <div id="monInactiveWrap">
   <div class="mon-divider"></div>
-  <div class="mon-sec">OTRAS RUTAS · enciende / apaga / simula</div>
+  <div class="mon-sec">RUTAS · hoy primero · enciende / apaga / simula</div>
   <div id="monInactive" style="margin-top:2px"></div>
   </div>
 </div>
@@ -1234,7 +1253,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.17 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.19 · 2026-06-10</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1895,6 +1914,9 @@
   const ADM_EMAIL='admin@animadorruta.com';
   let admSigningIn=false;
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  const COV_AB='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  function covEnc(set,n){ let s=''; for(let i=0;i<n;i+=6){ let v=0; for(let j=0;j<6;j++){ if(set.has(i+j))v|=(1<<j); } s+=COV_AB[v]; } return s; }
+  function covDec(s,n){ const out=new Array(n).fill(false); if(!s)return out; for(let c=0;c<s.length;c++){ const v=COV_AB.indexOf(s[c]); if(v<0)continue; for(let j=0;j<6;j++){ const i=c*6+j; if(i<n&&(v&(1<<j)))out[i]=true; } } return out; }
 
   let fbApp=null, fbDb=null, fbConnected=false, userRole=null, choferCode=null;
   let txTimer=null, choferName=null;
@@ -1940,6 +1962,8 @@
       status: 'en_ruta',
       route: currentRuta?(currentRuta.nombre||null):((routeRefs&&routeRefs.title)?routeRefs.title:null),
       rutaId: currentRutaId||null,
+      _idx: (typeof nextWpIdx==='number'?nextWpIdx:null),
+      cov: (waypoints&&waypoints.length&&doneWps)?covEnc(doneWps,waypoints.length):null,
       ts: Date.now()
     };
     try{ fbDb.ref('live/'+txId()).update(data); }catch(e){ console.warn('tx',e); }
@@ -2361,13 +2385,35 @@
   function toggleRouteLayer(id){ if(routeLayers[id])hideRouteLayer(id); else showRouteLayer(id); renderMonitor(); }
   let monAllOn=false, liveTrails={};
   function syncMonLayers(){ const live=liveByRuta(); Object.keys(mgmtRutas).forEach(id=>{ const show=monAllOn||live[id]||(monDaysSel.size&&[...monDaysSel].some(d=>(mgmtRutas[id].freq||[]).includes(d))); if(show)showRouteLayer(id); else hideRouteLayer(id); }); }
+  function covSegs(pts,bits,want){ const out=[]; let run=null;
+    for(let i=0;i<pts.length-1;i++){ const ok=(bits[i]&&bits[i+1])===want;
+      if(ok){ if(!run)run=[pts[i]]; run.push(pts[i+1]); } else if(run){ out.push(run); run=null; } }
+    if(run)out.push(run); return out; }
   function updateLiveTrails(){ const live=liveByRuta();
     Object.keys(liveTrails).forEach(id=>{ if(!live[id]){ map.removeLayer(liveTrails[id]); delete liveTrails[id]; } });
     Object.keys(live).forEach(id=>{ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2)return; const t=live[id];
+      let segs=null;
+      if(t.cov){ const bits=covDec(t.cov,pts.length); segs=covSegs(pts,bits,true); }
+      if(segs&&segs.length){ if(liveTrails[id]){ map.removeLayer(liveTrails[id]); }
+        const g=L.layerGroup(); segs.forEach(s=>L.polyline(s,{color:'#27A35B',weight:routeWeights().main+1.6,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
+        if(t.lat!=null&&t.lng!=null&&t._idx!=null&&pts[t._idx])L.polyline([pts[t._idx],[t.lat,t.lng]],{color:'#27A35B',weight:routeWeights().main+1.6,opacity:.55,dashArray:'4 6',interactive:false}).addTo(g);
+        g.addTo(map); liveTrails[id]=g; return; }
       let done; if(t._idx!=null){ done=pts.slice(0,t._idx+1); if(t.lat!=null&&t.lng!=null)done=done.concat([[t.lat,t.lng]]); }
       else { const prog=Math.max(0,Math.min(100,t.progress||0)); const n=Math.max(1,Math.round(prog/100*(pts.length-1))); done=pts.slice(0,n+1); }
       if(done.length<2)done=[pts[0],pts[0]];
-      if(liveTrails[id])liveTrails[id].setLatLngs(done); else liveTrails[id]=L.polyline(done,{color:'#27A35B',weight:routeWeights().main+1.6,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map); }); }
+      if(liveTrails[id]&&liveTrails[id].setLatLngs)liveTrails[id].setLatLngs(done);
+      else { if(liveTrails[id])map.removeLayer(liveTrails[id]); liveTrails[id]=L.polyline(done,{color:'#27A35B',weight:routeWeights().main+1.6,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map); } });
+    // rutas que terminaron: dejar visible lo omitido en rojo
+    const all=supLast||{};
+    Object.keys(all).forEach(k=>{ const t=all[k]; if(!t||t.status!=='termino'||!t.rutaId||!t.cov)return; const id=t.rutaId;
+      if(live[id])return; const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2)return;
+      const key='omit_'+id;
+      const bits=covDec(t.cov,pts.length); const miss=covSegs(pts,bits,false);
+      if(omitLayers[key]){ map.removeLayer(omitLayers[key]); delete omitLayers[key]; }
+      if(!miss.length||!routeLayers[id])return;
+      const g=L.layerGroup(); miss.forEach(s=>L.polyline(s,{color:'#C2402F',weight:routeWeights().main+1.4,opacity:.95,dashArray:'7 7',lineCap:'round',interactive:false}).addTo(g));
+      g.addTo(map); omitLayers[key]=g; }); }
+  let omitLayers={};
   function liveByRuta(){ const live=supLast||{}, m={}; Object.keys(live).forEach(k=>{ const t=live[k]; const age=(Date.now()-((t&&t.ts)||0))/1000; if(t&&t.rutaId&&t.status!=='offline'&&t.status!=='termino'&&age<=40)m[t.rutaId]=t; }); return m; }
   function renderMonitor(){
     const mp=document.getElementById('monPanel'); if(!mp||!mp.classList.contains('show'))return;
@@ -2375,14 +2421,38 @@
     DAYS.forEach(d=>{ const b=document.createElement('button'); b.className='mon-day'+(monDaysSel.has(d)?' on':''); b.textContent=d;
       b.addEventListener('click',()=>{ monAllOn=false; if(monDaysSel.has(d))monDaysSel.delete(d); else monDaysSel.add(d); syncMonLayers(); renderMonitor(); }); days.appendChild(b); });
     const byRuta=liveByRuta();
+    // ---- línea de estado mínima (sin dashboard)
+    (function(){
+      const pulse=document.getElementById('monPulse'); if(!pulse)return;
+      const alBox=document.getElementById('monAlerts'); if(alBox)alBox.innerHTML='';
+      const nw=new Date(); const hoy=nw.getFullYear()+'-'+String(nw.getMonth()+1).padStart(2,'0')+'-'+String(nw.getDate()).padStart(2,'0');
+      const tl=todayLetter();
+      const tIds=Object.keys(mgmtRutas).filter(id=>((mgmtRutas[id]||{}).freq||[]).includes(tl));
+      let sinSalir=0; tIds.forEach(id=>{ const r=mgmtRutas[id]||{};
+        const done=r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length;
+        if(!done&&!byRuta[id])sinSalir++; });
+      let stale=0; Object.keys(byRuta).forEach(id=>{ const t=byRuta[id]||{}; if(t.ts&&(Date.now()-t.ts)>120000)stale++; });
+      const n=Object.keys(byRuta).length;
+      if(!n&&!sinSalir){ pulse.innerHTML='<div class="mp-row"><span class="mp-dot" style="background:#8C887E;animation:none"></span>No hay rutas activas actualmente</div>'; return; }
+      const col=stale?'#C2402F':(n?'#27A35B':'#B0843C');
+      let tx=n?('<b>'+n+'</b> en vivo'):'Sin camiones en vivo';
+      if(sinSalir)tx+=' · <b>'+sinSalir+'</b> de hoy sin salir';
+      if(stale)tx+=' · <b style="color:#C2402F">'+stale+'</b> sin señal';
+      pulse.innerHTML='<div class="mp-row"><span class="mp-dot" style="background:'+col+'"></span>'+tx+'</div>';
+    })();
     const act=document.getElementById('monActive'); act.innerHTML=''; let nAct=0;
     Object.keys(mgmtRutas).forEach(id=>{ const r=mgmtRutas[id], t=byRuta[id]; if(!t)return; nAct++; showRouteLayer(id);
       const card=document.createElement('div'); card.className='mon-card';
       const on=!!routeLayers[id];
       const isSim=(t.name==='Simulación')||((t.code||'').indexOf('SIM-')===0);
+      const age=t.ts?Math.max(0,Math.round((Date.now()-t.ts)/1000)):null;
+      const ageTx=age==null?'':(age<60?('hace '+age+' s'):('hace '+Math.round(age/60)+' min'));
+      const ageCol=(age!=null&&age>120)?'#C2402F':'#8C887E';
+      const pg=Math.max(0,Math.min(100,Number(t.progress)||0));
       card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+'"></span><span style="font-size:14px;font-weight:600;flex:1">'+esc(r.nombre||'(sin nombre)')+(isSim?' <span style="font-size:10px;color:#9c5532">· sim</span>':'')+'</span><span class="mon-pct">'+(t.progress!=null?esc(t.progress)+'%':'—')+'</span></div>'
-        +'<div class="mon-line"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'—')+'</div>'
-        +'<div class="mon-line"><i class="ti ti-user" aria-hidden="true"></i> '+((t.code||r.choferCode||'—'))+(t.name?(' '+t.name):'')+'</div>'
+        +'<div class="mon-prog"><i style="width:'+pg+'%;background:'+routeColor(id)+'"></i></div>'
+        +'<div class="mon-line"><i class="ti ti-truck" aria-hidden="true"></i> '+esc(r.camion||'—')+' · <i class="ti ti-user" aria-hidden="true"></i> '+esc((t.code||r.choferCode||'—'))+(t.name?(' '+esc(t.name)):'')+'</div>'
+        +(ageTx?('<div class="mon-line" style="color:'+ageCol+'"><i class="ti ti-antenna-bars-5" aria-hidden="true"></i> Última señal '+ageTx+'</div>'):'')
         +'<div class="mon-cardacts">'
         +'<button class="mon-iconbtn" data-act="zoom" title="Acercar"><i class="ti ti-focus-2"></i></button>'
         +'<button class="mon-iconbtn'+(on?' on':'')+'" data-act="toggle" title="'+(on?'Apagar trazado':'Prender trazado')+'"><i class="ti ti-'+(on?'eye':'eye-off')+'"></i></button>'
@@ -2397,12 +2467,24 @@
       act.appendChild(card); });
     if(!nAct)act.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Ninguna en curso.</div>';
     const inact=document.getElementById('monInactive'); inact.innerHTML=''; let nIn=0;
-    Object.keys(mgmtRutas).forEach(id=>{ const r=mgmtRutas[id]; if(byRuta[id])return;
+    const _nw=new Date(); const _hoy=_nw.getFullYear()+'-'+String(_nw.getMonth()+1).padStart(2,'0')+'-'+String(_nw.getDate()).padStart(2,'0');
+    const _tl=todayLetter();
+    const inactIds=Object.keys(mgmtRutas).filter(id=>!byRuta[id]).sort((a,b)=>{
+      const ta=((mgmtRutas[a]||{}).freq||[]).includes(_tl)?0:1, tb=((mgmtRutas[b]||{}).freq||[]).includes(_tl)?0:1;
+      return ta-tb||(((mgmtRutas[a]||{}).nombre||'').localeCompare((mgmtRutas[b]||{}).nombre||'')); });
+    inactIds.forEach(id=>{ const r=mgmtRutas[id];
       if(monDaysSel.size && ![...monDaysSel].some(d=>(r.freq||[]).includes(d)))return; nIn++;
       const on=!!routeLayers[id];
+      const esHoy=(r.freq||[]).includes(_tl);
+      let chip='';
+      if(esHoy){ let s,sc;
+        if(r.viajes&&r.viajes[_hoy]&&Object.keys(r.viajes[_hoy]).length){s='Completada';sc='#27A35B';}
+        else if(r.envios&&r.envios[_hoy]){s='Enviada';sc='#B0843C';}
+        else {s='Sin enviar';sc='#C2402F';}
+        chip='<span class="mon-chip" style="color:'+sc+';background:'+sc+'14;border-color:'+sc+'33">'+s+'</span>'; }
       const row=document.createElement('div'); row.className='mon-row';
-      const nm=document.createElement('span'); nm.className='nm'; nm.style.display='flex'; nm.style.alignItems='center'; nm.style.gap='8px';
-      nm.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+';display:inline-block;flex:none"></span>'+esc(r.nombre||'(sin nombre)');
+      const nm=document.createElement('span'); nm.className='nm'; nm.style.display='flex'; nm.style.alignItems='center'; nm.style.gap='8px'; nm.style.minWidth='0';
+      nm.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+';display:inline-block;flex:none"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.nombre||'(sin nombre)')+'</span>'+chip;
       nm.addEventListener('click',()=>openRouteDetail(id));
       const eye=document.createElement('button'); eye.className='ic'+(on?' on':''); eye.title=on?'Ocultar trazado':'Ver trazado'; eye.innerHTML='<i class="ti ti-'+(on?'eye':'eye-off')+'"></i>';
       eye.addEventListener('click',()=>{ toggleRouteLayer(id); if(routeLayers[id])fitRoute(id); });
@@ -2423,7 +2505,8 @@
       const d=f*L; let idx=0; while(idx<cum.length-1 && cum[idx+1]<d)idx++;
       const segLen=(cum[idx+1]-cum[idx])||1; const fr=Math.max(0,Math.min(1,(d-cum[idx])/segLen));
       const a=pts[idx], b=pts[Math.min(idx+1,pts.length-1)]; const lat=a[0]+(b[0]-a[0])*fr, lng=a[1]+(b[1]-a[1])*fr;
-      const o={code:code,name:'Simulación',lat:lat,lng:lng,progress:Math.round(f*100),status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:idx,ts:Date.now()};
+      const _cs=new Set(); for(let q=0;q<=idx;q++)_cs.add(q); if(f>=1)for(let q=0;q<pts.length;q++)_cs.add(q);
+      const o={code:code,name:'Simulación',lat:lat,lng:lng,progress:Math.round(f*100),status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:idx,cov:covEnc(_cs,pts.length),ts:Date.now()};
       supLast[key]=o;
       if(Date.now()-lastFb>900){ lastFb=Date.now(); if(fbDb)fbDb.ref('live/'+key).update(o); }
       if(typeof renderSupervisor==='function')renderSupervisor(supLast); updateLiveTrails();
@@ -3625,7 +3708,21 @@
 
     // Guardar viaje
     saveTrip(buildReport(r));
+    // Persistir en Firebase (antes solo quedaba en el teléfono del chofer)
+    try{
+      if(fbDb && currentRutaId && waypoints && waypoints.length){
+        const _n=new Date(); const _f=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
+        const _cov=covEnc(doneWps,waypoints.length);
+        const _omit=(typeof pendingSegments==='function')?pendingSegments().length:Math.max(0,waypoints.length-doneWps.size);
+        const _dist=Math.round((realPath.length>1?totalDistanceOf(realPath):0)/10)/100;
+        const _kmIni=Number((currentRuta||{}).kmInicio)||0;
+        const _r=currentRuta||{};
+        fbDb.ref('rutas/'+currentRutaId+'/viajes/'+_f).push({ inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, progress:r.routeCompletion, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_dist)*100)/100, distancia:_dist, paradas:waypoints.length, cobertura:r.routeCompletion, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, sim:false });
+        fbDb.ref('rutas/'+currentRutaId+'/reportes').push({ tipo:'chofer', choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, fecha:_f, inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), rating:r.score, routeCompletion:r.routeCompletion, ratingLevel:ratingLabel(r.score).lbl, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_dist)*100)/100, distancia:_dist, cobertura:r.routeCompletion, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, texto:'Recorrido real: '+r.routeCompletion+'% cubierto'+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):' · sin omisiones')+'.', sim:false, ts:Date.now() });
+      }
+    }catch(e){ console.warn('persist viaje',e); }
     stopGps();
+    try{ if(fbDb&&choferCode&&waypoints&&waypoints.length)fbDb.ref('live/'+txId()).update({status:'termino',cov:covEnc(doneWps,waypoints.length),progress:r.routeCompletion,ts:Date.now()}); }catch(_){ }
     clearPendingTrip();
   }
   function totalDistanceOf(path){
