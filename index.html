@@ -1761,7 +1761,10 @@
     appId:"1:253607225989:web:dfedf4c6c4b02d49b997ec"
   };
   // Claves compartidas — CÁMBIALAS cuando quieras (beta)
-  const ACCESS_KEYS={adm:'adm2026', sup:'sup2026'};
+  const ACCESS_KEYS={sup:'sup2026'};
+  const ADM_EMAIL='admin@animadorruta.com';
+  let admSigningIn=false;
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
   let fbApp=null, fbDb=null, fbConnected=false, userRole=null, choferCode=null;
   let txTimer=null, choferName=null;
@@ -1783,7 +1786,10 @@
       if(typeof firebase==='undefined'||!firebase.initializeApp){ setFbStatus('nolib'); return; }
       fbApp=firebase.initializeApp(FB_CONFIG);
       fbDb=firebase.database();
-      if(firebase.auth){ firebase.auth().signInAnonymously().catch(e=>console.warn('anon auth:',e&&e.code)); }
+      if(firebase.auth){ firebase.auth().onAuthStateChanged(u=>{
+        if(!u){ if(!admSigningIn) firebase.auth().signInAnonymously().catch(e=>console.warn('anon auth:',e&&e.code)); }
+        else if(u.isAnonymous && savedRole()==='adm'){ try{localStorage.removeItem('animador_role');}catch(_){ } location.reload(); }
+      }); }
       fbDb.ref('.info/connected').on('value', s=>{ fbConnected=(s.val()===true); setFbStatus(fbConnected?'on':'off'); });
     }catch(e){ console.warn('Firebase init falló:',e); setFbStatus('off'); }
   }
@@ -1840,7 +1846,7 @@
       const t=data[id]; if(!t)return;
       const st=statusOf(t);
       if(t.lat!=null && t.lng!=null){
-        const icon=L.divIcon({html:'<div class="sup-marker" style="background:'+st.c+'">'+String(t.code||id).replace('CH-','')+'</div>',className:'',iconSize:[30,30],iconAnchor:[15,15]});
+        const icon=L.divIcon({html:'<div class="sup-marker" style="background:'+st.c+'">'+esc(String(t.code||id).replace('CH-',''))+'</div>',className:'',iconSize:[30,30],iconAnchor:[15,15]});
         if(supMarkers[id]){ supMarkers[id].setLatLng([t.lat,t.lng]).setIcon(icon); }
         else { supMarkers[id]=L.marker([t.lat,t.lng],{icon:icon,zIndexOffset:1000}).addTo(map); }
       }
@@ -1873,7 +1879,7 @@
     if(!ids.length){ el.innerHTML='<div class="mgmt-empty">Ninguno todavía.</div>'; return; }
     el.innerHTML=''; ids.sort().forEach(id=>{ const v=data[id]||{};
       const row=document.createElement('div'); row.className='mgmt-item';
-      row.innerHTML='<span class="mgmt-code">'+id+'</span><span class="mgmt-name">'+(v.name||'')+'</span>';
+      row.innerHTML='<span class="mgmt-code">'+esc(id)+'</span><span class="mgmt-name">'+esc(v.name||'')+'</span>';
       const del=document.createElement('button'); del.className='mgmt-del'; del.textContent='×'; del.title='Quitar';
       del.addEventListener('click',()=>onDel(id)); row.appendChild(del); el.appendChild(row);
     });
@@ -1911,7 +1917,7 @@
   function loadRutaFromFb(id,cb){ if(!fbDb){cb&&cb(null);return;} fbDb.ref('rutas/'+id).once('value').then(s=>cb&&cb(s.val())).catch(()=>cb&&cb(null)); }
   function subscribeUnits(){
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
-    if(!supSub){ supSub=true; fbDb.ref('live').on('value', s=>{ supLast=s.val(); renderSupervisor(supLast); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); }); }
+    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); },300); }); }
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
   }
   function toggleUnits(){ const sp=document.getElementById('supPanel'); if(!sp)return;
@@ -1929,10 +1935,10 @@
     el.innerHTML='';
     ids.sort((a,b)=>(mgmtRutas[b].createdAt||0)-(mgmtRutas[a].createdAt||0)).forEach(id=>{
       const r=mgmtRutas[id]||{}; const card=document.createElement('div'); card.className='ruta-card';
-      const meta=[]; if(r.choferCode)meta.push('Chofer '+r.choferCode);
-      if(r.supCode)meta.push('Sup '+r.supCode+(r.supAccess?(' · cód '+r.supAccess+(r.supActive===false?' (revocado)':'')):''));
-      if(r.freq&&r.freq.length)meta.push(r.freq.join('·'));
-      card.innerHTML='<div class="ruta-top"><span class="ruta-name">'+(r.nombre||'(sin nombre)')+'</span>'+(r.camion?'<span class="ruta-tag">'+r.camion+'</span>':'')+'</div><div class="ruta-meta">'+(meta.join(' · ')||'sin asignaciones')+'</div>';
+      const meta=[]; if(r.choferCode)meta.push('Chofer '+esc(r.choferCode));
+      if(r.supCode)meta.push('Sup '+esc(r.supCode)+(r.supAccess?(' · cód '+esc(r.supAccess)+(r.supActive===false?' (revocado)':'')):''));
+      if(r.freq&&r.freq.length)meta.push(esc(r.freq.join('·')));
+      card.innerHTML='<div class="ruta-top"><span class="ruta-name">'+esc(r.nombre||'(sin nombre)')+'</span>'+(r.camion?'<span class="ruta-tag">'+esc(r.camion)+'</span>':'')+'</div><div class="ruta-meta">'+(meta.join(' · ')||'sin asignaciones')+'</div>';
       const acts=document.createElement('div'); acts.className='ruta-acts';
       const mk=(txt,fn,cls)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.addEventListener('click',fn);return b;};
       acts.appendChild(mk('✏️ Editar',()=>{ const pts=decode(r.wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(r); document.getElementById('mgmtOv').classList.remove('show'); if(typeof setSection==='function')setSection('rutas'); else setAdmView('editor'); toast('Ruta cargada — edita y guarda al final'); }));
@@ -1955,7 +1961,7 @@
     if(!ids.length){ el.innerHTML='<div class="mgmt-empty">Ningún camión todavía.</div>'; return; }
     el.innerHTML=''; ids.sort().forEach(id=>{ const v=mgmtCamiones[id]||{};
       const row=document.createElement('div'); row.className='mgmt-item';
-      row.innerHTML='<span class="mgmt-code">'+(v.ficha||id)+'</span>';
+      row.innerHTML='<span class="mgmt-code">'+esc(v.ficha||id)+'</span>';
       const sel=document.createElement('select'); sel.className='cm-estado';
       ['disponible','en ruta','dañado','mantenimiento'].forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; if((v.estado||'disponible')===o)op.selected=true; sel.appendChild(op); });
       sel.addEventListener('change',()=>{ if(fbDb)fbDb.ref('config/camiones/'+id+'/estado').set(sel.value); });
@@ -1998,7 +2004,7 @@
     const data={ nombre:(document.getElementById('rNombre').value||'').trim()||'(sin nombre)', camion:document.getElementById('rCamion').value||null,
       wp:encode(), freq:rDaysSel.slice(), choferCode:document.getElementById('rChofer').value||null,
       supCode:supCode, supAccess:supAccess, supActive:supActive, createdAt:prev.createdAt||Date.now() };
-    fbDb.ref('rutas/'+id).set(data); editingRutaId=id;
+    fbDb.ref('rutas/'+id).update(data); editingRutaId=id;
     const t=document.getElementById('rutaFormTitle'); if(t)t.textContent='Editando: '+data.nombre;
     toast(supCode?('Ruta guardada · código sup '+supAccess):'Ruta guardada ✓');
   }
@@ -2093,11 +2099,11 @@
     showIds.forEach(id=>{ const r=rutas[id]; const t=live[id];
       h+='<div class="ini-rtcard" draggable="true" data-id="'+id+'">'
         +'<div class="ini-rthead"><i class="ti ti-grip-vertical ini-grip" aria-hidden="true"></i>'
-        +'<span class="ini-rtname">'+((r.nombre||'(sin nombre)').replace(/</g,'&lt;'))+'</span>'
-        +(t?'<span class="ini-mini">en curso '+(t.progress!=null?t.progress+'%':'')+'</span>':'')
+        +'<span class="ini-rtname">'+esc(r.nombre||'(sin nombre)')+'</span>'
+        +(t?'<span class="ini-mini">en curso '+(t.progress!=null?esc(t.progress)+'%':'')+'</span>':'')
         +'</div>'
-        +'<div class="ini-rtmeta"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'sin camión')+'</div>'
-        +'<div class="ini-rtmeta"><i class="ti ti-user" aria-hidden="true"></i> '+(r.choferCode||'sin chofer')+' · <i class="ti ti-calendar" aria-hidden="true"></i> '+((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
+        +'<div class="ini-rtmeta"><i class="ti ti-truck" aria-hidden="true"></i> '+esc(r.camion||'sin camión')+'</div>'
+        +'<div class="ini-rtmeta"><i class="ti ti-user" aria-hidden="true"></i> '+esc(r.choferCode||'sin chofer')+' · <i class="ti ti-calendar" aria-hidden="true"></i> '+esc((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
         +'</div>';
     });
     h+='</div>';
@@ -2176,7 +2182,7 @@
       const card=document.createElement('div'); card.className='mon-card';
       const on=!!routeLayers[id];
       const isSim=(t.name==='Simulación')||((t.code||'').indexOf('SIM-')===0);
-      card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+'"></span><span style="font-size:14px;font-weight:600;flex:1">'+(r.nombre||'(sin nombre)')+(isSim?' <span style="font-size:10px;color:#9c5532">· sim</span>':'')+'</span><span class="mon-pct">'+(t.progress!=null?t.progress+'%':'—')+'</span></div>'
+      card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+'"></span><span style="font-size:14px;font-weight:600;flex:1">'+esc(r.nombre||'(sin nombre)')+(isSim?' <span style="font-size:10px;color:#9c5532">· sim</span>':'')+'</span><span class="mon-pct">'+(t.progress!=null?esc(t.progress)+'%':'—')+'</span></div>'
         +'<div class="mon-line"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'—')+'</div>'
         +'<div class="mon-line"><i class="ti ti-user" aria-hidden="true"></i> '+((t.code||r.choferCode||'—'))+(t.name?(' '+t.name):'')+'</div>'
         +'<div class="mon-cardacts">'
@@ -2198,7 +2204,7 @@
       const on=!!routeLayers[id];
       const row=document.createElement('div'); row.className='mon-row';
       const nm=document.createElement('span'); nm.className='nm'; nm.style.display='flex'; nm.style.alignItems='center'; nm.style.gap='8px';
-      nm.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+';display:inline-block;flex:none"></span>'+(r.nombre||'(sin nombre)');
+      nm.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+';display:inline-block;flex:none"></span>'+esc(r.nombre||'(sin nombre)');
       nm.addEventListener('click',()=>openRouteDetail(id));
       const eye=document.createElement('button'); eye.className='ic'+(on?' on':''); eye.title=on?'Ocultar trazado':'Ver trazado'; eye.innerHTML='<i class="ti ti-'+(on?'eye':'eye-off')+'"></i>';
       eye.addEventListener('click',()=>{ toggleRouteLayer(id); if(routeLayers[id])fitRoute(id); });
@@ -2259,10 +2265,10 @@
       const ptsArr=decode(r.wp||'')||[]; const km=kmOf(ptsArr);
       body.innerHTML='<div class="rd-item">'
         +'<div class="mon-line" style="color:var(--tx0)"><i class="ti ti-map-pin"></i> '+ptsArr.length+' puntos · '+km.toFixed(2)+' km</div>'
-        +'<div class="mon-line"><i class="ti ti-truck"></i> Camión: '+(r.camion||'sin asignar')+'</div>'
-        +'<div class="mon-line"><i class="ti ti-user"></i> Chofer: '+(r.choferCode||'sin asignar')+'</div>'
-        +'<div class="mon-line"><i class="ti ti-eye"></i> Supervisor: '+(r.supCode||'sin asignar')+'</div>'
-        +'<div class="mon-line"><i class="ti ti-calendar"></i> Frecuencia: '+((r.freq&&r.freq.length)?r.freq.join('·'):'sin definir')+'</div></div>'
+        +'<div class="mon-line"><i class="ti ti-truck"></i> Camión: '+esc(r.camion||'sin asignar')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-user"></i> Chofer: '+esc(r.choferCode||'sin asignar')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-eye"></i> Supervisor: '+esc(r.supCode||'sin asignar')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-calendar"></i> Frecuencia: '+esc((r.freq&&r.freq.length)?r.freq.join('·'):'sin definir')+'</div></div>'
         +'<div style="display:flex;gap:7px;margin-top:8px">'
           +'<button class="mon-tinybtn" id="rdShowMap" style="flex:1">Ver en mapa</button>'
           +'<button class="mon-tinybtn" id="rdWord" style="flex:1"><i class="ti ti-file-text"></i> Word</button>'
@@ -2275,7 +2281,7 @@
           +'<button class="rd-addnew" id="dsChNew">+ nuevo chofer</button>'
           +'<label class="fld-lbl">Supervisor (opcional)</label><select class="fld" id="dsSup"></select>'
           +'<button class="rd-addnew" id="dsSpNew">+ nuevo supervisor</button>'
-          +'<label class="fld-lbl">Odómetro actual del camión (km)</label><input class="fld" id="dsKm" inputmode="numeric" placeholder="0 (si no se sabe, el GPS suma el trayecto)" value="'+(r.kmInicio!=null?r.kmInicio:'')+'">'
+          +'<label class="fld-lbl">Odómetro actual del camión (km)</label><input class="fld" id="dsKm" inputmode="numeric" placeholder="0 (si no se sabe, el GPS suma el trayecto)" value="'+esc(r.kmInicio!=null?r.kmInicio:'')+'">'
           +'<button class="mon-tinybtn" id="dsGen" style="width:100%;margin-top:12px;flex:none"><i class="ti ti-link"></i> Generar enlaces</button>'
           +'<div id="dsLinks" style="margin-top:10px"></div></div>';
       const sm=document.getElementById('rdShowMap'); if(sm)sm.addEventListener('click',()=>{ showRouteLayer(rdId); fitRoute(rdId); closeRouteDetail(); if(typeof setSection==='function'){ setSection('monitoreo'); } });
@@ -2301,7 +2307,7 @@
       const keys=Object.keys(rdReportes);
       if(!keys.length){ body.innerHTML='<div class="rd-empty">Aún no hay reportes de esta ruta.</div>'; return; }
       keys.sort((a,b)=>(rdReportes[b].ts||0)-(rdReportes[a].ts||0)).forEach(k=>{ const rp=rdReportes[k]; const it=document.createElement('div'); it.className='rd-item';
-        it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;text-transform:capitalize;flex:1">'+(rp.tipo||'reporte')+'</span><span style="font-size:11px;color:#ABA9A2">'+fmtFecha(rp.fecha||'')+'</span></div>'
+        it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;text-transform:capitalize;flex:1">'+esc(rp.tipo||'reporte')+'</span><span style="font-size:11px;color:#ABA9A2">'+esc(fmtFecha(rp.fecha||''))+'</span></div>'
           +'<div class="mon-line" style="color:var(--tx0)">'+(rp.texto||'')+'</div>'
           +'<div class="mon-line"><i class="ti ti-user"></i> '+(rp.choferCode||rp.supCode||'—')+'</div>';
         body.appendChild(it); });
@@ -2328,13 +2334,13 @@
   function repInd(l,v){ return v!=null?('<div class="rep-ind"><b>'+v+'%</b><span>'+l+'</span></div>'):''; }
   function repItemHtml(rp,i){ const sc=rp.rating; const col=ratingColor(sc);
     return '<div class="rd-item">'
-      +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">'+(rp._rutaName||'')+'</span>'
-      +(sc!=null?'<span class="rep-badge" style="background:'+col+'22;color:'+col+'">'+sc+'/100</span>':'')
-      +'<span style="font-size:11px;color:#ABA9A2">'+fmtFecha(rp.fecha||'')+'</span></div>'
-      +'<div class="mon-line"><i class="ti ti-clock"></i> '+fmtTime(rp.inicio)+' → '+fmtTime(rp.fin||rp.ts)+' · <i class="ti ti-user"></i> '+(rp.choferCode||'—')+(rp.supCode?(' · Sup '+rp.supCode):'')+(rp._camion?(' · <i class="ti ti-truck"></i> '+rp._camion):'')+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">'+esc(rp._rutaName||'')+'</span>'
+      +(sc!=null?'<span class="rep-badge" style="background:'+col+'22;color:'+col+'">'+esc(sc)+'/100</span>':'')
+      +'<span style="font-size:11px;color:#ABA9A2">'+esc(fmtFecha(rp.fecha||''))+'</span></div>'
+      +'<div class="mon-line"><i class="ti ti-clock"></i> '+fmtTime(rp.inicio)+' → '+fmtTime(rp.fin||rp.ts)+' · <i class="ti ti-user"></i> '+esc(rp.choferCode||'—')+(rp.supCode?(' · Sup '+esc(rp.supCode)):'')+(rp._camion?(' · <i class="ti ti-truck"></i> '+esc(rp._camion)):'')+'</div>'
       +(rp.kmFin!=null?'<div class="mon-line"><i class="ti ti-gauge"></i> Odómetro '+fmtKm(rp.kmFin)+(rp.distancia!=null?(' · recorrió '+fmtKm(rp.distancia)):'')+'</div>':'')
-      +'<div class="mon-line" style="color:var(--tx0)">'+(rp.texto||'')+'</div>'
-      +(sc!=null?('<div class="rep-vis"><div class="rep-num" style="color:'+col+'">'+sc+'</div><div><div style="font-weight:600">'+(rp.ratingLevel||'')+'</div><div class="mon-line" style="margin:0">'+(rp.message||'Calificación del recorrido.')+'</div></div></div>'
+      +'<div class="mon-line" style="color:var(--tx0)">'+esc(rp.texto||'')+'</div>'
+      +(sc!=null?('<div class="rep-vis"><div class="rep-num" style="color:'+col+'">'+esc(sc)+'</div><div><div style="font-weight:600">'+esc(rp.ratingLevel||'')+'</div><div class="mon-line" style="margin:0">'+esc(rp.message||'Calificación del recorrido.')+'</div></div></div>'
         +'<div class="rep-inds">'+repInd('Completado',rp.routeCompletion)+repInd('Fidelidad ruta',rp.routeFidelity)+repInd('Eficiencia tiempo',rp.timeEfficiency)+(rp.criticalPct!=null?repInd('Críticas omitidas',rp.criticalPct):'')+'</div>'):'')
       +'<button class="mon-tinybtn rep-word" data-i="'+i+'" style="margin-top:11px;width:auto;flex:none;padding:0 13px"><i class="ti ti-download"></i> Descargar reporte</button>'
       +'</div>'; }
@@ -2369,15 +2375,15 @@
       ch+='<div style="margin-top:14px">'+(list.length?repListHtml(list):'<div class="rd-empty">No hay reportes en este rango.<br>Simula una ruta (Monitoreo → ▶) para generar datos.</div>')+'</div>';
     } else if(repView==='choferes'){
       const set={}; Object.keys(mgmtChoferes||{}).forEach(co=>set[co]=(mgmtChoferes[co]||{}).name||''); repCache.forEach(r=>{ if(r.choferCode&&!(r.choferCode in set))set[r.choferCode]=''; });
-      if(!repSel){ const ks=Object.keys(set); ch+=ks.length?('<div class="ru-grid">'+ks.map(co=>{ const n=repCache.filter(r=>r.choferCode===co).length; return '<div class="ru-card rep-ent" data-e="'+co+'"><div class="ru-head"><i class="ti ti-user" style="color:#7E9B86"></i><span class="ru-name">'+co+'</span></div><div class="cam-meta">'+(set[co]||'—')+'</div><div class="rep-count">'+n+' reportes</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">No hay choferes.</div>'; }
-      else { const list=repCache.filter(r=>r.choferCode===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Choferes</button><div class="cam-meta" style="margin-bottom:10px">Chofer '+repSel+(set[repSel]?(' · '+set[repSel]):'')+' · '+list.length+' reportes</div>'+repListHtml(list); }
+      if(!repSel){ const ks=Object.keys(set); ch+=ks.length?('<div class="ru-grid">'+ks.map(co=>{ const n=repCache.filter(r=>r.choferCode===co).length; return '<div class="ru-card rep-ent" data-e="'+esc(co)+'"><div class="ru-head"><i class="ti ti-user" style="color:#7E9B86"></i><span class="ru-name">'+esc(co)+'</span></div><div class="cam-meta">'+esc(set[co]||'—')+'</div><div class="rep-count">'+n+' reportes</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">No hay choferes.</div>'; }
+      else { const list=repCache.filter(r=>r.choferCode===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Choferes</button><div class="cam-meta" style="margin-bottom:10px">Chofer '+esc(repSel)+(set[repSel]?(' · '+esc(set[repSel])):'')+' · '+list.length+' reportes</div>'+repListHtml(list); }
     } else if(repView==='supervisores'){
       const set={}; Object.keys(mgmtSup||{}).forEach(co=>set[co]=(mgmtSup[co]||{}).name||''); repCache.forEach(r=>{ if(r.supCode&&!(r.supCode in set))set[r.supCode]=''; });
-      if(!repSel){ const ks=Object.keys(set); ch+=ks.length?('<div class="ru-grid">'+ks.map(co=>{ const n=repCache.filter(r=>r.supCode===co).length; return '<div class="ru-card rep-ent" data-e="'+co+'"><div class="ru-head"><i class="ti ti-eye" style="color:#7E9B86"></i><span class="ru-name">'+co+'</span></div><div class="cam-meta">'+(set[co]||'—')+'</div><div class="rep-count">'+n+' reportes</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">No hay supervisores.</div>'; }
-      else { const list=repCache.filter(r=>r.supCode===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Supervisores</button><div class="cam-meta" style="margin-bottom:10px">Supervisor '+repSel+(set[repSel]?(' · '+set[repSel]):'')+' · '+list.length+' reportes</div>'+repListHtml(list); }
+      if(!repSel){ const ks=Object.keys(set); ch+=ks.length?('<div class="ru-grid">'+ks.map(co=>{ const n=repCache.filter(r=>r.supCode===co).length; return '<div class="ru-card rep-ent" data-e="'+esc(co)+'"><div class="ru-head"><i class="ti ti-eye" style="color:#7E9B86"></i><span class="ru-name">'+esc(co)+'</span></div><div class="cam-meta">'+esc(set[co]||'—')+'</div><div class="rep-count">'+n+' reportes</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">No hay supervisores.</div>'; }
+      else { const list=repCache.filter(r=>r.supCode===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Supervisores</button><div class="cam-meta" style="margin-bottom:10px">Supervisor '+esc(repSel)+(set[repSel]?(' · '+esc(set[repSel])):'')+' · '+list.length+' reportes</div>'+repListHtml(list); }
     } else {
-      if(!repSel){ const ks=Object.keys(set).filter(f=>repCache.some(r=>r._camion===f)); ch+=ks.length?('<div class="ru-grid">'+ks.map(f=>{ const rps=repCache.filter(r=>r._camion===f); const dias=new Set(rps.map(r=>r.fecha)).size; return '<div class="ru-card rep-ent" data-e="'+f+'"><div class="ru-head"><i class="ti ti-truck" style="color:#7E9B86"></i><span class="ru-name">'+f+'</span></div><div class="cam-meta">'+dias+' día(s) trabajado(s)</div><div class="rep-count">'+rps.length+' recorridos</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">Aún no hay recorridos por camión. Simula una ruta con camión asignado.</div>'; }
-      else { const list=repCache.filter(r=>r._camion===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); const dias=new Set(list.map(r=>r.fecha)).size; ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Camiones</button><div class="cam-meta" style="margin-bottom:10px">Camión '+repSel+' · '+dias+' día(s) trabajados · '+list.length+' recorridos</div>'+repListHtml(list); }
+      if(!repSel){ const ks=Object.keys(set).filter(f=>repCache.some(r=>r._camion===f)); ch+=ks.length?('<div class="ru-grid">'+ks.map(f=>{ const rps=repCache.filter(r=>r._camion===f); const dias=new Set(rps.map(r=>r.fecha)).size; return '<div class="ru-card rep-ent" data-e="'+esc(f)+'"><div class="ru-head"><i class="ti ti-truck" style="color:#7E9B86"></i><span class="ru-name">'+esc(f)+'</span></div><div class="cam-meta">'+dias+' día(s) trabajado(s)</div><div class="rep-count">'+rps.length+' recorridos</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">Aún no hay recorridos por camión. Simula una ruta con camión asignado.</div>'; }
+      else { const list=repCache.filter(r=>r._camion===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); const dias=new Set(list.map(r=>r.fecha)).size; ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Camiones</button><div class="cam-meta" style="margin-bottom:10px">Camión '+esc(repSel)+' · '+dias+' día(s) trabajados · '+list.length+' recorridos</div>'+repListHtml(list); }
     }
     c.innerHTML=ch;
     c.querySelectorAll('[data-sc]').forEach(b=>b.addEventListener('click',()=>{ repScope=b.dataset.sc; repFrom=null; repTo=null; renderReportes(); }));
@@ -2460,9 +2466,9 @@
     h+='<div class="ru-grid">';
     ids.forEach(id=>{ const r=rutas[id]; const km=kmOf(decode(r.wp||'')); const t=live[id];
       h+='<div class="ru-card" data-id="'+id+'">'
-        +'<div class="ru-head"><span class="ru-dot" style="background:'+routeColor(id)+'"></span><span class="ru-name">'+((r.nombre||'(sin nombre)').replace(/</g,'&lt;'))+'</span>'+(t?'<span class="ini-mini">en curso</span>':'')+'</div>'
-        +'<div class="ru-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion||'sin camión')+' &nbsp; <i class="ti ti-user" aria-hidden="true"></i> '+(r.choferCode||'sin chofer')+'</div>'
-        +'<div class="ru-meta"><i class="ti ti-map-pin" aria-hidden="true"></i> '+km.toFixed(2)+' km &nbsp; <i class="ti ti-calendar" aria-hidden="true"></i> '+((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
+        +'<div class="ru-head"><span class="ru-dot" style="background:'+routeColor(id)+'"></span><span class="ru-name">'+esc(r.nombre||'(sin nombre)')+'</span>'+(t?'<span class="ini-mini">en curso</span>':'')+'</div>'
+        +'<div class="ru-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+esc(r.camion||'sin camión')+' &nbsp; <i class="ti ti-user" aria-hidden="true"></i> '+esc(r.choferCode||'sin chofer')+'</div>'
+        +'<div class="ru-meta"><i class="ti ti-map-pin" aria-hidden="true"></i> '+km.toFixed(2)+' km &nbsp; <i class="ti ti-calendar" aria-hidden="true"></i> '+esc((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
         +'<div class="ru-acts"><button class="mon-tinybtn" data-act="perfil">Perfil</button><button class="mon-tinybtn" data-act="editar">Editar</button><button class="mon-tinybtn" data-act="del" style="flex:none;width:auto;padding:0 11px;color:#C0705F;border-color:rgba(192,112,95,.4)"><i class="ti ti-trash"></i></button></div>'
         +'</div>'; });
     h+='</div>'; host.innerHTML=h;
@@ -2484,10 +2490,10 @@
   function camCardHtml(keys){ let h=''; keys.forEach(k=>{ const v=mgmtCamiones[k]||{}; const op=camActivo(v.estado); const sel=camSel.has(k);
     h+='<div class="ru-card'+(sel?' seld':'')+'" draggable="true" data-k="'+k+'">'
       +(camSelMode?'<span class="cam-check'+(sel?' on':'')+'"><i class="ti ti-'+(sel?'check':'square')+'"></i></span>':'')
-      +'<div class="ru-head"><i class="ti ti-grip-vertical" style="color:#C2BFB7;font-size:15px" aria-hidden="true"></i><span class="ru-name">'+((v.ficha||k))+'</span></div>'
-      +'<div class="cam-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+((v.marca||'—'))+(v.capacidad?(' · '+v.capacidad):'')+'</div>'
-      +'<div class="cam-meta"><i class="ti ti-license" aria-hidden="true"></i> '+(v.placa||'sin placa')+'</div>'
-      +'<select class="estado-mini '+(op?'cam-op':'cam-no')+'" data-k="'+k+'">'+estadoOpts(v.estado)+'</select>'
+      +'<div class="ru-head"><i class="ti ti-grip-vertical" style="color:#C2BFB7;font-size:15px" aria-hidden="true"></i><span class="ru-name">'+esc(v.ficha||k)+'</span></div>'
+      +'<div class="cam-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+esc(v.marca||'—')+(v.capacidad?(' · '+esc(v.capacidad)):'')+'</div>'
+      +'<div class="cam-meta"><i class="ti ti-license" aria-hidden="true"></i> '+esc(v.placa||'sin placa')+'</div>'
+      +'<select class="estado-mini '+(op?'cam-op':'cam-no')+'" data-k="'+esc(k)+'">'+estadoOpts(v.estado)+'</select>'
       +'</div>'; }); return h; }
   function renderCamGrid(){ const host=document.getElementById('acGrid'); if(!host)return;
     const cam=mgmtCamiones||{}; const keys=Object.keys(cam);
@@ -2582,8 +2588,11 @@
   function accSetup(){
     const bind=(id,fn)=>{const e=document.getElementById(id); if(e)e.addEventListener('click',fn);};
     bind('admEnter',()=>{ const v=(document.getElementById('admKeyIn').value||'').trim();
-      if(v===ACCESS_KEYS.adm){ enterAdmApp(); }
-      else gateError('admGate'); });
+      if(!v||!window.firebase||!firebase.auth){ gateError('admGate'); return; }
+      admSigningIn=true;
+      firebase.auth().signInWithEmailAndPassword(ADM_EMAIL,v)
+        .then(()=>{ admSigningIn=false; enterAdmApp(); })
+        .catch(()=>{ admSigningIn=false; gateError('admGate'); }); });
     bind('supEnter',()=>{ const v=(document.getElementById('supKeyIn').value||'').trim();
       if(v!==ACCESS_KEYS.sup){ gateError('supGate'); return; }
       if(currentRutaId){
@@ -2616,7 +2625,9 @@
     monSetup();
   }
   function savedRole(){ try{return localStorage.getItem('animador_role');}catch(_){return null;} }
-  function logout(){ try{localStorage.removeItem('animador_role');}catch(_){} location.reload(); }
+  function logout(){ try{localStorage.removeItem('animador_role');}catch(_){ } const fin=()=>location.reload();
+    try{ const u=(window.firebase&&firebase.auth)?firebase.auth().currentUser:null; if(u&&!u.isAnonymous){ firebase.auth().signOut().then(fin,fin); return; } }catch(_){ }
+    fin(); }
   function enterAdmApp(){
     const g=document.getElementById('admGate'); if(g)g.classList.add('hide');
     try{localStorage.setItem('animador_role','adm');}catch(_){}
