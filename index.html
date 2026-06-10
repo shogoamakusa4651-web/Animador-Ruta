@@ -821,6 +821,69 @@
     .ini-bar{flex-wrap:wrap;}
     .q-chip{display:none;}
   }
+  /* ===== Centro de control: grid ===== */
+  .cc-wrap{max-width:1320px;}
+  .cc-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-top:14px;}
+  .cc-card{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:16px;padding:15px 16px;}
+  body.dark .cc-card{background:#26241F;border-color:rgba(255,255,255,.08);}
+  .cc-h{font-size:10.5px;font-weight:700;letter-spacing:1px;color:#8C887E;margin-bottom:10px;}
+  .cc-hero{grid-column:span 4;display:flex;flex-direction:column;}
+  .cc-mun{grid-column:span 8;}
+  .cc-op{grid-column:span 5;}
+  .cc-al{grid-column:span 3;}
+  .cc-side{grid-column:span 4;display:flex;flex-direction:column;gap:12px;}
+  .cc-tr{grid-column:span 12;}
+  .cc-ring{position:relative;width:150px;margin:4px auto 12px;}
+  .cc-ring svg{width:150px;height:150px;display:block;}
+  .cc-ringnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .cc-ringnum b{font-size:40px;line-height:1;letter-spacing:-1px;}
+  .cc-ringnum span{font-size:10.5px;color:#8C887E;margin-top:2px;}
+  .cc-comp{display:flex;flex-direction:column;gap:7px;margin-top:auto;}
+  .cc-crow{display:flex;align-items:center;gap:9px;font-size:11.5px;color:#55524B;}
+  .cc-crow>span{width:64px;flex:none;}
+  .cc-crow b{width:26px;text-align:right;flex:none;font-size:11.5px;}
+  .cc-cbar{flex:1;height:6px;border-radius:99px;background:rgba(30,28,24,.07);overflow:hidden;}
+  .cc-cbar i{display:block;height:100%;border-radius:99px;}
+  .cc-munrow{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:12px;}
+  .cc-big b{font-size:38px;letter-spacing:-1px;line-height:1;}
+  .cc-big span{display:block;font-size:11.5px;color:#8C887E;margin-top:4px;max-width:280px;}
+  .cc-chips{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto;}
+  .cc-chip{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:999px;background:rgba(30,28,24,.04);border:1px solid rgba(30,28,24,.07);}
+  body.dark .cc-chip{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.08);}
+  .cc-covlist{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;}
+  .cc-cov{display:flex;align-items:center;gap:9px;font-size:12px;cursor:pointer;padding:3px 0;}
+  .cc-cov:hover .cc-covn{color:#9c6b1f;}
+  .cc-covn{width:34%;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .cc-cov b{width:40px;text-align:right;flex:none;font-size:11.5px;}
+  .ia-sev{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.6px;color:#B0843C;margin-right:6px;}
+  .ini-alert.grave .ia-sev{color:#C2402F;}
+  .cc-fbar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:rgba(30,28,24,.07);}
+  .cc-fbar i{display:block;height:100%;}
+  .cc-fleg{display:flex;flex-wrap:wrap;gap:5px 14px;font-size:11.5px;color:#55524B;margin-top:8px;}
+  body.dark .cc-fleg,body.dark .cc-crow{color:#B7B4AC;}
+  .cc-cho{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:4px 0;}
+  .cc-cho b{width:30px;font-size:15px;}
+  .cc-cho span{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cc-cho small{color:#8C887E;}
+  .cc-bars{display:flex;align-items:flex-end;justify-content:space-between;max-width:700px;}
+  .cc-bcol{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;}
+  .cc-bcol i{display:block;width:26px;border-radius:6px 6px 2px 2px;}
+  .cc-bcol b{font-size:10.5px;}
+  .cc-bcol span{font-size:10px;color:#8C887E;}
+  .cc-bcol.today span{color:#23211D;font-weight:800;}
+  body.dark .cc-bcol.today span{color:#ECEAE3;}
+  @media(max-width:1020px){
+    .cc-hero{grid-column:span 5;} .cc-mun{grid-column:span 7;}
+    .cc-op{grid-column:span 7;} .cc-al{grid-column:span 5;}
+    .cc-side{grid-column:span 12;flex-direction:row;flex-wrap:wrap;}
+    .cc-side .cc-card{flex:1;min-width:240px;}
+  }
+  @media(max-width:768px){
+    .cc-grid{display:flex;flex-direction:column;gap:10px;}
+    .cc-hero{order:1;} .cc-al{order:2;} .cc-mun{order:3;} .cc-op{order:4;} .cc-side{order:5;flex-direction:column;} .cc-tr{order:6;}
+    .cc-covlist{grid-template-columns:1fr;}
+    .cc-chips{margin-left:0;}
+  }
   /* ========= MÓVIL (≤768px): shell ADM adaptado ========= */
   @media(max-width:768px){
     :root{--rail:0px;--topbar:50px;}
@@ -860,7 +923,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.16 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.17 · 2026-06-10</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1171,7 +1234,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.16 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.17 · 2026-06-10</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2139,10 +2202,9 @@
     const today=todayLetter();
     const now=new Date();
     const fecha=now.toLocaleDateString('es-DO',{day:'numeric',month:'long',year:'numeric'});
-    const hoy=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-    const rutas=mgmtRutas||{};
-    const live=(typeof liveByRuta==='function')?liveByRuta():{};
-    const cam=mgmtCamiones||{};
+    function isoOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+    const hoy=isoOf(now);
+    const rutas=mgmtRutas||{}; const live=(typeof liveByRuta==='function')?liveByRuta():{}; const cam=mgmtCamiones||{};
     const ids=Object.keys(rutas);
     const todayIds=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(today));
     const camByFicha={}; Object.keys(cam).forEach(k=>{ const c=cam[k]||{}; camByFicha[c.ficha||k]=c; });
@@ -2154,54 +2216,108 @@
     let nDone=0,nCur=0,nEnv=0,nPen=0;
     todayIds.forEach(id=>{ const s=stOf(id); if(s==='completada')nDone++; else if(s==='curso')nCur++; else if(s==='enviada')nEnv++; else nPen++; });
     const cumplim=todayIds.length?Math.round(nDone/todayIds.length*100):null;
-    let disp=0,rep=0,tot=0; Object.keys(cam).forEach(k=>{ tot++; if(camActivo((cam[k]||{}).estado))disp++; else rep++; });
+    let kmProg=0,kmDone=0; const covRows=[];
+    todayIds.forEach(id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); kmProg+=km; let pct=0;
+      const s=stOf(id);
+      if(s==='completada'){ let d=0; const v=(r.viajes||{})[hoy]||{}; Object.keys(v).forEach(k=>d=Math.max(d,Number((v[k]||{}).distancia)||0)); kmDone+=(d||km); pct=100; }
+      else if(s==='curso'){ const t=live[id]||{}; pct=Math.max(0,Math.min(100,Number(t.progress)||0)); kmDone+=km*pct/100; }
+      covRows.push({id:id,n:r.nombre||'(sin nombre)',pct:pct,s:s}); });
+    const cob=(todayIds.length&&kmProg)?Math.round(kmDone/kmProg*100):null;
+    covRows.sort((a,b)=>a.pct-b.pct);
+    let disp=0,fTal=0,fFue=0,tot=0; Object.keys(cam).forEach(k=>{ tot++; const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))disp++; else if(e.indexOf('fuera')>=0)fFue++; else fTal++; });
+    const fPct=tot?Math.round(disp/tot*100):null;
     let scs=[]; ids.forEach(id=>{ const reps=(rutas[id]||{}).reportes||{}; Object.keys(reps).forEach(k=>{ const rp=reps[k]||{}; const sc=(rp.rating!=null?rp.rating:rp.routeCompletion); if(rp.fecha===hoy&&sc!=null)scs.push(Number(sc)||0); }); });
     const avgHoy=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null;
+    const nSupAsig=todayIds.filter(id=>(rutas[id]||{}).supCode).length;
+    let supVer=0; ids.forEach(id=>{ const reps=(rutas[id]||{}).reportes||{}; Object.keys(reps).forEach(k=>{ const rp=reps[k]||{}; if(rp.fecha===hoy&&rp.supCode)supVer++; }); });
     const alerts=[];
     todayIds.forEach(id=>{ const r=rutas[id]||{}; const s=stOf(id);
-      if(s==='pendiente'){ if(!r.choferCode)alerts.push({sev:2,tx:esc(r.nombre||'(sin nombre)')+' programada hoy · <b>sin chofer asignado</b>',act:'Asignar',go:'detail',id});
-        else alerts.push({sev:1,tx:esc(r.nombre||'(sin nombre)')+' programada hoy · aún <b>sin enviar</b>',act:'Enviar',go:'detail',id}); }
-      if(r.camion){ const c=camByFicha[r.camion]; if(c&&!camActivo(c.estado))alerts.push({sev:2,tx:esc(r.nombre||'(sin nombre)')+' · camión <b>'+esc(r.camion)+'</b> '+esc(c.estado||'no disponible'),act:'Reasignar',go:'detail',id}); } });
-    Object.keys(live).forEach(id=>{ const t=live[id]||{}; if(t.ts&&(Date.now()-t.ts)>20*60*1000)alerts.push({sev:2,tx:esc((rutas[id]||{}).nombre||id)+' en curso · <b>sin señal hace '+Math.round((Date.now()-t.ts)/60000)+' min</b>',act:'Monitorear',go:'mon',id}); });
+      if(s==='pendiente'){ if(!r.choferCode)alerts.push({sev:2,tx:esc(r.nombre||'(sin nombre)')+' programada hoy · <b>sin chofer asignado</b>',act:'Asignar',go:'detail',id:id});
+        else alerts.push({sev:1,tx:esc(r.nombre||'(sin nombre)')+' programada hoy · aún <b>sin enviar</b>',act:'Enviar',go:'detail',id:id}); }
+      if(r.camion){ const c=camByFicha[r.camion]; if(c&&!camActivo(c.estado))alerts.push({sev:2,tx:esc(r.nombre||'(sin nombre)')+' · camión <b>'+esc(r.camion)+'</b> '+esc(c.estado||'no disponible'),act:'Reasignar',go:'detail',id:id}); } });
+    Object.keys(live).forEach(id=>{ const t=live[id]||{}; if(t.ts&&(Date.now()-t.ts)>20*60*1000)alerts.push({sev:2,tx:esc((rutas[id]||{}).nombre||id)+' en curso · <b>sin señal hace '+Math.round((Date.now()-t.ts)/60000)+' min</b>',act:'Monitorear',go:'mon',id:id}); });
     alerts.sort((a,b)=>b.sev-a.sev);
-    const sem=alerts.some(a=>a.sev===2)?['#C2402F','Requiere intervención']:(alerts.length?['#B0843C','Atención · pendientes del día']:['#27A35B','Operación normal']);
+    const parts=[];
+    if(cumplim!=null)parts.push({w:.35,v:cumplim,lab:'Rutas',c:'#CF9A4A'});
+    if(cob!=null)parts.push({w:.25,v:cob,lab:'Cobertura',c:'#5E8B7E'});
+    if(fPct!=null)parts.push({w:.2,v:fPct,lab:'Flota',c:'#4E7FA8'});
+    if(avgHoy!=null)parts.push({w:.2,v:avgHoy,lab:'Calidad',c:'#7A6FA8'});
+    let idx=null;
+    if(parts.length){ const wsum=parts.reduce((a,p)=>a+p.w,0); idx=Math.round(parts.reduce((a,p)=>a+p.v*p.w,0)/wsum); idx=Math.max(0,idx-Math.min(15,alerts.filter(a=>a.sev===2).length*5)); }
+    const EST=idx==null?['#8C887E','Sin actividad aún']:(idx>=85&&!alerts.some(a=>a.sev===2)?['#27A35B','Excelente']:(idx>=70?['#5E8B7E','Bueno']:(idx>=50?['#B0843C','Atención']:['#C2402F','Crítico'])));
     const since=Date.now()-7*24*3600*1000; const perf={};
     ids.forEach(id=>{ const reps=(rutas[id]||{}).reportes||{}; Object.keys(reps).forEach(k=>{ const rp=reps[k]||{}; const sc=(rp.rating!=null?rp.rating:rp.routeCompletion); const ts=rp.ts||rp.fin; if(sc==null||!ts||ts<since)return; const co=rp.choferCode||'—'; (perf[co]=perf[co]||[]).push(Number(sc)||0); }); });
     const rank=Object.keys(perf).map(co=>({co:co,avg:Math.round(perf[co].reduce((a,b)=>a+b,0)/perf[co].length),n:perf[co].length})).sort((a,b)=>b.avg-a.avg);
-    const ST={pendiente:['Sin enviar','#C2402F','Enviar'],enviada:['Enviada','#B0843C','Ver enlaces'],curso:['En curso','#2F7DC2','Monitorear'],completada:['Completada','#27A35B','Ver reporte']};
+    const low=rank.filter(p=>p.avg<70).slice(-2);
+    const trend=[];
+    for(let i=6;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i); const L=DAYS[(d.getDay()+6)%7]; const iso=isoOf(d);
+      const prog=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(L)).length;
+      const done=ids.filter(id=>{ const v=(rutas[id]||{}).viajes||{}; return v[iso]&&Object.keys(v[iso]).length; }).length;
+      trend.push({L:L,pct:prog?Math.round(Math.min(done,prog)/prog*100):null,done:done,prog:prog,today:i===0}); }
+    const ST={pendiente:['Sin enviar','#C2402F','Enviar'],enviada:['Enviada','#B0843C','Enlaces'],curso:['En curso','#2F7DC2','Monitorear'],completada:['Completada','#27A35B','Reporte']};
     const orden={pendiente:0,enviada:1,curso:2,completada:3};
     const cola=todayIds.map(id=>({id:id,s:stOf(id)})).sort((a,b)=>orden[a.s]-orden[b.s]||(((rutas[a.id]||{}).nombre||'').localeCompare((rutas[b.id]||{}).nombre||'')));
-    let h='<div class="ini-wrap">';
+    const ringC=2*Math.PI*52;
+    let h='<div class="ini-wrap cc-wrap">';
     h+='<div class="ini-daterow"><span class="ini-day">'+(DAY_FULL[today]||'')+'</span><span class="ini-date">'+fecha+'</span>'
-      +'<span class="ini-pulse" style="color:'+sem[0]+';border-color:'+sem[0]+'33;background:'+sem[0]+'14"><span class="ini-pdot" style="background:'+sem[0]+'"></span>'+sem[1]+'</span></div>';
-    h+='<div class="ini-kpis">'
-      +'<div class="ini-kpi kpi-go" data-go="cola"><b>'+nDone+' <small>✓</small> · '+(nCur+nEnv)+' <small>▶</small> · '+nPen+' <small>⏳</small></b><span>Rutas de hoy · '+todayIds.length+' programadas</span></div>'
-      +'<div class="ini-kpi"><b>'+(cumplim!=null?cumplim+'%':'—')+'</b><span>Cumplimiento del día</span></div>'
-      +'<div class="ini-kpi kpi-go" data-go="admin"><b>'+disp+'<small>/'+tot+'</small>'+(rep?' <em class="kpi-warn">'+rep+' en taller</em>':'')+'</b><span>Flota operativa</span></div>'
-      +'<div class="ini-kpi kpi-go" data-go="reportes"><b>'+(avgHoy!=null?avgHoy:'—')+(avgHoy!=null?'<small>/100</small>':'')+'</b><span>Calificación de hoy</span></div></div>';
-    h+='<div class="ini-bar"><span class="sec-head">ALERTAS</span></div>';
-    if(!alerts.length)h+='<div class="ini-ok"><i class="ti ti-circle-check" aria-hidden="true"></i> Sin incidencias activas</div>';
-    else alerts.slice(0,6).forEach((a,i)=>{ h+='<div class="ini-alert'+(a.sev===2?' grave':'')+'"><span class="ia-dot"></span><span class="ia-tx">'+a.tx+'</span><button class="ia-btn" data-i="'+i+'">'+a.act+'</button></div>'; });
-    h+='<div class="ini-bar" style="margin-top:22px"><span class="sec-head">DESPACHO DE HOY</span>'
-      +'<select class="ini-extra" id="iniExtra"><option value="">Despachar otra ruta…</option>';
+      +'<span class="ini-pulse" style="color:'+EST[0]+';border-color:'+EST[0]+'33;background:'+EST[0]+'14"><span class="ini-pdot" style="background:'+EST[0]+'"></span>Estado del municipio: '+EST[1]+'</span></div>';
+    h+='<div class="cc-grid">';
+    h+='<div class="cc-card cc-hero">'
+      +'<div class="cc-h">ÍNDICE OPERACIONAL DEL DÍA</div>'
+      +'<div class="cc-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(30,28,24,.08)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="'+EST[0]+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+ringC+'" stroke-dashoffset="'+(idx==null?ringC:ringC*(1-idx/100))+'" transform="rotate(-90 60 60)"/></svg>'
+      +'<div class="cc-ringnum"><b style="color:'+EST[0]+'">'+(idx==null?'—':idx)+'</b><span>de 100</span></div></div>'
+      +'<div class="cc-comp">';
+    parts.forEach(p=>{ h+='<div class="cc-crow"><span>'+p.lab+'</span><div class="cc-cbar"><i style="width:'+p.v+'%;background:'+p.c+'"></i></div><b>'+p.v+'</b></div>'; });
+    if(!parts.length)h+='<div class="ini-empty" style="margin:0">Sin datos del día todavía.</div>';
+    h+='</div></div>';
+    h+='<div class="cc-card cc-mun"><div class="cc-h">COBERTURA DEL MUNICIPIO · HOY</div>'
+      +'<div class="cc-munrow"><div class="cc-big"><b>'+(cob!=null?cob+'%':'—')+'</b><span>del recorrido programado cubierto'+(kmProg?(' · '+kmDone.toFixed(1)+' de '+kmProg.toFixed(1)+' km'):'')+'</span></div>'
+      +'<div class="cc-chips">'
+      +'<span class="cc-chip" style="color:#27A35B">'+nDone+' completadas</span>'
+      +'<span class="cc-chip" style="color:#2F7DC2">'+nCur+' en ejecución</span>'
+      +'<span class="cc-chip" style="color:#B0843C">'+nEnv+' enviadas</span>'
+      +'<span class="cc-chip" style="color:#C2402F">'+nPen+' pendientes</span></div></div>'
+      +'<div class="cc-covlist">';
+    if(!covRows.length)h+='<div class="ini-empty" style="margin:0">No hay zonas programadas hoy.</div>';
+    covRows.slice(0,8).forEach(z=>{ const c=z.pct>=100?'#27A35B':(z.s==='curso'?'#2F7DC2':(z.s==='enviada'?'#B0843C':'#C2402F'));
+      h+='<div class="cc-cov" data-id="'+esc(z.id)+'"><span class="cc-covn">'+esc(z.n)+'</span><div class="cc-cbar"><i style="width:'+z.pct+'%;background:'+c+'"></i></div><b style="color:'+c+'">'+z.pct+'%</b></div>'; });
+    h+='</div></div>';
+    h+='<div class="cc-card cc-op"><div class="cc-h">OPERACIÓN DEL DÍA · '+todayIds.length+' RUTAS</div>';
+    if(!cola.length)h+='<div class="ini-empty" style="margin:0">No hay rutas programadas hoy.</div>';
+    cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const t=live[x.id];
+      h+='<div class="ini-q" data-id="'+esc(x.id)+'"><span class="q-dot" style="background:'+st[1]+'"></span>'
+        +'<div class="q-main"><div class="q-name">'+esc(r.nombre||'(sin nombre)')+(t&&t.progress!=null?' <small>'+esc(t.progress)+'%</small>':'')+'</div>'
+        +'<div class="q-meta">'+esc(r.choferCode||'sin chofer')+' · '+esc(r.camion||'sin camión')+'</div></div>'
+        +'<button class="q-btn" data-id="'+esc(x.id)+'" data-s="'+x.s+'">'+st[2]+'</button></div>'; });
+    h+='<select class="ini-extra" id="iniExtra" style="margin:6px 0 0;width:100%;max-width:none"><option value="">Despachar una ruta de otro día…</option>';
     ids.filter(id=>todayIds.indexOf(id)<0).sort((a,b)=>(((rutas[a]||{}).nombre||'').localeCompare((rutas[b]||{}).nombre||''))).forEach(id=>{ h+='<option value="'+esc(id)+'">'+esc((rutas[id]||{}).nombre||'(sin nombre)')+' · '+esc(((rutas[id]||{}).freq||[]).join('·')||'sin días')+'</option>'; });
     h+='</select></div>';
-    if(!cola.length)h+='<div class="ini-empty">No hay rutas programadas para hoy. Usa "Despachar otra ruta…" o asigna frecuencias en Rutas.</div>';
-    cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const t=live[x.id];
-      h+='<div class="ini-q" data-id="'+esc(x.id)+'"><span class="q-dot" style="background:'+routeColor(x.id)+'"></span>'
-        +'<div class="q-main"><div class="q-name">'+esc(r.nombre||'(sin nombre)')+(t&&t.progress!=null?' <small>'+esc(t.progress)+'%</small>':'')+'</div>'
-        +'<div class="q-meta">'+esc(r.choferCode||'sin chofer')+' · '+esc(r.camion||'sin camión')+(r.supCode?(' · Sup '+esc(r.supCode)):'')+'</div></div>'
-        +'<span class="q-chip" style="color:'+st[1]+';background:'+st[1]+'14;border-color:'+st[1]+'33">'+st[0]+'</span>'
-        +'<button class="q-btn" data-id="'+esc(x.id)+'" data-s="'+x.s+'">'+st[2]+'</button></div>'; });
-    h+='<div class="ini-bar" style="margin-top:22px"><span class="sec-head">DESEMPEÑO · ÚLTIMOS 7 DÍAS</span></div>';
-    if(!rank.length)h+='<div class="ini-empty">Aún no hay reportes en la semana.</div>';
-    else{ h+='<div class="ini-perf">';
-      rank.slice(0,4).forEach(p=>{ const col=p.avg>=80?'#27A35B':(p.avg>=50?'#B0843C':'#C2402F');
-        h+='<div class="ini-pcard"><b style="color:'+col+'">'+p.avg+'</b><span>'+esc(p.co)+'</span><small>'+p.n+' recorrido'+(p.n===1?'':'s')+'</small></div>'; });
-      h+='</div>'; }
+    h+='<div class="cc-card cc-al"><div class="cc-h">ALERTAS</div>';
+    if(!alerts.length)h+='<div class="ini-ok"><i class="ti ti-circle-check" aria-hidden="true"></i> Sin incidencias activas</div>';
+    else alerts.slice(0,8).forEach((a,i)=>{ h+='<div class="ini-alert'+(a.sev===2?' grave':'')+'"><span class="ia-dot"></span><span class="ia-tx"><span class="ia-sev">'+(a.sev===2?'CRÍTICA':'ALTA')+'</span>'+a.tx+'</span><button class="ia-btn" data-i="'+i+'">'+a.act+'</button></div>'; });
     h+='</div>';
+    h+='<div class="cc-side">';
+    h+='<div class="cc-card" data-go="admin" style="cursor:pointer"><div class="cc-h">SALUD DE FLOTA</div>'
+      +'<div class="cc-fbar">'+(tot?('<i style="width:'+(disp/tot*100)+'%;background:#27A35B"></i><i style="width:'+(fTal/tot*100)+'%;background:#B0843C"></i><i style="width:'+(fFue/tot*100)+'%;background:#8C887E"></i>'):'')+'</div>'
+      +'<div class="cc-fleg"><span><b style="color:#27A35B">'+disp+'</b> operativos</span><span><b style="color:#B0843C">'+fTal+'</b> en taller</span><span><b style="color:#8C887E">'+fFue+'</b> fuera de uso</span></div>'
+      +'<div class="q-meta" style="margin-top:7px">Disponibilidad: <b>'+(fPct!=null?fPct+'%':'—')+'</b> de '+tot+' unidades</div></div>';
+    h+='<div class="cc-card"><div class="cc-h">SUPERVISIÓN · HOY</div>'
+      +'<div class="cc-fleg" style="margin-top:2px"><span><b>'+nSupAsig+'</b>/'+todayIds.length+' rutas con supervisor</span><span><b>'+supVer+'</b> recorrido'+(supVer===1?'':'s')+' verificado'+(supVer===1?'':'s')+'</span></div></div>';
+    h+='<div class="cc-card"><div class="cc-h">CHOFERES · 7 DÍAS</div>';
+    if(!rank.length)h+='<div class="ini-empty" style="margin:0">Aún sin reportes.</div>';
+    else{ rank.slice(0,3).forEach(p=>{ const col=p.avg>=80?'#27A35B':(p.avg>=50?'#B0843C':'#C2402F');
+        h+='<div class="cc-cho"><b style="color:'+col+'">'+p.avg+'</b><span>'+esc(p.co)+'</span><small>'+p.n+' rec.</small></div>'; });
+      if(low.length){ h+='<div class="cc-h" style="margin-top:9px;color:#C2402F">REQUIEREN ATENCIÓN</div>';
+        low.forEach(p=>{ h+='<div class="cc-cho"><b style="color:#C2402F">'+p.avg+'</b><span>'+esc(p.co)+'</span><small>'+p.n+' rec.</small></div>'; }); } }
+    h+='</div></div>';
+    h+='<div class="cc-card cc-tr"><div class="cc-h">CUMPLIMIENTO · ÚLTIMOS 7 DÍAS</div><div class="cc-bars">';
+    trend.forEach(t=>{ const v=t.pct; const col=v==null?'rgba(30,28,24,.1)':(v>=80?'#27A35B':(v>=50?'#B0843C':'#C2402F'));
+      h+='<div class="cc-bcol'+(t.today?' today':'')+'" title="'+t.done+' de '+t.prog+' rutas"><i style="height:'+(v==null?4:Math.max(4,Math.round(v*0.6)))+'px;background:'+col+'"></i><b>'+(v==null?'—':v+'%')+'</b><span>'+t.L+'</span></div>'; });
+    h+='</div></div>';
+    h+='</div></div>';
     host.innerHTML=h;
-    host.querySelectorAll('.kpi-go').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='admin')setSection('admin'); else if(g==='reportes')setSection('reportes'); else{ const q=host.querySelector('.ini-q'); if(q)q.scrollIntoView({behavior:'smooth',block:'center'}); } }));
+    host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='admin')setSection('admin'); else if(g==='reportes')setSection('reportes'); }));
+    host.querySelectorAll('.cc-cov').forEach(z=>z.addEventListener('click',()=>openRouteDetail(z.dataset.id)));
     host.querySelectorAll('.ia-btn').forEach(b=>b.addEventListener('click',()=>{ const a=alerts[Number(b.dataset.i)]; if(!a)return; if(a.go==='mon')setSection('monitoreo'); else openRouteDetail(a.id); }));
     host.querySelectorAll('.ini-q').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
     host.querySelectorAll('.q-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
