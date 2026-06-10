@@ -754,7 +754,7 @@
   .mon-chip.sim{color:#807E77;}
   .mon-simstop{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:2400;display:none;align-items:center;gap:7px;background:#2E2C27;color:#fff;border:none;border-radius:24px;padding:9px 14px;font-size:13px;font-family:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.18);}
   .mon-simstop.show{display:inline-flex;}
-  .ver-badge{position:fixed;left:10px;bottom:8px;z-index:5000;font:500 10px/1 -apple-system,'Segoe UI',sans-serif;letter-spacing:.3px;color:#807E77;background:rgba(244,243,240,.9);border:1px solid rgba(30,28,24,.10);padding:3px 7px;border-radius:7px;pointer-events:none;}
+  .ver-badge{position:fixed;right:8px;left:auto;bottom:8px;z-index:5000;font:500 9px/1 -apple-system,'Segoe UI',sans-serif;letter-spacing:.3px;color:#8E8B82;background:rgba(244,243,240,.75);border:1px solid rgba(30,28,24,.08);padding:2px 6px;border-radius:6px;pointer-events:none;opacity:.85;}
   .route-label{pointer-events:none;}
   .route-label span{display:inline-block;transform:translate(9px,-9px);color:#fff;font:600 11px/1 -apple-system,'Segoe UI',sans-serif;padding:3px 8px;border-radius:9px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.28);}
   .mon-tinybtn{flex:1;height:30px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:#fff;color:var(--tx0);font-size:12px;font-family:inherit;cursor:pointer;}
@@ -783,6 +783,44 @@
   .fld-lbl{display:block;font-size:11px;color:var(--txt-dim);margin:9px 0 4px;}
   .fld{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;border:1px solid var(--brd);background:var(--glass-2);color:var(--txt);font-size:13px;font-family:inherit;}
   .cm-estado{font-size:11px;border:1px solid var(--brd);border-radius:8px;padding:4px 7px;background:transparent;color:inherit;font-family:inherit;margin-left:auto;margin-right:8px;}
+  /* ===== Inicio: centro de control ===== */
+  .ini-daterow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .ini-pulse{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid;}
+  .ini-pdot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .ini-kpi small{font-size:12px;font-weight:600;color:#ABA9A2;}
+  .ini-kpi .kpi-warn{font-style:normal;font-size:11px;font-weight:700;color:#C2402F;margin-left:4px;}
+  .ini-kpi.kpi-go{cursor:pointer;}
+  .ini-kpi.kpi-go:hover{border-color:#CF9A4A;}
+  .ini-ok{display:flex;align-items:center;gap:8px;color:#27A35B;font-size:13px;background:rgba(39,163,91,.07);border:1px solid rgba(39,163,91,.2);border-radius:12px;padding:11px 13px;}
+  .ini-alert{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(30,28,24,.08);border-left:3px solid #B0843C;border-radius:12px;padding:10px 12px;margin-bottom:7px;font-size:13px;}
+  .ini-alert.grave{border-left-color:#C2402F;}
+  .ini-alert .ia-dot{width:8px;height:8px;border-radius:50%;background:#B0843C;flex:none;}
+  .ini-alert.grave .ia-dot{background:#C2402F;}
+  .ini-alert .ia-tx{flex:1;line-height:1.35;}
+  .ia-btn,.q-btn{height:30px;padding:0 13px;border:1px solid rgba(30,28,24,.16);border-radius:9px;background:#fff;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;color:#23211D;flex:none;}
+  .ia-btn:hover,.q-btn:hover{border-color:#CF9A4A;color:#9c6b1f;}
+  .ini-extra{margin-left:auto;height:30px;border:1px solid rgba(30,28,24,.14);border-radius:9px;background:#fff;font-size:12px;font-family:inherit;color:#55524B;padding:0 8px;max-width:230px;}
+  .ini-q{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:13px;padding:11px 13px;margin-bottom:8px;cursor:pointer;}
+  .ini-q:hover{border-color:rgba(30,28,24,.22);}
+  .q-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .q-main{flex:1;min-width:0;}
+  .q-name{font-size:13.5px;font-weight:600;}
+  .q-name small{color:#2F7DC2;font-weight:700;}
+  .q-meta{font-size:11.5px;color:#8C887E;margin-top:2px;}
+  .q-chip{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid;flex:none;}
+  .ini-perf{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;}
+  .ini-pcard{background:#fff;border:1px solid rgba(30,28,24,.07);border-radius:12px;padding:11px 12px;display:flex;flex-direction:column;gap:2px;}
+  .ini-pcard b{font-size:21px;}
+  .ini-pcard span{font-size:12px;font-weight:600;}
+  .ini-pcard small{font-size:10.5px;color:#8C887E;}
+  body.dark .ini-alert,body.dark .ini-q,body.dark .ini-pcard{background:#26241F;border-color:rgba(255,255,255,.08);}
+  body.dark .ia-btn,body.dark .q-btn,body.dark .ini-extra{background:#2E2C27;color:#ECEAE3;border-color:rgba(255,255,255,.14);}
+  @media(max-width:768px){
+    .ini-pulse{margin-left:0;width:100%;justify-content:center;margin-top:6px;}
+    .ini-extra{max-width:100%;width:100%;margin:8px 0 0;}
+    .ini-bar{flex-wrap:wrap;}
+    .q-chip{display:none;}
+  }
   /* ========= MÓVIL (≤768px): shell ADM adaptado ========= */
   @media(max-width:768px){
     :root{--rail:0px;--topbar:50px;}
@@ -795,11 +833,11 @@
     .nav-sub{position:fixed;left:10px;right:10px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:3100;background:#2E2C27;border-radius:14px;padding:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);margin:0;}
     .nav-subitem{padding:11px 13px;font-size:13.5px;}
     body.adm-shell .shell-top{left:0;padding:0 12px;}
-    .map-cover,#secRutas,#secAdmin,#secReportes{bottom:calc(58px + env(safe-area-inset-bottom,0px));}
+    .map-cover,#secRutas,#secAdmin,#secReportes{bottom:0;padding-bottom:calc(78px + env(safe-area-inset-bottom,0px));}
     .ini-wrap{padding:16px 14px 40px;}
     body.adm-shell .mon-panel{left:10px;right:10px;width:auto;max-height:36vh;top:calc(var(--topbar) + 8px);}
     .mon-panel{width:auto;}
-    .mon-dash, body.adm-shell .mon-dash{left:10px;right:10px;bottom:calc(66px + env(safe-area-inset-bottom,0px));max-height:32vh;overflow-y:auto;}
+    .mon-dash, body.adm-shell .mon-dash{left:10px;right:10px;bottom:calc(84px + env(safe-area-inset-bottom,0px));max-height:32vh;overflow-y:auto;}
     .rd-ov{width:100vw;max-width:100vw;border-left:none;}
     body.adm-shell .panel{left:10px;right:10px;width:auto;}
   }
@@ -822,7 +860,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.15 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.16 · 2026-06-10</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1133,7 +1171,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.15 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.16 · 2026-06-10</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1186,9 +1224,19 @@
     <div class="stat"><b id="dist">0.00</b><span>Kilómetros</span></div>
   </div>
 
+  <!-- Paso 1: Trazado -->
+  <div class="section edit-only">
+    <div class="section-title">1 · Trazado de la ruta</div>
+    <div class="guide-row">
+      <button class="btn accent" id="importBtn">📂 Importar KMZ/KML</button>
+      <button class="btn guide-toggle" id="guideToggle" disabled title="Mostrar/ocultar guía">👁</button>
+    </div>
+    <input type="file" id="kmzInput" accept=".kmz,.kml" style="display:none">
+  </div>
+
   <!-- Ruta -->
   <div class="section edit-only">
-    <div class="section-title" id="rutaFormTitle">Nueva ruta</div>
+    <div class="section-title" id="rutaFormTitle">2 · Datos de la ruta</div>
     <label class="fld-lbl">Nombre de la ruta</label>
     <input class="fld" id="rNombre" placeholder="Ej: Ruta Centro">
     <label class="fld-lbl">Camión asignado</label>
@@ -1200,19 +1248,10 @@
     <label class="fld-lbl">Supervisor</label>
     <select class="fld" id="rSup"></select>
     <button class="btn" id="drawToggle" style="margin-top:12px;">✏️ Editar trazado</button>
+    <button class="btn" id="wordBtn" style="margin-top:8px;">📄 Generar Word de indicaciones</button>
     <button class="btn accent" id="saveRutaBtn" style="margin-top:8px;">💾 Guardar ruta</button>
     <button class="btn" id="newRutaBtn" style="margin-top:8px;">＋ Nueva ruta (limpiar)</button>
-    <div style="font-size:11px;color:var(--txt-dim);margin-top:8px;">Importa un KMZ o activa "Editar trazado" para el recorrido. Completa los datos y guarda al final. Los camiones se crean en Administración → Camiones.</div>
-  </div>
-
-  <!-- Propuesta KMZ -->
-  <div class="section edit-only">
-    <div class="section-title">Propuesta</div>
-    <div class="guide-row">
-      <button class="btn accent" id="importBtn">📂 Importar KMZ/KML</button>
-      <button class="btn guide-toggle" id="guideToggle" disabled title="Mostrar/ocultar guía">👁</button>
-    </div>
-    <input type="file" id="kmzInput" accept=".kmz,.kml" style="display:none">
+    <div style="font-size:11px;color:var(--txt-dim);margin-top:8px;">Importa un KMZ o activa "Editar trazado" para el recorrido. Completa los datos y guarda al final. El Word de indicaciones es opcional. Los camiones se crean en Administración → Camiones.</div>
   </div>
 
   <!-- Reproductor -->
@@ -1618,8 +1657,7 @@
           if(guideLayer){map.removeLayer(guideLayer);guideLayer=null;document.getElementById('guideToggle').disabled=true;}
           // Reset de referencias y disparar modal automático para generar el Word
           routeRefs={start:'',end:'',title:''};
-          toast('Ruta trazada: '+newWps.length+' puntos · generando Word…');
-          setTimeout(()=>fillReferences(),600);
+          toast('Ruta trazada: '+newWps.length+' puntos ✓');
         }else if(mode==='guide'){
           showGuide(lines,pts);
           toast('Propuesta cargada como guía ✓');
@@ -2083,7 +2121,7 @@
     document.querySelectorAll('#shellNav .nav-item[data-sec]').forEach(n=>n.addEventListener('click',()=>setSection(n.dataset.sec)));
     const nr=document.getElementById('navReportes'), nrs=document.getElementById('navRepSub');
     if(nr&&nrs)nr.addEventListener('click',()=>{ const o=nrs.classList.toggle('open'); nr.classList.toggle('open',o); });
-    document.querySelectorAll('#navRepSub .nav-subitem').forEach(s=>s.addEventListener('click',()=>{ repView=s.dataset.rv; repSel=null; repScope='hoy'; repFrom=null; repTo=null; document.querySelectorAll('#navRepSub .nav-subitem').forEach(x=>x.classList.toggle('on',x===s)); setSection('reportes'); }));
+    document.querySelectorAll('#navRepSub .nav-subitem').forEach(s=>s.addEventListener('click',()=>{ repView=s.dataset.rv; repSel=null; repScope='hoy'; repFrom=null; repTo=null; document.querySelectorAll('#navRepSub .nav-subitem').forEach(x=>x.classList.toggle('on',x===s)); setSection('reportes'); if(nrs)nrs.classList.remove('open'); if(nr)nr.classList.remove('open'); }));
     const lo=document.getElementById('shellLogout'); if(lo)lo.addEventListener('click',logout);
     const su=document.getElementById('shellUser'), um=document.getElementById('userMenu');
     if(su&&um){ su.addEventListener('click',e=>{ e.stopPropagation(); um.classList.toggle('open'); }); document.addEventListener('click',()=>um.classList.remove('open')); um.addEventListener('click',e=>e.stopPropagation()); }
@@ -2099,61 +2137,75 @@
   function buildInicio(){
     const host=document.getElementById('iniBody'); if(!host)return;
     const today=todayLetter();
-    if(iniDaysSel===null)iniDaysSel=new Set([today]);
     const now=new Date();
     const fecha=now.toLocaleDateString('es-DO',{day:'numeric',month:'long',year:'numeric'});
+    const hoy=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
     const rutas=mgmtRutas||{};
     const live=(typeof liveByRuta==='function')?liveByRuta():{};
+    const cam=mgmtCamiones||{};
     const ids=Object.keys(rutas);
-    const sel=iniDaysSel;
-    const showIds=ids.filter(id=>iniShowAll || sel.size===0 || [...sel].some(d=>(rutas[id].freq||[]).includes(d)));
-    const nCurso=Object.keys(live).length;
-    const cam=mgmtCamiones||{}; let disp=0,rep=0;
-    Object.keys(cam).forEach(k=>{ if(camActivo((cam[k]||{}).estado))disp++; else rep++; });
+    const todayIds=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(today));
+    const camByFicha={}; Object.keys(cam).forEach(k=>{ const c=cam[k]||{}; camByFicha[c.ficha||k]=c; });
+    function stOf(id){ const r=rutas[id]||{};
+      if(r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length)return 'completada';
+      if(live[id])return 'curso';
+      if(r.envios&&r.envios[hoy])return 'enviada';
+      return 'pendiente'; }
+    let nDone=0,nCur=0,nEnv=0,nPen=0;
+    todayIds.forEach(id=>{ const s=stOf(id); if(s==='completada')nDone++; else if(s==='curso')nCur++; else if(s==='enviada')nEnv++; else nPen++; });
+    const cumplim=todayIds.length?Math.round(nDone/todayIds.length*100):null;
+    let disp=0,rep=0,tot=0; Object.keys(cam).forEach(k=>{ tot++; if(camActivo((cam[k]||{}).estado))disp++; else rep++; });
+    let scs=[]; ids.forEach(id=>{ const reps=(rutas[id]||{}).reportes||{}; Object.keys(reps).forEach(k=>{ const rp=reps[k]||{}; const sc=(rp.rating!=null?rp.rating:rp.routeCompletion); if(rp.fecha===hoy&&sc!=null)scs.push(Number(sc)||0); }); });
+    const avgHoy=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null;
+    const alerts=[];
+    todayIds.forEach(id=>{ const r=rutas[id]||{}; const s=stOf(id);
+      if(s==='pendiente'){ if(!r.choferCode)alerts.push({sev:2,tx:esc(r.nombre||'(sin nombre)')+' programada hoy · <b>sin chofer asignado</b>',act:'Asignar',go:'detail',id});
+        else alerts.push({sev:1,tx:esc(r.nombre||'(sin nombre)')+' programada hoy · aún <b>sin enviar</b>',act:'Enviar',go:'detail',id}); }
+      if(r.camion){ const c=camByFicha[r.camion]; if(c&&!camActivo(c.estado))alerts.push({sev:2,tx:esc(r.nombre||'(sin nombre)')+' · camión <b>'+esc(r.camion)+'</b> '+esc(c.estado||'no disponible'),act:'Reasignar',go:'detail',id}); } });
+    Object.keys(live).forEach(id=>{ const t=live[id]||{}; if(t.ts&&(Date.now()-t.ts)>20*60*1000)alerts.push({sev:2,tx:esc((rutas[id]||{}).nombre||id)+' en curso · <b>sin señal hace '+Math.round((Date.now()-t.ts)/60000)+' min</b>',act:'Monitorear',go:'mon',id}); });
+    alerts.sort((a,b)=>b.sev-a.sev);
+    const sem=alerts.some(a=>a.sev===2)?['#C2402F','Requiere intervención']:(alerts.length?['#B0843C','Atención · pendientes del día']:['#27A35B','Operación normal']);
+    const since=Date.now()-7*24*3600*1000; const perf={};
+    ids.forEach(id=>{ const reps=(rutas[id]||{}).reportes||{}; Object.keys(reps).forEach(k=>{ const rp=reps[k]||{}; const sc=(rp.rating!=null?rp.rating:rp.routeCompletion); const ts=rp.ts||rp.fin; if(sc==null||!ts||ts<since)return; const co=rp.choferCode||'—'; (perf[co]=perf[co]||[]).push(Number(sc)||0); }); });
+    const rank=Object.keys(perf).map(co=>({co:co,avg:Math.round(perf[co].reduce((a,b)=>a+b,0)/perf[co].length),n:perf[co].length})).sort((a,b)=>b.avg-a.avg);
+    const ST={pendiente:['Sin enviar','#C2402F','Enviar'],enviada:['Enviada','#B0843C','Ver enlaces'],curso:['En curso','#2F7DC2','Monitorear'],completada:['Completada','#27A35B','Ver reporte']};
+    const orden={pendiente:0,enviada:1,curso:2,completada:3};
+    const cola=todayIds.map(id=>({id:id,s:stOf(id)})).sort((a,b)=>orden[a.s]-orden[b.s]||(((rutas[a.id]||{}).nombre||'').localeCompare((rutas[b.id]||{}).nombre||'')));
     let h='<div class="ini-wrap">';
-    h+='<div class="ini-daterow"><span class="ini-day">'+(DAY_FULL[today]||'')+'</span><span class="ini-date">'+fecha+'</span></div>';
-    h+='<div class="ini-sub">'+showIds.length+' ruta'+(showIds.length===1?'':'s')+(iniShowAll?' en total':(sel.size?(' · '+[...sel].join('·')):' (todas)'))+'</div>';
+    h+='<div class="ini-daterow"><span class="ini-day">'+(DAY_FULL[today]||'')+'</span><span class="ini-date">'+fecha+'</span>'
+      +'<span class="ini-pulse" style="color:'+sem[0]+';border-color:'+sem[0]+'33;background:'+sem[0]+'14"><span class="ini-pdot" style="background:'+sem[0]+'"></span>'+sem[1]+'</span></div>';
     h+='<div class="ini-kpis">'
-      +'<div class="ini-kpi"><b>'+nCurso+'</b><span>En curso ahora</span></div>'
-      +'<div class="ini-kpi"><b>'+ids.length+'</b><span>Rutas registradas</span></div>'
-      +'<div class="ini-kpi"><b>'+disp+'</b><span>Camiones disponibles</span></div>'
-      +'<div class="ini-kpi"><b>'+rep+'</b><span>En reparación</span></div></div>';
-    h+='<div class="ini-bar"><span class="sec-head">RUTAS POR DÍA</span>'
-      +'<button class="ini-toggle" id="iniToggle">'+(iniShowAll?'Filtrar por día':'Ver todas')+'</button></div>';
-    h+='<div class="ini-dayschips" id="iniDays">';
-    DAYS.forEach(d=>{ h+='<div class="ini-daychip'+((!iniShowAll&&sel.has(d))?' on':'')+'" data-day="'+d+'" title="'+(DAY_FULL[d]||'')+' · clic filtra · arrastra una ruta aquí para asignarla">'+d+'</div>'; });
-    h+='</div>';
-    if(!showIds.length){ h+='<div class="ini-empty">No hay rutas '+(iniShowAll?'registradas':'en esos días')+'. Arrastra una ruta a un día para asignarla, o créala en Rutas.</div>'; }
-    h+='<div class="ru-grid">';
-    showIds.forEach(id=>{ const r=rutas[id]; const t=live[id];
-      h+='<div class="ini-rtcard" draggable="true" data-id="'+id+'">'
-        +'<div class="ini-rthead"><i class="ti ti-grip-vertical ini-grip" aria-hidden="true"></i>'
-        +'<span class="ini-rtname">'+esc(r.nombre||'(sin nombre)')+'</span>'
-        +(t?'<span class="ini-mini">en curso '+(t.progress!=null?esc(t.progress)+'%':'')+'</span>':'')
-        +'</div>'
-        +'<div class="ini-rtmeta"><i class="ti ti-truck" aria-hidden="true"></i> '+esc(r.camion||'sin camión')+'</div>'
-        +'<div class="ini-rtmeta"><i class="ti ti-user" aria-hidden="true"></i> '+esc(r.choferCode||'sin chofer')+' · <i class="ti ti-calendar" aria-hidden="true"></i> '+esc((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
-        +'</div>';
-    });
-    h+='</div>';
+      +'<div class="ini-kpi kpi-go" data-go="cola"><b>'+nDone+' <small>✓</small> · '+(nCur+nEnv)+' <small>▶</small> · '+nPen+' <small>⏳</small></b><span>Rutas de hoy · '+todayIds.length+' programadas</span></div>'
+      +'<div class="ini-kpi"><b>'+(cumplim!=null?cumplim+'%':'—')+'</b><span>Cumplimiento del día</span></div>'
+      +'<div class="ini-kpi kpi-go" data-go="admin"><b>'+disp+'<small>/'+tot+'</small>'+(rep?' <em class="kpi-warn">'+rep+' en taller</em>':'')+'</b><span>Flota operativa</span></div>'
+      +'<div class="ini-kpi kpi-go" data-go="reportes"><b>'+(avgHoy!=null?avgHoy:'—')+(avgHoy!=null?'<small>/100</small>':'')+'</b><span>Calificación de hoy</span></div></div>';
+    h+='<div class="ini-bar"><span class="sec-head">ALERTAS</span></div>';
+    if(!alerts.length)h+='<div class="ini-ok"><i class="ti ti-circle-check" aria-hidden="true"></i> Sin incidencias activas</div>';
+    else alerts.slice(0,6).forEach((a,i)=>{ h+='<div class="ini-alert'+(a.sev===2?' grave':'')+'"><span class="ia-dot"></span><span class="ia-tx">'+a.tx+'</span><button class="ia-btn" data-i="'+i+'">'+a.act+'</button></div>'; });
+    h+='<div class="ini-bar" style="margin-top:22px"><span class="sec-head">DESPACHO DE HOY</span>'
+      +'<select class="ini-extra" id="iniExtra"><option value="">Despachar otra ruta…</option>';
+    ids.filter(id=>todayIds.indexOf(id)<0).sort((a,b)=>(((rutas[a]||{}).nombre||'').localeCompare((rutas[b]||{}).nombre||''))).forEach(id=>{ h+='<option value="'+esc(id)+'">'+esc((rutas[id]||{}).nombre||'(sin nombre)')+' · '+esc(((rutas[id]||{}).freq||[]).join('·')||'sin días')+'</option>'; });
+    h+='</select></div>';
+    if(!cola.length)h+='<div class="ini-empty">No hay rutas programadas para hoy. Usa "Despachar otra ruta…" o asigna frecuencias en Rutas.</div>';
+    cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const t=live[x.id];
+      h+='<div class="ini-q" data-id="'+esc(x.id)+'"><span class="q-dot" style="background:'+routeColor(x.id)+'"></span>'
+        +'<div class="q-main"><div class="q-name">'+esc(r.nombre||'(sin nombre)')+(t&&t.progress!=null?' <small>'+esc(t.progress)+'%</small>':'')+'</div>'
+        +'<div class="q-meta">'+esc(r.choferCode||'sin chofer')+' · '+esc(r.camion||'sin camión')+(r.supCode?(' · Sup '+esc(r.supCode)):'')+'</div></div>'
+        +'<span class="q-chip" style="color:'+st[1]+';background:'+st[1]+'14;border-color:'+st[1]+'33">'+st[0]+'</span>'
+        +'<button class="q-btn" data-id="'+esc(x.id)+'" data-s="'+x.s+'">'+st[2]+'</button></div>'; });
+    h+='<div class="ini-bar" style="margin-top:22px"><span class="sec-head">DESEMPEÑO · ÚLTIMOS 7 DÍAS</span></div>';
+    if(!rank.length)h+='<div class="ini-empty">Aún no hay reportes en la semana.</div>';
+    else{ h+='<div class="ini-perf">';
+      rank.slice(0,4).forEach(p=>{ const col=p.avg>=80?'#27A35B':(p.avg>=50?'#B0843C':'#C2402F');
+        h+='<div class="ini-pcard"><b style="color:'+col+'">'+p.avg+'</b><span>'+esc(p.co)+'</span><small>'+p.n+' recorrido'+(p.n===1?'':'s')+'</small></div>'; });
+      h+='</div>'; }
     h+='</div>';
     host.innerHTML=h;
-    const tg=document.getElementById('iniToggle'); if(tg)tg.addEventListener('click',()=>{ iniShowAll=!iniShowAll; buildInicio(); });
-    host.querySelectorAll('.ini-rtcard').forEach(card=>{
-      card.addEventListener('click',()=>{ if(card.dataset.dragged){card.dataset.dragged='';return;} openRouteDetail(card.dataset.id); });
-      card.addEventListener('dragstart',e=>{ card.classList.add('dragging'); e.dataTransfer.setData('text/plain',card.dataset.id); e.dataTransfer.effectAllowed='move'; });
-      card.addEventListener('dragend',()=>{ card.classList.remove('dragging'); card.dataset.dragged='1'; });
-    });
-    host.querySelectorAll('.ini-daychip').forEach(chip=>{
-      chip.addEventListener('click',()=>{ const d=chip.dataset.day; if(iniShowAll)iniShowAll=false; if(iniDaysSel.has(d))iniDaysSel.delete(d); else iniDaysSel.add(d); buildInicio(); });
-      chip.addEventListener('dragover',e=>{ e.preventDefault(); chip.classList.add('drop'); });
-      chip.addEventListener('dragleave',()=>chip.classList.remove('drop'));
-      chip.addEventListener('drop',e=>{ e.preventDefault(); chip.classList.remove('drop');
-        const id=e.dataTransfer.getData('text/plain'); const day=chip.dataset.day; if(!id||!mgmtRutas[id])return;
-        const freq=(mgmtRutas[id].freq||[]).slice(); if(!freq.includes(day))freq.push(day);
-        if(fbDb)fbDb.ref('rutas/'+id+'/freq').set(freq);
-        mgmtRutas[id].freq=freq; toast((mgmtRutas[id].nombre||'Ruta')+' → '+(DAY_FULL[day]||day)); buildInicio(); });
-    });
+    host.querySelectorAll('.kpi-go').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='admin')setSection('admin'); else if(g==='reportes')setSection('reportes'); else{ const q=host.querySelector('.ini-q'); if(q)q.scrollIntoView({behavior:'smooth',block:'center'}); } }));
+    host.querySelectorAll('.ia-btn').forEach(b=>b.addEventListener('click',()=>{ const a=alerts[Number(b.dataset.i)]; if(!a)return; if(a.go==='mon')setSection('monitoreo'); else openRouteDetail(a.id); }));
+    host.querySelectorAll('.ini-q').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
+    host.querySelectorAll('.q-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
+    const ex=document.getElementById('iniExtra'); if(ex)ex.addEventListener('change',()=>{ if(ex.value)openRouteDetail(ex.value); ex.value=''; });
   }
   function admSetup(){
     document.querySelectorAll('.adm-tab').forEach(t=>t.addEventListener('click',()=>{
@@ -2166,6 +2218,7 @@
     if(dr){ DAYS.forEach(d=>{ const b=document.createElement('button'); b.textContent=d; b.dataset.d=d;
       b.addEventListener('click',()=>{ b.classList.toggle('on'); const i=rDaysSel.indexOf(d); if(i>=0)rDaysSel.splice(i,1); else rDaysSel.push(d); }); dr.appendChild(b); }); }
     const sb=document.getElementById('saveRutaBtn'); if(sb)sb.addEventListener('click',saveRuta);
+    const wb=document.getElementById('wordBtn'); if(wb)wb.addEventListener('click',()=>{ if(!waypoints||waypoints.length<2){toast('Primero carga o traza la ruta');return;} fillReferences(); });
     const nb=document.getElementById('newRutaBtn'); if(nb)nb.addEventListener('click',newRuta);
     const ub=document.getElementById('unitsBtn'); if(ub)ub.addEventListener('click',toggleUnits);
     const ve=document.getElementById('viewEditor'); if(ve)ve.addEventListener('click',()=>setAdmView('editor'));
@@ -2440,6 +2493,8 @@
     let supAccess=r.supAccess||null; if(sup){ if(!supAccess)supAccess=String(Math.floor(1000+Math.random()*9000)); } else supAccess=null;
     const km=Number(String((document.getElementById('dsKm')||{}).value||'').replace(/[^0-9.]/g,''))||0;
     if(fbDb)fbDb.ref('rutas/'+id).update({camion:camion,choferCode:chofer,supCode:sup,supAccess:supAccess,supActive:true,kmInicio:km});
+    const _n=new Date(); const _hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
+    if(fbDb)fbDb.ref('rutas/'+id+'/envios/'+_hoy).set({ts:Date.now(),camion:camion,choferCode:chofer,supCode:sup,kmInicio:km,status:'enviada'});
     const base=location.href.split('#')[0];
     const box=document.getElementById('dsLinks'); box.innerHTML='';
     box.appendChild(linkRow('Para el chofer '+chofer+(camion?(' · '+camion):''), base+'#chofer&ruta='+id));
