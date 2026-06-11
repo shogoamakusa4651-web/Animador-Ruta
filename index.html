@@ -661,6 +661,9 @@
   /* ===== ADMINISTRACIÓN (sección) ===== */
   #secAdmin{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:var(--tx0);}
   body.sec-admin #secAdmin{display:block;}
+  #secRecursos{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:var(--tx0);}
+  body.sec-recursos #secRecursos{display:block;}
+  body.dark #secRecursos{background:#1A1916;color:#ECEAE3;}
   .adm2-tabs{display:flex;gap:6px;background:rgba(30,28,24,.05);border-radius:12px;padding:4px;width:fit-content;margin-bottom:18px;}
   .adm2-tab{padding:8px 16px;border:none;background:transparent;color:#807E77;font-size:13.5px;font-family:inherit;border-radius:9px;cursor:pointer;}
   .adm2-tab.on{background:#fff;color:var(--tx0);box-shadow:0 1px 3px rgba(0,0,0,.06);}
@@ -842,6 +845,20 @@
     .ini-bar{flex-wrap:wrap;}
     .q-chip{display:none;}
   }
+  /* ===== Recursos ===== */
+  .rec-tabs{display:flex;gap:6px;margin:14px 0;}
+  .rec-tab{padding:8px 14px;border:1px solid rgba(30,28,24,.14);background:#fff;color:#55524B;font-size:13px;font-weight:600;font-family:inherit;border-radius:10px;cursor:pointer;}
+  .rec-tab.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
+  body.dark .rec-tab{background:#2E2C27;color:#ECEAE3;border-color:rgba(255,255,255,.12);}
+  body.dark .rec-tab.on{background:#7E9B86;border-color:#7E9B86;color:#1A1916;}
+  .rec-note{font-size:12.5px;line-height:1.5;color:#6C6960;background:rgba(126,155,134,.1);border-radius:11px;padding:11px 13px;margin-bottom:14px;}
+  body.dark .rec-note{color:#B7B4AC;}
+  .rec-vchip{font-size:10px;font-weight:700;color:#B0843C;background:rgba(176,132,60,.14);padding:2px 7px;border-radius:999px;margin-left:4px;}
+  .rec-rgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .rec-r{display:flex;flex-direction:column;gap:1px;}
+  .rec-r b{font-size:17px;letter-spacing:-.3px;}
+  .rec-r span{font-size:10.5px;color:#8C887E;font-weight:600;}
+  .mon-vert{font-size:11.5px;font-weight:600;color:#B0843C;background:rgba(176,132,60,.12);border-radius:8px;padding:5px 9px;margin:6px 0;display:flex;align-items:center;gap:6px;}
   /* ===== Monitoreo: franja superior de situación ===== */
   .mon-strip{position:fixed;top:var(--topbar);left:var(--rail);right:0;z-index:2550;display:none;flex-direction:column;background:#23211D;color:#ECEAE3;font-family:-apple-system,'Segoe UI',sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.2);}
   body.sec-monitoreo .mon-strip{display:flex;}
@@ -1032,6 +1049,7 @@
   <div class="nav-item" data-sec="inicio"><i class="ti ti-home" aria-hidden="true"></i>Inicio</div>
   <div class="nav-item" data-sec="monitoreo"><i class="ti ti-broadcast" aria-hidden="true"></i>Monitoreo</div>
   <div class="nav-item" data-sec="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
+  <div class="nav-item" data-sec="recursos"><i class="ti ti-clipboard-data" aria-hidden="true"></i>Recursos</div>
   <div class="nav-item" data-sec="admin"><i class="ti ti-settings" aria-hidden="true"></i>Administración</div>
   <div class="nav-item" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <i class="ti ti-chevron-down nav-chev" aria-hidden="true"></i></div>
   <div class="nav-sub" id="navRepSub">
@@ -1042,7 +1060,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.27 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.28 · 2026-06-11</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1314,6 +1332,7 @@
   <div id="rdBody"></div>
 </div>
 
+<div id="secRecursos"><div class="ini-wrap" id="recursosBody"></div></div>
 <div id="secReportes"><div class="ini-wrap">
   <div class="ini-daterow" style="margin-bottom:4px"><span class="ini-day" style="font-size:20px">Reportes</span></div>
   <div class="ini-sub">Filtra por ruta, chofer o supervisor.</div>
@@ -1363,7 +1382,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.27 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.28 · 2026-06-11</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1485,6 +1504,7 @@
         <span>Avisos por voz</span>
         <div class="switch on" id="swVoice"></div>
       </div>
+      <button class="btn" id="dumpBtn" style="background:linear-gradient(135deg,#B0843C,#cf9a4a);color:#fff;border:none;font-weight:700;">🗑 Voy a botar basura</button>
       <button class="btn" id="finishTrip" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;border:none;font-weight:700;">🏁 Terminar viaje</button>
       <button class="btn" id="exportReal" disabled>💾 Exportar recorrido real</button>
     </div>
@@ -1578,6 +1598,7 @@
   // ===== ESTADO MODO CHOFER (GPS) =====
   let gpsActive=false, watchId=null, truckMarker=null, accuracyCircle=null;
   let realPath=[], realLine=null, realLineGlow=null;
+  let tripPhase='ruta', kmRuta=0, kmVertedero=0, dumpPath=[], dumpLine=null, dumpCount=0;
   let nextWpIdx=0, doneWps=new Set();
   let followOn=true, voiceOn=true;
   let lastVoiceAnnounce={};   // {wpIdx: {early:true, mid:true, imminent:true}}
@@ -2341,12 +2362,12 @@
   }
 
   // ===== APP SHELL =====
-  const SEC_TITLE={inicio:'Inicio',monitoreo:'Monitoreo',rutas:'Rutas',admin:'Administración',reportes:'Reportes'};
+  const SEC_TITLE={inicio:'Inicio',monitoreo:'Monitoreo',rutas:'Rutas',recursos:'Recursos',admin:'Administración',reportes:'Reportes'};
   let curSec=null;
   function setSection(name){
     curSec=name;
     document.body.classList.add('adm-shell');
-    ['inicio','monitoreo','rutas','admin','reportes'].forEach(s=>document.body.classList.toggle('sec-'+s,s===name));
+    ['inicio','monitoreo','rutas','recursos','admin','reportes'].forEach(s=>document.body.classList.toggle('sec-'+s,s===name));
     document.querySelectorAll('#shellNav .nav-item').forEach(n=>n.classList.toggle('on',n.dataset.sec===name));
     const nrep=document.getElementById('navReportes'), nrsub=document.getElementById('navRepSub');
     if(nrep)nrep.classList.toggle('on',name==='reportes');
@@ -2358,6 +2379,7 @@
     if(name==='inicio'){ buildInicio(); }
     if(name==='monitoreo'){ subscribeUnits(); renderMonitor(); if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); }
     if(name==='rutas'){ if(typeof setRutasView==='function')setRutasView('list'); if(editor)editor.style.display=''; refreshRutaSelects(); if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); }
+    if(name==='recursos'){ if(typeof renderRecursos==='function')renderRecursos(); }
     if(name==='admin'){ if(typeof renderAdmin==='function')renderAdmin(); }
     else { const mo=document.getElementById('mgmtOv'); if(mo)mo.classList.remove('show'); }
     if(name==='reportes'){ if(typeof openReportes==='function')openReportes(); }
@@ -2380,12 +2402,17 @@
         +'<h4>Colores sobre el mapa</h4><p><b style="color:#27A35B">Verde</b> = calles ya recorridas por el camión. <b>Color de la ruta</b> = lo que falta. <b style="color:#C2402F">Rojo punteado</b> = calles que el camión <b>omitió</b> al terminar. Esto es lo más valioso: ningún GPS común te dice qué calles quedaron sin recoger.</p>'
         +'<h4>Tarjetas en vivo</h4><p>Cada camión activo muestra su % de avance y "última señal hace X" — si pasa de 2 minutos se pone roja: puede estar sin cobertura o apagado.</p>'
         +'<h4>Simular</h4><p>El botón ▶ en una ruta lanza un recorrido de prueba (10 seg). En la tarjeta en vivo: <b>⏸</b> pausa y reanuda donde iba, <b>⏹</b> detiene del todo (la simulación parcial no se registra como viaje completo).</p>'
+        +'<h4>Rumbo al vertedero</h4><p>Cuando un chofer pulsa "Voy a botar basura", su ruta se pausa y el camión aparece en ámbar con 🗑. El sistema sigue contando los km hasta el vertedero (para el cálculo de combustible) y avisa al supervisor que va a descargar — momento para registrar el pesaje en Recursos.</p>'
         +'<h4>Panel "En vivo" del viaje</h4><p>Al tocar un camión que está transmitiendo, se abre su detalle con una pestaña <b>🛰 En vivo</b>: estado del viaje (en curso / sin señal / solicita cierre), posición GPS con precisión y frescura de la señal, trazabilidad (puntos visitados vs pendientes con barra), bitácora de eventos del viaje y alertas. Tolva, salud del camión y CTR aparecen como "Próximamente" hasta que existan sus sensores/módulos.</p>'},
       rutas:{t:'Rutas · Crear y editar',h:'<p>Aquí defines las rutas que luego se monitorean y despachan.</p>'
         +'<h4>Orden correcto</h4><p><b>1 · Trazado:</b> importa el archivo KMZ/KML del recorrido (o dibújalo). <b>2 · Datos:</b> nombre, sector, camión, chofer, supervisor y frecuencia (qué días se trabaja).</p>'
         +'<h4>Sector</h4><p>La zona del municipio (Centro, Norte…). Se usa para el semáforo por sectores en Inicio. Puedes escribir uno nuevo o elegir de los ya usados.</p>'
         +'<h4>Word de indicaciones</h4><p>Es <b>opcional</b> — genera un documento con las instrucciones de la ruta solo si le das al botón. Ya no se descarga solo.</p>'
         +'<h4>Enviar ruta</h4><p>Desde el detalle de una ruta generas los enlaces para chofer y supervisor. Al enviar se abre el expediente del día con camión, chofer y supervisor asignados.</p>'},
+      recursos:{t:'Recursos · Pesaje, combustible y rendimiento',h:'<p>Aquí se registran los insumos físicos de la operación, separados de la gestión de rutas.</p>'
+        +'<h4>⚖ Pesaje</h4><p>Cuando un camión llega al vertedero se pesa <b>lleno</b>, y al salir <b>vacío</b>. La diferencia son las toneladas recolectadas. Los viajes marcados 🗑 fueron al vertedero. Si la carga es de dos rutas, se reparte por porcentaje. Las toneladas alimentan el KPI de Inicio.</p>'
+        +'<h4>⛽ Combustible</h4><p>Un supervisor registra los galones cargados a cada camión (y opcionalmente el precio). El sistema ya conoce los km recorridos de cada viaje.</p>'
+        +'<h4>📊 Rendimiento</h4><p>Combina km recorridos ÷ galones para dar el rendimiento real (km/galón) por camión. Verde = eficiente, rojo = revisar. Con el precio del combustible se podrá calcular el costo por km y por tonelada.</p>'},
       admin:{t:'Administración',h:'<p>Aquí registras los recursos: <b>Camiones</b> (ficha, placa, capacidad, estado), <b>Choferes</b> y <b>Supervisores</b>. Estos aparecen luego como opciones al crear o enviar rutas. El estado del camión (en operación / en reparación) alimenta la salud de flota en Inicio.</p>'},
       reportes:{t:'Reportes',h:'<p>Historial de todos los recorridos terminados, agrupados por <b>ruta</b>, <b>chofer</b>, <b>supervisor</b> o <b>camión</b>. Cada reporte trae cobertura, calles omitidas, fidelidad al trazado, distancia, calificación y — si se pesó — las toneladas. Filtra por hoy, ayer, semana o un rango de fechas.</p>'
         +'<h4>Pesaje</h4><p>El peso se registra desde el detalle de la ruta → pestaña Viajes → "Registrar pesaje", cuando el camión llega a la báscula. Si traía carga de 2 rutas, se reparte por porcentaje.</p>'}
@@ -2725,11 +2752,12 @@
       let sinSalir=0; tIds.forEach(id=>{ const r=mgmtRutas[id]||{};
         const done=r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length;
         if(!done&&!byRuta[id])sinSalir++; });
-      let stale=0; Object.keys(byRuta).forEach(id=>{ const t=byRuta[id]||{}; if(t.ts&&(Date.now()-t.ts)>120000)stale++; });
+      let stale=0,vert=0; Object.keys(byRuta).forEach(id=>{ const t=byRuta[id]||{}; if(t.ts&&(Date.now()-t.ts)>120000)stale++; if(t.status==='vertedero')vert++; });
       const n=Object.keys(byRuta).length;
       if(!n&&!sinSalir){ pulse.innerHTML='<div class="mp-row"><span class="mp-dot" style="background:#8C887E;animation:none"></span>No hay rutas activas actualmente</div>'; return; }
       const col=stale?'#C2402F':(n?'#27A35B':'#B0843C');
       let tx=n?('<b>'+n+'</b> en vivo'):'Sin camiones en vivo';
+      if(vert)tx+=' · <b style="color:#B0843C">'+vert+'</b> 🗑 al vertedero';
       if(sinSalir)tx+=' · <b>'+sinSalir+'</b> de hoy sin salir';
       if(stale)tx+=' · <b style="color:#C2402F">'+stale+'</b> sin señal';
       pulse.innerHTML='<div class="mp-row"><span class="mp-dot" style="background:'+col+'"></span>'+tx+'</div>';
@@ -2743,8 +2771,10 @@
       const ageTx=age==null?'':(age<60?('hace '+age+' s'):('hace '+Math.round(age/60)+' min'));
       const ageCol=(age!=null&&age>120)?'#C2402F':'#8C887E';
       const pg=Math.max(0,Math.min(100,Number(t.progress)||0));
-      card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:'+routeColor(id)+'"></span><span style="font-size:14px;font-weight:600;flex:1">'+esc(r.nombre||'(sin nombre)')+(isSim?' <span style="font-size:10px;color:#9c5532">· sim</span>':'')+'</span><span class="mon-pct">'+(t.progress!=null?esc(t.progress)+'%':'—')+'</span></div>'
-        +'<div class="mon-prog"><i style="width:'+pg+'%;background:'+routeColor(id)+'"></i></div>'
+      const enVert=(t.status==='vertedero');
+      card.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:'+(enVert?'#B0843C':routeColor(id))+'"></span><span style="font-size:14px;font-weight:600;flex:1">'+esc(r.nombre||'(sin nombre)')+(isSim?' <span style="font-size:10px;color:#9c5532">· sim</span>':'')+'</span><span class="mon-pct">'+(t.progress!=null?esc(t.progress)+'%':'—')+'</span></div>'
+        +(enVert?'<div class="mon-vert"><i class="ti ti-trash"></i> Rumbo al vertedero · ruta en pausa</div>':'')
+        +'<div class="mon-prog"><i style="width:'+pg+'%;background:'+(enVert?'#B0843C':routeColor(id))+'"></i></div>'
         +'<div class="mon-line"><i class="ti ti-truck" aria-hidden="true"></i> '+esc(r.camion||'—')+' · <i class="ti ti-user" aria-hidden="true"></i> '+esc((t.code||r.choferCode||'—'))+(t.name?(' '+esc(t.name)):'')+'</div>'
         +(ageTx?('<div class="mon-line" style="color:'+ageCol+'"><i class="ti ti-antenna-bars-5" aria-hidden="true"></i> Última señal '+ageTx+'</div>'):'')
         +'<div class="mon-cardacts">'
@@ -2864,7 +2894,8 @@
     const stale=(age!=null&&age>120);
     // máquina de estados
     const isSim=(t.name==='Simulación')||((t.code||'').indexOf('SIM-')===0);
-    let estado,ecol; if(t.status==='termino'){estado='Solicita cierre';ecol='#B0843C';}
+    let estado,ecol; if(t.status==='vertedero'){estado='Rumbo al vertedero';ecol='#B0843C';}
+      else if(t.status==='termino'){estado='Solicita cierre';ecol='#B0843C';}
       else if(stale){estado='En curso · sin señal';ecol='#C2402F';}
       else {estado='En curso';ecol='#27A35B';}
     const ini=t.inicio||t._ini||null;
@@ -3160,6 +3191,103 @@
   const CAM_ESTADOS=['en operación','en reparación','fuera de uso'];
   function camActivo(est){ const e=(est||'').toString().toLowerCase(); return e.indexOf('opera')>=0||e==='disponible'||e===''; }
   let admTab='cam';
+  let recTab='pesaje', recData=null;
+  function renderRecursos(){
+    const host=document.getElementById('recursosBody'); if(!host)return;
+    if(!fbDb){ host.innerHTML='<div class="rd-empty">Sin conexión.</div>'; return; }
+    host.innerHTML='<div class="ini-day" style="font-size:20px">Recursos</div><div class="ini-date">Pesaje de recolección · combustible · rendimiento</div>'
+      +'<div class="rec-tabs"><button class="rec-tab'+(recTab==='pesaje'?' on':'')+'" data-rt="pesaje">⚖ Pesaje</button><button class="rec-tab'+(recTab==='combustible'?' on':'')+'" data-rt="combustible">⛽ Combustible</button><button class="rec-tab'+(recTab==='rendimiento'?' on':'')+'" data-rt="rendimiento">📊 Rendimiento</button></div>'
+      +'<div id="recBody"><div class="rd-empty">Cargando…</div></div>';
+    host.querySelectorAll('.rec-tab').forEach(b=>b.addEventListener('click',()=>{ recTab=b.dataset.rt; renderRecursos(); }));
+    // cargar viajes de todas las rutas
+    const ids=Object.keys(mgmtRutas); let pend=ids.length; const viajes=[];
+    if(!ids.length){ recRender(viajes); return; }
+    ids.forEach(id=>{ fbDb.ref('rutas/'+id+'/viajes').once('value').then(s=>{ const o=s.val()||{}; Object.keys(o).forEach(f=>{ const dd=o[f]||{}; Object.keys(dd).forEach(vk=>{ const v=Object.assign({},dd[vk]); v._ruta=id; v._rutaName=(mgmtRutas[id]||{}).nombre||id; v._fecha=f; v._vk=vk; v._ficha=v.ficha||(mgmtRutas[id]||{}).camion||null; if(!v.sim)viajes.push(v); }); }); }).catch(()=>{}).then(()=>{ if(--pend<=0)recRender(viajes); }); });
+  }
+  function recRender(viajes){
+    const body=document.getElementById('recBody'); if(!body)return;
+    viajes.sort((a,b)=>(b.fin||0)-(a.fin||0));
+    if(recTab==='pesaje'){
+      let h='<div class="rec-note">El camión se pesa <b>lleno</b> al llegar al vertedero y <b>vacío</b> al salir. La diferencia son las toneladas recolectadas. Los viajes con 🗑 fueron al vertedero.</div>';
+      const sinPesar=viajes.filter(v=>v.toneladas==null);
+      const pesados=viajes.filter(v=>v.toneladas!=null);
+      h+='<div class="mon-sec" style="color:#C2402F">PENDIENTES DE PESAJE ('+sinPesar.length+')</div>';
+      if(!sinPesar.length)h+='<div class="rd-empty" style="padding:14px">Todos los viajes están pesados.</div>';
+      sinPesar.slice(0,30).forEach(v=>{ h+=recCard(v,false); });
+      h+='<div class="mon-sec" style="margin-top:16px">PESADOS ('+pesados.length+')</div>';
+      pesados.slice(0,20).forEach(v=>{ h+=recCard(v,true); });
+      body.innerHTML=h;
+      body.querySelectorAll('.rec-pesar').forEach(b=>b.addEventListener('click',()=>openPesajeRec(b.dataset.r,b.dataset.f,b.dataset.k)));
+    } else if(recTab==='combustible'){
+      let h='<div class="rec-note">Un supervisor registra los <b>galones cargados</b> a cada camión. El sistema ya conoce los km recorridos, así calcula el rendimiento real (km/galón).</div>'
+        +'<button class="mon-tinybtn" id="recAddFuel" style="width:auto;flex:none;padding:0 14px;margin-bottom:14px"><i class="ti ti-plus"></i> Registrar carga de combustible</button>';
+      fbDb.ref('combustible').once('value').then(s=>{ const o=s.val()||{}; const arr=Object.keys(o).map(k=>Object.assign({_k:k},o[k])).sort((a,b)=>(b.ts||0)-(a.ts||0));
+        let hh=h; if(!arr.length)hh+='<div class="rd-empty" style="padding:14px">Aún no hay cargas registradas.</div>';
+        arr.slice(0,40).forEach(c=>{ hh+='<div class="rd-item"><div style="display:flex;align-items:center;gap:8px"><b style="flex:1">'+esc(c.ficha||'—')+'</b><span class="mon-pct">'+(Number(c.galones)||0).toFixed(1)+' gal</span></div>'
+          +'<div class="mon-line"><i class="ti ti-calendar"></i> '+esc(fmtFecha(c.fecha||''))+' · <i class="ti ti-user"></i> '+esc(c.sup||'—')+(c.precio?(' · RD$'+c.precio+'/gal'):'')+'</div></div>'; });
+        body.innerHTML=hh;
+        const af=document.getElementById('recAddFuel'); if(af)af.addEventListener('click',addFuel);
+      }).catch(()=>{ body.innerHTML=h+'<div class="rd-empty">Error al cargar.</div>'; });
+    } else {
+      // rendimiento km/galón por camión
+      fbDb.ref('combustible').once('value').then(s=>{ const fuel=s.val()||{};
+        const galByFicha={}; Object.keys(fuel).forEach(k=>{ const c=fuel[k]||{}; if(c.ficha)galByFicha[c.ficha]=(galByFicha[c.ficha]||0)+(Number(c.galones)||0); });
+        const kmByFicha={}, tonByFicha={};
+        viajes.forEach(v=>{ const f=v._ficha; if(!f)return; kmByFicha[f]=(kmByFicha[f]||0)+(Number(v.distancia)||0); if(v.toneladas!=null)tonByFicha[f]=(tonByFicha[f]||0)+(Number(v.toneladas)||0); });
+        const fichas=[...new Set([...Object.keys(galByFicha),...Object.keys(kmByFicha)])];
+        let h='<div class="rec-note">Rendimiento acumulado por camión. El costo por km y por tonelada se activan cuando registras precio del combustible.</div>';
+        if(!fichas.length)h+='<div class="rd-empty" style="padding:14px">Aún no hay datos suficientes. Registra viajes y cargas de combustible.</div>';
+        h+='<div class="ru-grid">';
+        fichas.sort().forEach(f=>{ const km=kmByFicha[f]||0, gal=galByFicha[f]||0, ton=tonByFicha[f]||0;
+          const rend=gal>0?(km/gal):null;
+          h+='<div class="ru-card"><div class="ru-head"><i class="ti ti-truck" style="color:#7E9B86"></i><span class="ru-name">'+esc(f)+'</span></div>'
+            +'<div class="rec-rgrid"><div class="rec-r"><b>'+km.toFixed(1)+'</b><span>km recorridos</span></div>'
+            +'<div class="rec-r"><b>'+gal.toFixed(1)+'</b><span>galones</span></div>'
+            +'<div class="rec-r"><b style="color:'+(rend==null?'#8C887E':(rend>=4?'#27A35B':(rend>=2?'#B0843C':'#C2402F')))+'">'+(rend==null?'—':rend.toFixed(2))+'</b><span>km/galón</span></div>'
+            +'<div class="rec-r"><b>'+(ton>0?ton.toFixed(1):'—')+'</b><span>toneladas</span></div></div></div>'; });
+        h+='</div>';
+        body.innerHTML=h;
+      }).catch(()=>{ body.innerHTML='<div class="rd-empty">Error.</div>'; });
+    }
+  }
+  function recCard(v,pesado){
+    const vert=v.viajesVertedero?(' <span class="rec-vchip">🗑 '+v.viajesVertedero+'</span>'):'';
+    return '<div class="rd-item"><div style="display:flex;align-items:center;gap:8px"><b style="flex:1">'+esc(v._rutaName||'')+vert+'</b><span style="font-size:11px;color:#8C887E">'+esc(fmtFecha(v._fecha||''))+'</span></div>'
+      +'<div class="mon-line"><i class="ti ti-truck"></i> '+esc(v._ficha||'—')+' · <i class="ti ti-user"></i> '+esc(v.choferCode||'—')+' · <i class="ti ti-map-pin"></i> '+(Number(v.distancia)||0).toFixed(1)+' km'+(v.kmVertedero?(' (ruta '+(Number(v.kmRuta)||0).toFixed(1)+' + vert '+(Number(v.kmVertedero)||0).toFixed(1)+')'):'')+'</div>'
+      +(pesado?('<div class="mon-line" style="color:#27A35B"><i class="ti ti-weight"></i> <b>'+v.toneladas+' t</b>'+(v.pesoLleno?(' · lleno '+v.pesoLleno+' / vacío '+v.pesoVacio):'')+(v.pesadoPor?(' · '+esc(v.pesadoPor)):'')+'</div>'):'')
+      +'<button class="mon-tinybtn rec-pesar" data-r="'+esc(v._ruta)+'" data-f="'+esc(v._fecha)+'" data-k="'+esc(v._vk)+'" style="width:auto;flex:none;padding:0 12px;margin-top:7px"><i class="ti ti-scale"></i> '+(pesado?'Editar pesaje':'Registrar pesaje')+'</button></div>';
+  }
+  async function openPesajeRec(rid,fecha,vk){
+    const v=((await fbDb.ref('rutas/'+rid+'/viajes/'+fecha+'/'+vk).once('value')).val())||{};
+    const lleno=await promptDialog('Pesaje en vertedero','Peso del camión LLENO (toneladas):',v.pesoLleno!=null?String(v.pesoLleno):'',{numeric:true});
+    if(lleno===null)return; const ll=parseFloat(String(lleno).replace(',','.')); if(isNaN(ll)){toast('Peso inválido');return;}
+    const vacio=await promptDialog('Pesaje en vertedero','Peso del camión VACÍO (toneladas):',v.pesoVacio!=null?String(v.pesoVacio):'',{numeric:true});
+    if(vacio===null)return; const vc=parseFloat(String(vacio).replace(',','.')); if(isNaN(vc)){toast('Peso inválido');return;}
+    const ton=Math.round((ll-vc)*100)/100; if(ton<0){toast('El lleno debe pesar más que el vacío');return;}
+    const sup=await promptDialog('Pesaje en vertedero','Supervisor que registra:',v.pesadoPor||'',{});
+    if(sup===null)return;
+    let compartido=null,asignado=ton,pct=100;
+    if(v.viajesVertedero>1||await confirmDialog('¿Carga compartida?','¿Este pesaje incluye basura de DOS rutas distintas?','Sí, compartido')){
+      const p=await promptDialog('Reparto','% de toneladas para ESTA ruta ('+((mgmtRutas[rid]||{}).nombre||'')+'):','50',{numeric:true});
+      if(p!==null){ pct=Math.max(0,Math.min(100,parseFloat(String(p).replace(',','.'))||100)); asignado=Math.round(ton*pct)/100; compartido=await promptDialog('Reparto','Otra ruta (referencia):',v.pesoCompartido||'',{}); }
+    }
+    const upd={ toneladas:asignado, pesoLleno:ll, pesoVacio:vc, pesoTotal:ton, pesoPct:pct, pesoCompartido:(compartido||'').trim()||null, pesadoPor:(sup||'').trim()||null, pesadoTs:Date.now() };
+    fbDb.ref('rutas/'+rid+'/viajes/'+fecha+'/'+vk).update(upd);
+    try{ fbDb.ref('rutas/'+rid+'/reportes').orderByChild('fecha').equalTo(fecha).once('value').then(s=>{ const o=s.val()||{}; const rk=Object.keys(o)[0]; if(rk)fbDb.ref('rutas/'+rid+'/reportes/'+rk).update({toneladas:asignado}); }); }catch(_){ }
+    toast('Pesaje: '+asignado+' t recolectadas'); renderRecursos();
+  }
+  async function addFuel(){
+    const fichas=[...new Set(Object.values(mgmtCamiones||{}).map(c=>c&&c.ficha).filter(Boolean))];
+    const ficha=await promptDialog('Carga de combustible','Ficha del camión'+(fichas.length?(' (ej: '+fichas.slice(0,3).join(', ')+')'):''),'',{});
+    if(ficha===null||!ficha.trim())return;
+    const gal=await promptDialog('Carga de combustible','Galones cargados:','',{numeric:true});
+    if(gal===null)return; const g=parseFloat(String(gal).replace(',','.')); if(isNaN(g)||g<=0){toast('Cantidad inválida');return;}
+    const precio=await promptDialog('Carga de combustible','Precio por galón (RD$, opcional):','',{numeric:true});
+    const sup=await promptDialog('Carga de combustible','Supervisor que registra:','',{});
+    const now=new Date(); const fecha=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    fbDb.ref('combustible').push({ ficha:ficha.trim(), galones:g, precio:(precio&&!isNaN(parseFloat(precio)))?parseFloat(precio):null, sup:(sup||'').trim()||null, fecha:fecha, ts:Date.now() });
+    toast('Carga registrada: '+g+' gal'); renderRecursos();
+  }
   function renderAdmin(){ if(admTab==='cam')renderCamGrid(); else renderActorList(admTab); }
   let camSelMode=false, camSel=new Set(), camDragKey=null;
   function tipoOf(v){ if(v&&v.tipo)return v.tipo; const s=((v&&v.estructura)||'').toLowerCase(),m=((v&&v.marca)||'').toLowerCase(); if(s.indexOf('cabina')>=0||s.indexOf('yipeta')>=0||m.indexOf('land cruiser')>=0||m.indexOf('hilux')>=0||m.indexOf('navara')>=0)return 'ligero'; return 'pesado'; }
@@ -3800,7 +3928,11 @@
     }
 
     if(!realPath.length || haversine(realPath[realPath.length-1],p)>=3){
+      const prevP=realPath.length?realPath[realPath.length-1]:null;
+      if(prevP){ const seg=haversine(prevP,p)/1000; if(tripPhase==='vertedero')kmVertedero+=seg; else kmRuta+=seg; }
       realPath.push(p);
+      if(tripPhase==='vertedero'){ dumpPath.push(p);
+        if(dumpPath.length>=2){ if(!dumpLine)dumpLine=L.polyline(dumpPath,{color:'#B0843C',weight:5,opacity:.9,dashArray:'8 6',interactive:false}).addTo(map); else dumpLine.setLatLngs(dumpPath); } }
       if(realPath.length>=2){
         if(!realLineGlow){
           realLineGlow=L.polyline(realPath,{color:'#27A35B',weight:11,opacity:.22,interactive:false}).addTo(map);
@@ -3927,7 +4059,7 @@
     if(!skipResume && hasPendingTrip()){showResumeModal();return;}
     gpsActive=true;
     if(!tripStartedAt)tripStartedAt=new Date().toISOString();
-    nextWpIdx=0;doneWps.clear();realPath=[];lastTruckPos=null;reachedStart=false;{const g=document.getElementById('startGuide');if(g)g.classList.remove('show');}
+    nextWpIdx=0;doneWps.clear();realPath=[];lastTruckPos=null;reachedStart=false;tripPhase='ruta';kmRuta=0;kmVertedero=0;dumpPath=[];dumpCount=0;if(dumpLine){map.removeLayer(dumpLine);dumpLine=null;}{const g=document.getElementById('startGuide');if(g)g.classList.remove('show');}
     lastVoiceAnnounce={};skippedSegments=[];deviated=false;bonusReturnedToTrack=false;
     if(realLine){map.removeLayer(realLine);realLine=null;}
     if(realLineGlow){map.removeLayer(realLineGlow);realLineGlow=null;}
@@ -3972,6 +4104,26 @@
   });
   document.getElementById('exportReal').addEventListener('click',()=>generateWordReport());
   document.getElementById('finishTrip').addEventListener('click',()=>finishTrip());
+  const dumpB=document.getElementById('dumpBtn'); if(dumpB)dumpB.addEventListener('click',()=>toggleDump());
+  function toggleDump(){
+    if(!gpsActive){ toast('Activa el GPS primero'); return; }
+    const b=document.getElementById('dumpBtn');
+    if(tripPhase==='ruta'){
+      tripPhase='vertedero'; dumpCount++; dumpPath=lastTruckPos?[lastTruckPos]:[];
+      b.innerHTML='↩ Retomar la ruta'; b.style.background='linear-gradient(135deg,#2F7DC2,#4E9BD8)';
+      // marcar en live: estado rumbo a vertedero + alerta al monitor
+      if(fbDb&&choferCode){ try{ fbDb.ref('live/'+txId()).update({status:'vertedero',dumpAt:Date.now(),ts:Date.now()}); }catch(_){ } }
+      speak('Ruta en pausa. Dirígete al vertedero. El recorrido se sigue registrando.');
+      toast('🗑 Rumbo al vertedero · ruta en pausa · supervisor notificado');
+    } else {
+      tripPhase='ruta';
+      b.innerHTML='🗑 Voy a botar basura'; b.style.background='linear-gradient(135deg,#B0843C,#cf9a4a)';
+      if(dumpLine){map.removeLayer(dumpLine);dumpLine=null;} dumpPath=[];
+      if(fbDb&&choferCode){ try{ fbDb.ref('live/'+txId()).update({status:'en_ruta',ts:Date.now()}); }catch(_){ } }
+      speak('Ruta retomada.');
+      toast('↩ Ruta retomada · km al vertedero registrados: '+kmVertedero.toFixed(2));
+    }
+  }
 
   // ============================================================
   //          CIERRE DE VIAJE Y CALIFICACIÓN
@@ -4112,8 +4264,9 @@
         const _dist=Math.round((realPath.length>1?totalDistanceOf(realPath):0)/10)/100;
         const _kmIni=Number((currentRuta||{}).kmInicio)||0;
         const _r=currentRuta||{};
-        fbDb.ref('rutas/'+currentRutaId+'/viajes/'+_f).push({ inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, progress:r.routeCompletion, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_dist)*100)/100, distancia:_dist, paradas:waypoints.length, cobertura:r.routeCompletion, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, sim:false });
-        fbDb.ref('rutas/'+currentRutaId+'/reportes').push({ tipo:'chofer', choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, fecha:_f, inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), rating:r.score, routeCompletion:r.routeCompletion, ratingLevel:ratingLabel(r.score).lbl, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_dist)*100)/100, distancia:_dist, cobertura:r.routeCompletion, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, texto:'Recorrido real: '+r.routeCompletion+'% cubierto'+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):' · sin omisiones')+'.', sim:false, ts:Date.now() });
+        const _kmRuta=Math.round(kmRuta*100)/100, _kmVert=Math.round(kmVertedero*100)/100, _kmTot=Math.round((_kmRuta+_kmVert)*100)/100||_dist;
+        fbDb.ref('rutas/'+currentRutaId+'/viajes/'+_f).push({ inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, progress:r.routeCompletion, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_kmTot)*100)/100, distancia:_kmTot, kmRuta:_kmRuta, kmVertedero:_kmVert, viajesVertedero:dumpCount, paradas:waypoints.length, cobertura:r.routeCompletion, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, sim:false });
+        fbDb.ref('rutas/'+currentRutaId+'/reportes').push({ tipo:'chofer', choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, fecha:_f, inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), rating:r.score, routeCompletion:r.routeCompletion, ratingLevel:ratingLabel(r.score).lbl, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_kmTot)*100)/100, distancia:_kmTot, kmRuta:_kmRuta, kmVertedero:_kmVert, viajesVertedero:dumpCount, cobertura:r.routeCompletion, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, texto:'Recorrido real: '+r.routeCompletion+'% cubierto'+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):' · sin omisiones')+(dumpCount?(' · '+dumpCount+' viaje(s) al vertedero'):'')+'.', sim:false, ts:Date.now() });
       }
     }catch(e){ console.warn('persist viaje',e); }
     stopGps();
