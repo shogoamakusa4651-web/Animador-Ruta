@@ -839,6 +839,26 @@
     .ini-bar{flex-wrap:wrap;}
     .q-chip{display:none;}
   }
+  /* ===== Panel viaje en vivo ===== */
+  .lv-card{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:13px;padding:12px 13px;margin-bottom:9px;}
+  body.dark .lv-card{background:#26241F;border-color:rgba(255,255,255,.08);}
+  .lv-h{font-size:10px;font-weight:700;letter-spacing:.8px;color:#8C887E;margin-bottom:9px;}
+  .lv-state{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid;margin-bottom:11px;}
+  .lv-sdot{width:8px;height:8px;border-radius:50%;animation:mpulse 2s infinite;}
+  .lv-grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .lv-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+  .lv-cell{display:flex;flex-direction:column;gap:1px;}
+  .lv-cell span{font-size:10.5px;color:#8C887E;font-weight:600;}
+  .lv-cell b{font-size:17px;letter-spacing:-.3px;}
+  .lv-bar{height:8px;border-radius:99px;background:rgba(30,28,24,.08);overflow:hidden;margin-bottom:11px;}
+  .lv-bar i{display:block;height:100%;border-radius:99px;transition:width .4s;}
+  .lv-alert{display:flex;align-items:center;gap:8px;font-size:12.5px;background:rgba(176,132,60,.08);border-left:3px solid #B0843C;border-radius:8px;padding:8px 10px;margin-bottom:5px;}
+  .lv-alert.grave{background:rgba(194,64,47,.08);border-left-color:#C2402F;}
+  .lv-log{display:flex;flex-direction:column;gap:0;}
+  .lv-logrow{display:flex;gap:11px;font-size:12.5px;padding:6px 0;border-bottom:1px solid rgba(30,28,24,.05);}
+  .lv-logrow:last-child{border-bottom:none;}
+  .lv-logt{color:#8C887E;font-variant-numeric:tabular-nums;flex:none;font-weight:600;}
+  .lv-soon{border-style:dashed;opacity:.9;}
   /* ===== Monitoreo: panel inteligente ===== */
   .mon-pulse{margin:2px 0 8px;}
   .mp-row{display:flex;align-items:center;gap:7px;font-size:12px;color:#55524B;flex-wrap:wrap;}
@@ -995,7 +1015,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.23 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.24 · 2026-06-10</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1261,7 +1281,7 @@
 <div class="rd-ov" id="rdOv">
   <div class="rd-head"><button class="rd-x" id="rdBack" title="Volver">←</button><span class="rd-name" id="rdName">Ruta</span><span class="rd-tag" id="rdCamion"></span></div>
   <div class="rd-meta" id="rdMeta"></div>
-  <div class="rd-tabs"><button class="rd-tab on" data-rt="datos">Datos</button><button class="rd-tab" data-rt="viajes">Viajes</button><button class="rd-tab" data-rt="reportes">Reportes</button></div>
+  <div class="rd-tabs"><button class="rd-tab" data-rt="envivo" id="rdTabLive" style="display:none">🛰 En vivo</button><button class="rd-tab on" data-rt="datos">Datos</button><button class="rd-tab" data-rt="viajes">Viajes</button><button class="rd-tab" data-rt="reportes">Reportes</button></div>
   <div class="rd-dates" id="rdDates"></div>
   <div id="rdBody"></div>
 </div>
@@ -1315,7 +1335,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.23 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.24 · 2026-06-10</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1533,7 +1553,7 @@
   let nextWpIdx=0, doneWps=new Set();
   let followOn=true, voiceOn=true;
   let lastVoiceAnnounce={};   // {wpIdx: {early:true, mid:true, imminent:true}}
-  let lastDeviationAt=0, lastTruckPos=null;
+  let lastDeviationAt=0, lastTruckPos=null, lastAccuracy=null;
   let deviated=false, deviationStartIdx=0;  // tramos rojos
   let skippedSegments=[];      // [{from, to, distance}]
   let wakeLock=null;
@@ -1895,7 +1915,7 @@
     if(waypoints.length<2)return;
     const {segs,total}=buildSegs();
     let startTraveled=0;
-    if(pauseState && pauseState.total===total){startTraveled=pauseState.traveled;}
+    if(pauseState && Math.abs(pauseState.total-total)<1){startTraveled=Math.min(pauseState.traveled,total);}
     else{
       pauseState=null;
       if(progLine){map.removeLayer(progLine);progLine=null;}
@@ -1918,7 +1938,7 @@
     }
     animId=requestAnimationFrame(frame);
   }
-  function pause(){playing=false;if(animId)cancelAnimationFrame(animId);setPlayLabel('▶','Reanudar');setMarkersVisible(true);}
+  function pause(){playing=false;if(animId){cancelAnimationFrame(animId);animId=null;}setPlayLabel('▶','Reanudar');setMarkersVisible(true);}
 
   // REINICIAR: vuelve al inicio pero NO arranca. Queda en pausa esperando Play.
   function restartAnim(){
@@ -2068,6 +2088,8 @@
       route: currentRuta?(currentRuta.nombre||null):((routeRefs&&routeRefs.title)?routeRefs.title:null),
       rutaId: currentRutaId||null,
       _idx: (typeof nextWpIdx==='number'?nextWpIdx:null),
+      acc: (lastAccuracy!=null?Math.round(lastAccuracy):null),
+      inicio: (tripStartedAt?new Date(tripStartedAt).getTime():null),
       cov: (waypoints&&waypoints.length&&doneWps)?covEnc(doneWps,waypoints.length):null,
       ts: Date.now()
     };
@@ -2323,7 +2345,8 @@
         +'<h4>Línea de estado</h4><p>Arriba del panel: "<b>3</b> en vivo · <b>2</b> de hoy sin salir · <b>1</b> sin señal". Si no hay nada: "No hay rutas activas".</p>'
         +'<h4>Colores sobre el mapa</h4><p><b style="color:#27A35B">Verde</b> = calles ya recorridas por el camión. <b>Color de la ruta</b> = lo que falta. <b style="color:#C2402F">Rojo punteado</b> = calles que el camión <b>omitió</b> al terminar. Esto es lo más valioso: ningún GPS común te dice qué calles quedaron sin recoger.</p>'
         +'<h4>Tarjetas en vivo</h4><p>Cada camión activo muestra su % de avance y "última señal hace X" — si pasa de 2 minutos se pone roja: puede estar sin cobertura o apagado.</p>'
-        +'<h4>Simular</h4><p>El botón ▶ en una ruta lanza un recorrido de prueba (10 seg) para ver cómo se pinta todo, sin sacar un camión real.</p>'},
+        +'<h4>Simular</h4><p>El botón ▶ en una ruta lanza un recorrido de prueba (10 seg) para ver cómo se pinta todo, sin sacar un camión real.</p>'
+        +'<h4>Panel "En vivo" del viaje</h4><p>Al tocar un camión que está transmitiendo, se abre su detalle con una pestaña <b>🛰 En vivo</b>: estado del viaje (en curso / sin señal / solicita cierre), posición GPS con precisión y frescura de la señal, trazabilidad (puntos visitados vs pendientes con barra), bitácora de eventos del viaje y alertas. Tolva, salud del camión y CTR aparecen como "Próximamente" hasta que existan sus sensores/módulos.</p>'},
       rutas:{t:'Rutas · Crear y editar',h:'<p>Aquí defines las rutas que luego se monitorean y despachan.</p>'
         +'<h4>Orden correcto</h4><p><b>1 · Trazado:</b> importa el archivo KMZ/KML del recorrido (o dibújalo). <b>2 · Datos:</b> nombre, sector, camión, chofer, supervisor y frecuencia (qué días se trabaja).</p>'
         +'<h4>Sector</h4><p>La zona del municipio (Centro, Norte…). Se usa para el semáforo por sectores en Inicio. Puedes escribir uno nuevo o elegir de los ya usados.</p>'
@@ -2689,14 +2712,14 @@
     stopSim(); const code='SIM-'+(r.camion||id).toString().replace(/\s/g,''); const key=fbKey(code); simStartTs=Date.now();
     const cum=[0]; for(let k=1;k<pts.length;k++)cum.push(cum[k-1]+haversine(pts[k-1],pts[k])); const L=cum[cum.length-1]||1;
     const DUR=10000; let lastFb=0;
-    const seed={code:code,name:'Simulación',lat:pts[0][0],lng:pts[0][1],progress:0,status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:0,ts:Date.now()};
+    const seed={code:code,name:'Simulación',lat:pts[0][0],lng:pts[0][1],progress:0,status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:0,acc:5,inicio:simStartTs,ts:Date.now()};
     if(fbDb)fbDb.ref('live/'+key).update(seed); supLast=supLast||{}; supLast[key]=seed; showRouteLayer(id); renderMonitor();
     simTimer=setInterval(()=>{ const el=Date.now()-simStartTs; let f=el/DUR; if(f>=1)f=1;
       const d=f*L; let idx=0; while(idx<cum.length-1 && cum[idx+1]<d)idx++;
       const segLen=(cum[idx+1]-cum[idx])||1; const fr=Math.max(0,Math.min(1,(d-cum[idx])/segLen));
       const a=pts[idx], b=pts[Math.min(idx+1,pts.length-1)]; const lat=a[0]+(b[0]-a[0])*fr, lng=a[1]+(b[1]-a[1])*fr;
       const _cs=new Set(); for(let q=0;q<=idx;q++)_cs.add(q); if(f>=1)for(let q=0;q<pts.length;q++)_cs.add(q);
-      const o={code:code,name:'Simulación',lat:lat,lng:lng,progress:Math.round(f*100),status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:idx,cov:covEnc(_cs,pts.length),ts:Date.now()};
+      const o={code:code,name:'Simulación',lat:lat,lng:lng,progress:Math.round(f*100),status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:idx,cov:covEnc(_cs,pts.length),acc:5,inicio:simStartTs,ts:Date.now()};
       supLast[key]=o;
       if(Date.now()-lastFb>900){ lastFb=Date.now(); if(fbDb)fbDb.ref('live/'+key).update(o); }
       if(typeof renderSupervisor==='function')renderSupervisor(supLast); updateLiveTrails();
@@ -2721,20 +2744,100 @@
   let rdId=null, rdTab='datos', rdDate=null, rdViajes={}, rdReportes={};
   function fmtTime(ts){ if(!ts)return '—'; const d=new Date(ts); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
   function fmtFecha(f){ if(!f)return '—'; const p=String(f).split('-'); if(p.length!==3)return f; const ms=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return parseInt(p[2],10)+' '+ms[parseInt(p[1],10)-1]+' '+p[0]; }
-  function openRouteDetail(id){ rdId=id; rdTab='datos'; rdDate=null; rdViajes={}; rdReportes={};
+  function openRouteDetail(id){ rdId=id; rdDate=null; rdViajes={}; rdReportes={};
+    const liveNow=(typeof liveByRuta==='function')?liveByRuta():{};
+    rdTab=liveNow[id]?'envivo':'datos';
     document.getElementById('rdOv').classList.add('show');
-    document.querySelectorAll('#rdOv .rd-tab').forEach(t=>t.classList.toggle('on',t.dataset.rt==='datos'));
+    syncRdTabs();
+    document.querySelectorAll('#rdOv .rd-tab').forEach(t=>t.classList.toggle('on',t.dataset.rt===rdTab));
     renderDetail();
     if(fbDb){ Promise.all([fbDb.ref('rutas/'+id+'/viajes').once('value'),fbDb.ref('rutas/'+id+'/reportes').once('value')]).then(function(res){ rdViajes=res[0].val()||{}; rdReportes=res[1].val()||{}; renderDetail(); }).catch(function(){}); } }
-  function closeRouteDetail(){ document.getElementById('rdOv').classList.remove('show'); rdId=null; }
+  function syncRdTabs(){ const live=(typeof liveByRuta==='function')?liveByRuta():{}; const t=document.getElementById('rdTabLive'); if(t)t.style.display=(rdId&&live[rdId])?'':'none'; }
+  function closeRouteDetail(){ document.getElementById('rdOv').classList.remove('show'); rdId=null; if(rdLiveTimer){clearInterval(rdLiveTimer);rdLiveTimer=null;} }
+  let rdLiveTimer=null;
+  function renderLiveTrip(r,body){
+    const live=(typeof liveByRuta==='function')?liveByRuta():{}; const t=live[rdId];
+    if(!t){ body.innerHTML='<div class="rd-empty">Este viaje ya no está en vivo. Mira el resultado en Viajes o Reportes.</div>'; return; }
+    const pts=decode(r.wp||'')||[]; const nPts=pts.length;
+    const bits=t.cov?covDec(t.cov,nPts):null;
+    let visit=0; if(bits)bits.forEach(b=>{if(b)visit++;}); else visit=Math.round((Math.max(0,Math.min(100,t.progress||0))/100)*nPts);
+    const pend=Math.max(0,nPts-visit); const cumpl=nPts?Math.round(visit/nPts*100):0;
+    const age=t.ts?Math.round((Date.now()-t.ts)/1000):null;
+    const ageTx=age==null?'—':(age<60?('hace '+age+' s'):('hace '+Math.round(age/60)+' min'));
+    const stale=(age!=null&&age>120);
+    // máquina de estados
+    const isSim=(t.name==='Simulación')||((t.code||'').indexOf('SIM-')===0);
+    let estado,ecol; if(t.status==='termino'){estado='Solicita cierre';ecol='#B0843C';}
+      else if(stale){estado='En curso · sin señal';ecol='#C2402F';}
+      else {estado='En curso';ecol='#27A35B';}
+    const ini=t.inicio||t._ini||null;
+    // bitácora derivada
+    const log=[];
+    const env=(r.envios&&Object.keys(r.envios).length)?r.envios[Object.keys(r.envios).sort().pop()]:null;
+    if(env&&env.ts)log.push({ts:env.ts,tx:'Ruta despachada'+(env.choferCode?(' · '+env.choferCode):'')});
+    if(ini)log.push({ts:ini,tx:'Viaje iniciado'});
+    if(visit>0)log.push({ts:t.ts-1000,tx:visit+' de '+nPts+' puntos cubiertos'});
+    if(stale)log.push({ts:t.ts,tx:'⚠ Señal perdida ('+ageTx+')'});
+    else log.push({ts:t.ts,tx:'Posición actualizada'});
+    log.sort((a,b)=>(b.ts||0)-(a.ts||0));
+    // alertas del viaje
+    const al=[];
+    if(stale)al.push({sev:2,tx:'Sin señal GPS hace '+Math.round(age/60)+' min'});
+    if(cumpl<40&&age!=null&&ini&&(Date.now()-ini)>2*3600*1000)al.push({sev:1,tx:'Avance lento: '+cumpl+'% tras '+Math.round((Date.now()-ini)/3600000)+' h'});
+    if(t.progress!=null&&t.progress>=100&&t.status!=='termino')al.push({sev:1,tx:'Recorrido al 100% · pendiente de cierre'});
+    let h='';
+    // 1. Estado del viaje
+    h+='<div class="lv-card"><div class="lv-h">ESTADO DEL VIAJE</div>'
+      +'<div class="lv-state" style="color:'+ecol+';background:'+ecol+'14;border-color:'+ecol+'33"><span class="lv-sdot" style="background:'+ecol+'"></span>'+estado+(isSim?' · simulación':'')+'</div>'
+      +'<div class="lv-grid2"><div class="lv-cell"><span>Inicio</span><b>'+(ini?fmtTime(ini):'—')+'</b></div>'
+      +'<div class="lv-cell"><span>Cumplimiento</span><b style="color:'+ecol+'">'+cumpl+'%</b></div></div></div>';
+    // 2. Trazabilidad
+    h+='<div class="lv-card"><div class="lv-h">TRAZABILIDAD DE RUTA</div>'
+      +'<div class="lv-bar"><i style="width:'+cumpl+'%;background:'+ecol+'"></i></div>'
+      +'<div class="lv-grid3"><div class="lv-cell"><span>Programados</span><b>'+nPts+'</b></div>'
+      +'<div class="lv-cell"><span>Visitados</span><b style="color:#27A35B">'+visit+'</b></div>'
+      +'<div class="lv-cell"><span>Pendientes</span><b style="color:#C2402F">'+pend+'</b></div></div></div>';
+    // 3. GPS en vivo
+    h+='<div class="lv-card"><div class="lv-h">POSICIÓN GPS</div>'
+      +'<div class="lv-grid2"><div class="lv-cell"><span>Latitud</span><b>'+(t.lat!=null?Number(t.lat).toFixed(5):'—')+'</b></div>'
+      +'<div class="lv-cell"><span>Longitud</span><b>'+(t.lng!=null?Number(t.lng).toFixed(5):'—')+'</b></div>'
+      +'<div class="lv-cell"><span>Última señal</span><b style="color:'+(stale?'#C2402F':'#27A35B')+'">'+ageTx+'</b></div>'
+      +'<div class="lv-cell"><span>Precisión</span><b>'+(t.acc!=null?Math.round(t.acc)+' m':'—')+'</b></div></div>'
+      +'<button class="mon-tinybtn" id="lvFocus" style="width:100%;margin-top:9px;flex:none"><i class="ti ti-focus-2"></i> Centrar en el mapa</button></div>';
+    // 4. Alertas del viaje
+    if(al.length){ h+='<div class="lv-card"><div class="lv-h">ALERTAS DEL VIAJE</div>';
+      al.forEach(a=>{ h+='<div class="lv-alert'+(a.sev===2?' grave':'')+'"><span class="mi-dot"></span>'+esc(a.tx)+'</div>'; }); h+='</div>'; }
+    // 5. Bitácora
+    h+='<div class="lv-card"><div class="lv-h">BITÁCORA OPERACIONAL</div><div class="lv-log">';
+    log.slice(0,6).forEach(e=>{ h+='<div class="lv-logrow"><span class="lv-logt">'+(e.ts?fmtTime(e.ts):'—')+'</span><span>'+esc(e.tx)+'</span></div>'; });
+    h+='</div></div>';
+    // Próximamente
+    h+='<div class="lv-card lv-soon"><div class="lv-h">CAPACIDAD DE TOLVA <span class="cc-soontag">Próximamente</span></div>'
+      +'<div class="cc-soonbody">Saturación de la tolva (MSR), volumen y peso estimado en tiempo real para anticipar el viaje a descarga.</div>'
+      +'<div class="cc-soonreq">Requiere: sensor de carga en el camión</div></div>';
+    h+='<div class="lv-card lv-soon"><div class="lv-h">SALUD DEL CAMIÓN <span class="cc-soontag">Próximamente</span></div>'
+      +'<div class="cc-soonbody">Motor, sistema hidráulico, compactador, combustible y temperatura del activo en ruta.</div>'
+      +'<div class="cc-soonreq">Requiere: telemetría OBD del vehículo</div></div>';
+    h+='<div class="lv-card lv-soon"><div class="lv-h">EFICIENCIA · CTR <span class="cc-soontag">Próximamente</span></div>'
+      +'<div class="cc-soonbody">Costo del viaje (combustible, nómina, mantenimiento) y costo proyectado por tonelada recolectada.</div>'
+      +'<div class="cc-soonreq">Requiere: módulo de costos + pesaje</div></div>';
+    body.innerHTML=h;
+    const f=document.getElementById('lvFocus'); if(f)f.addEventListener('click',()=>{ if(t.lat!=null&&t.lng!=null){ showRouteLayer(rdId); map.setView([t.lat,t.lng],16); closeRouteDetail(); if(typeof setSection==='function')setSection('monitoreo'); } });
+  }
   function renderDetail(){ if(!rdId)return; const r=mgmtRutas[rdId]||{};
     document.getElementById('rdName').textContent=r.nombre||'Ruta';
     const tag=document.getElementById('rdCamion'); tag.textContent=r.camion||'sin camión'; tag.style.display=r.camion?'':'none';
     document.getElementById('rdMeta').textContent='Chofer: '+(r.choferCode||'—')+'  ·  Sup: '+(r.supCode||'—')+(r.freq&&r.freq.length?('  ·  '+r.freq.join('·')):'');
     const dates=document.getElementById('rdDates'), body=document.getElementById('rdBody'); dates.innerHTML=''; body.innerHTML='';
+    syncRdTabs();
+    if(rdTab==='envivo'){ renderLiveTrip(r,body); if(!rdLiveTimer)rdLiveTimer=setInterval(()=>{ if(rdTab==='envivo'&&rdId)renderDetail(); else {clearInterval(rdLiveTimer);rdLiveTimer=null;} },5000); return; }
+    if(rdLiveTimer){clearInterval(rdLiveTimer);rdLiveTimer=null;}
     if(rdTab==='datos'){
       const ptsArr=decode(r.wp||'')||[]; const km=kmOf(ptsArr);
-      body.innerHTML='<div class="rd-item">'
+      const lv=(typeof liveByRuta==='function')?liveByRuta()[rdId]:null;
+      let liveHtml='';
+      if(lv){ liveHtml=buildLivePanel(r,lv,ptsArr); }
+      body.innerHTML=liveHtml+'<div class="rd-item">'
         +'<div class="mon-line" style="color:var(--tx0)"><i class="ti ti-map-pin"></i> '+ptsArr.length+' puntos · '+km.toFixed(2)+' km</div>'
         +'<div class="mon-line"><i class="ti ti-truck"></i> Camión: '+esc(r.camion||'sin asignar')+'</div>'
         +'<div class="mon-line"><i class="ti ti-user"></i> Chofer: '+esc(r.choferCode||'sin asignar')+'</div>'
@@ -3579,6 +3682,7 @@
 
   function onGpsUpdate(pos){
     const lat=pos.coords.latitude, lng=pos.coords.longitude, acc=pos.coords.accuracy||20;
+    lastAccuracy=acc;
     const p=[lat,lng];
     lastTruckPos=p;
 
