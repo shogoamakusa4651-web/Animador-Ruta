@@ -839,6 +839,29 @@
     .ini-bar{flex-wrap:wrap;}
     .q-chip{display:none;}
   }
+  /* ===== Monitoreo: franja superior de situación ===== */
+  .mon-strip{position:fixed;top:var(--topbar);left:var(--rail);right:0;z-index:2550;display:none;flex-direction:column;background:#23211D;color:#ECEAE3;font-family:-apple-system,'Segoe UI',sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.2);}
+  body.sec-monitoreo .mon-strip{display:flex;}
+  .ms-cells{display:flex;align-items:stretch;}
+  .ms-cell{flex:1;display:flex;flex-direction:column;gap:1px;padding:8px 14px;border-right:1px solid rgba(255,255,255,.08);}
+  .ms-cell:last-child{border-right:none;}
+  .ms-cell b{font-size:19px;line-height:1;letter-spacing:-.5px;}
+  .ms-cell span{font-size:10px;color:#A8A49B;font-weight:600;letter-spacing:.3px;}
+  .ms-ia{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;background:rgba(194,64,47,.14);border-top:1px solid rgba(255,255,255,.06);line-height:1.3;}
+  .ms-ia.ok{background:rgba(39,163,91,.12);color:#Bfe3cd;}
+  .ms-iatag{font-size:9px;font-weight:800;letter-spacing:.5px;background:#C2402F;color:#fff;padding:2px 7px;border-radius:999px;flex:none;}
+  .ms-iatag.ok{background:#27A35B;}
+  .ms-ia b{color:#fff;}
+  .ms-iamore{font-size:10px;color:#A8A49B;font-weight:700;}
+  /* empujar mapa y panel bajo la franja en monitoreo */
+  body.sec-monitoreo .mon-panel.show{top:calc(var(--topbar) + 70px);}
+  @media(max-width:768px){
+    .mon-strip{left:0;}
+    .ms-cell{padding:6px 9px;}
+    .ms-cell b{font-size:15px;}
+    .ms-cell span{font-size:8.5px;}
+    .ms-ia{font-size:11px;}
+  }
   /* ===== Panel viaje en vivo ===== */
   .lv-card{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:13px;padding:12px 13px;margin-bottom:9px;}
   body.dark .lv-card{background:#26241F;border-color:rgba(255,255,255,.08);}
@@ -1000,6 +1023,7 @@
 </head>
 <body>
 <div id="map"></div>
+<div class="mon-strip" id="monStrip"></div>
 <nav class="shell-nav" id="shellNav">
   <div class="shell-logo"><span class="ic"><i class="ti ti-truck" aria-hidden="true"></i></span><span class="tx">Animador<br>de Ruta</span></div>
   <div class="nav-item" data-sec="inicio"><i class="ti ti-home" aria-hidden="true"></i>Inicio</div>
@@ -1015,7 +1039,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.25 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.26 · 2026-06-10</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1268,7 +1292,7 @@
   <button class="mon-crear" id="monCrearBtn"><i class="ti ti-plus" aria-hidden="true"></i> Crear ruta</button>
   <div style="display:flex;gap:7px;margin-bottom:12px"><button class="mon-tinybtn" id="monAllBtn" style="flex:1">Ver todas</button></div>
   <div class="mon-days" id="monDays"></div>
-  <div class="mon-sec">EN VIVO</div>
+  <div class="mon-sec">VIAJES ACTIVOS</div>
   <div id="monActive"></div>
   <div id="monInactiveWrap">
   <div class="mon-divider"></div>
@@ -1335,7 +1359,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.25 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.26 · 2026-06-10</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2341,7 +2365,8 @@
         +'<h4>Expedientes del día</h4><p>Cada ruta que envías abre un "expediente". Se marca <b>Resuelto</b> si el chofer la completó sin omitir calles, o <b>Escalado</b> si quedaron calles sin recoger o la calificación fue baja. Es la trazabilidad institucional.</p>'
         +'<h4>Mapa Estratégico · Sectores</h4><p>Agrupa las rutas por zona (Centro, Norte, Sur…) y muestra un semáforo de cumplimiento por sector. <i>Para activarlo:</i> ponle un "Sector" a cada ruta en el editor.</p>'
         +'<h4>Salud de flota</h4><p>Verde = operativos, ámbar = en reparación. La disponibilidad se calcula solo sobre esos dos (los "fuera de uso" no se cuentan porque ese inventario no está actualizado).</p>'},
-      monitoreo:{t:'Monitoreo · Sala de control en vivo',h:'<p>Aquí ves lo que está pasando <b>ahora mismo</b> sobre el mapa. El mapa es el protagonista; el panel es solo apoyo.</p>'
+      monitoreo:{t:'Monitoreo · Sala de control en vivo',h:'<p>Aquí ves lo que está pasando <b>ahora mismo</b> sobre el mapa. El mapa es el protagonista; el camión es solo una entidad dentro de la operación.</p>'
+        +'<h4>Franja superior</h4><p>Situación operacional en vivo: ISOM, viajes activos, cobertura, flota, completadas e incidencias — con colores semáforo. Debajo, la <b>IA</b> avisa patrones reales (rutas con omisiones repetidas o calificación baja). El análisis de combustible aparecerá cuando se registre el consumo por camión.</p>'
         +'<h4>Línea de estado</h4><p>Arriba del panel: "<b>3</b> en vivo · <b>2</b> de hoy sin salir · <b>1</b> sin señal". Si no hay nada: "No hay rutas activas".</p>'
         +'<h4>Colores sobre el mapa</h4><p><b style="color:#27A35B">Verde</b> = calles ya recorridas por el camión. <b>Color de la ruta</b> = lo que falta. <b style="color:#C2402F">Rojo punteado</b> = calles que el camión <b>omitió</b> al terminar. Esto es lo más valioso: ningún GPS común te dice qué calles quedaron sin recoger.</p>'
         +'<h4>Tarjetas en vivo</h4><p>Cada camión activo muestra su % de avance y "última señal hace X" — si pasa de 2 minutos se pone roja: puede estar sin cobertura o apagado.</p>'
@@ -2628,12 +2653,61 @@
       g.addTo(map); omitLayers[key]=g; }); }
   let omitLayers={};
   function liveByRuta(){ const live=supLast||{}, m={}; Object.keys(live).forEach(k=>{ const t=live[k]; const age=(Date.now()-((t&&t.ts)||0))/1000; if(t&&t.rutaId&&t.status!=='offline'&&t.status!=='termino'&&age<=40)m[t.rutaId]=t; }); return m; }
+  function renderMonStrip(byRuta){
+    const strip=document.getElementById('monStrip'); if(!strip)return;
+    const rutas=mgmtRutas||{}; const ids=Object.keys(rutas);
+    const nw=new Date(); const hoy=nw.getFullYear()+'-'+String(nw.getMonth()+1).padStart(2,'0')+'-'+String(nw.getDate()).padStart(2,'0');
+    const tl=todayLetter(); const cam=mgmtCamiones||{};
+    const camByFicha={}; Object.keys(cam).forEach(k=>{ const c=cam[k]||{}; camByFicha[c.ficha||k]=c; });
+    const todayIds=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(tl));
+    function stOf(id){ const r=rutas[id]||{}; if(r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length)return 'completada'; if(byRuta[id])return 'curso'; if(r.envios&&r.envios[hoy])return 'enviada'; return 'pendiente'; }
+    let nDone=0; let kmP=0,kmD=0;
+    todayIds.forEach(id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); kmP+=km; const s=stOf(id);
+      if(s==='completada'){nDone++;kmD+=km;} else if(s==='curso'){const t=byRuta[id]||{};kmD+=km*Math.max(0,Math.min(100,Number(t.progress)||0))/100;} });
+    const cob=(todayIds.length&&kmP)?Math.round(kmD/kmP*100):null;
+    let disp=0,fTal=0; Object.keys(cam).forEach(k=>{ const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))disp++; else if(e.indexOf('fuera')<0)fTal++; });
+    const totF=disp+fTal; const fPct=totF?Math.round(disp/totF*100):null;
+    let scs=[]; ids.forEach(id=>{ const reps=(rutas[id]||{}).reportes||{}; Object.keys(reps).forEach(k=>{ const rp=reps[k]||{}; const sc=(rp.rating!=null?rp.rating:rp.routeCompletion); if(rp.fecha===hoy&&sc!=null)scs.push(Number(sc)||0); }); });
+    const avg=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null;
+    // incidencias en vivo
+    let inc=0, crit=0;
+    todayIds.forEach(id=>{ const r=rutas[id]||{}; const s=stOf(id); if(s==='pendiente'&&!r.choferCode){inc++;crit++;} if(r.camion){const c=camByFicha[r.camion]; if(c&&!camActivo(c.estado)){inc++;crit++;}} });
+    Object.keys(byRuta).forEach(id=>{ const t=byRuta[id]||{}; if(t.ts&&(Date.now()-t.ts)>120000){inc++;crit++;} });
+    // ISOM (igual fórmula que Inicio)
+    const parts=[]; if(todayIds.length)parts.push({w:.35,v:Math.round(nDone/todayIds.length*100)});
+    if(cob!=null)parts.push({w:.25,v:cob}); if(fPct!=null)parts.push({w:.2,v:fPct}); if(avg!=null)parts.push({w:.2,v:avg});
+    let isom=null; if(parts.length){ const ws=parts.reduce((a,p)=>a+p.w,0); isom=Math.round(parts.reduce((a,p)=>a+p.v*p.w,0)/ws); isom=Math.max(0,isom-Math.min(15,crit*5)); }
+    const nActivos=Object.keys(byRuta).length;
+    function col(v,g,y){ return v==null?'#8C887E':(v>=g?'#27A35B':(v>=y?'#B0843C':'#C2402F')); }
+    const cells=[
+      {l:'ISOM',v:isom==null?'—':isom,c:col(isom,80,60)},
+      {l:'Viajes activos',v:nActivos,c:nActivos?'#2F7DC2':'#8C887E'},
+      {l:'Cobertura',v:cob!=null?cob+'%':'—',c:col(cob,80,50)},
+      {l:'Flota',v:fPct!=null?fPct+'%':'—',c:col(fPct,70,40)},
+      {l:'Completadas',v:nDone+'/'+(todayIds.length||0),c:'#3A3833'},
+      {l:'Incidencias',v:inc,c:inc?(crit?'#C2402F':'#B0843C'):'#27A35B'}
+    ];
+    let h='<div class="ms-cells">';
+    cells.forEach(c=>{ h+='<div class="ms-cell"><b style="color:'+c.c+'">'+c.v+'</b><span>'+c.l+'</span></div>'; });
+    h+='</div>';
+    // IA prescriptiva global (patrones reales)
+    const ia=[]; const d14=Date.now()-14*24*3600*1000;
+    ids.forEach(id=>{ const r=rutas[id]||{}; const reps=r.reportes||{}; let oDays=0,scs2=[];
+      Object.keys(reps).forEach(k=>{ const rp=reps[k]||{}; if((rp.ts||rp.fin||0)<d14)return; const sc=(rp.rating!=null?rp.rating:rp.routeCompletion); if(sc!=null)scs2.push(Number(sc)||0); if(rp.omitidos)oDays++; });
+      if(oDays>=2)ia.push({sev:2,t:esc(r.nombre||id),tx:'omisiones repetidas en '+oDays+' recorridos · revisar acceso o dividir la ruta'});
+      if(scs2.length>=3){ const av=scs2.reduce((a,b)=>a+b,0)/scs2.length; if(av<60)ia.push({sev:2,t:esc(r.nombre||id),tx:'calificación baja sostenida ('+Math.round(av)+'/100) · evaluar chofer o condiciones'}); } });
+    if(ia.length){ const a=ia[0];
+      h+='<div class="ms-ia"><span class="ms-iatag">IA</span><b>'+a.t+'</b>: '+a.tx+(ia.length>1?(' <span class="ms-iamore">+'+(ia.length-1)+'</span>'):'')+'</div>'; }
+    else h+='<div class="ms-ia ok"><span class="ms-iatag ok">IA</span>Operación dentro de lo normal · sin patrones que requieran acción</div>';
+    strip.innerHTML=h;
+  }
   function renderMonitor(){
     const mp=document.getElementById('monPanel'); if(!mp||!mp.classList.contains('show'))return;
     const days=document.getElementById('monDays'); days.innerHTML='';
     DAYS.forEach(d=>{ const b=document.createElement('button'); b.className='mon-day'+(monDaysSel.has(d)?' on':''); b.textContent=d;
       b.addEventListener('click',()=>{ monAllOn=false; if(monDaysSel.has(d))monDaysSel.delete(d); else monDaysSel.add(d); syncMonLayers(); renderMonitor(); }); days.appendChild(b); });
     const byRuta=liveByRuta();
+    renderMonStrip(byRuta);
     // ---- línea de estado mínima (sin dashboard)
     (function(){
       const pulse=document.getElementById('monPulse'); if(!pulse)return;
