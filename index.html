@@ -590,6 +590,24 @@
   .shell-foot .dot{width:7px;height:7px;border-radius:50%;background:#7E9B86;flex:none;}
   .shell-top{position:fixed;top:0;left:var(--rail);right:0;height:var(--topbar);z-index:2600;display:none;align-items:center;gap:11px;padding:0 18px;background:#FBFAF6;border-bottom:1px solid rgba(30,28,24,.12);box-shadow:0 2px 10px rgba(30,28,24,.05);font-family:-apple-system,'Segoe UI',sans-serif;}
   body.adm-shell .shell-top{display:flex;}
+  .shell-help{margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border:1px solid rgba(30,28,24,.16);border-radius:9px;background:#fff;color:#55524B;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;}
+  .shell-help:hover{border-color:#CF9A4A;color:#9c6b1f;}
+  .shell-help+.shell-user{margin-left:14px;}
+  body.dark .shell-help{background:#2E2C27;color:#ECEAE3;border-color:rgba(255,255,255,.14);}
+  .help-ov{position:fixed;inset:0;z-index:6000;background:rgba(20,18,15,.45);display:none;align-items:center;justify-content:center;padding:20px;}
+  .help-ov.show{display:flex;}
+  .help-card{background:#FBFAF6;border-radius:18px;max-width:560px;width:100%;max-height:84vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.3);}
+  body.dark .help-card{background:#26241F;}
+  .help-head{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid rgba(30,28,24,.08);}
+  .help-title{font-size:16px;font-weight:700;flex:1;}
+  .help-x{width:30px;height:30px;border:none;background:rgba(30,28,24,.06);border-radius:8px;font-size:18px;cursor:pointer;color:#55524B;}
+  .help-body{padding:18px 20px;overflow-y:auto;font-size:13.5px;line-height:1.6;color:#3A3833;}
+  body.dark .help-body{color:#C9C6BE;}
+  .help-body h4{font-size:13px;font-weight:700;margin:16px 0 4px;color:#23211D;}
+  body.dark .help-body h4{color:#ECEAE3;}
+  .help-body p{margin:0 0 4px;}
+  .help-body i{color:#8C887E;}
+  @media(max-width:768px){.shell-help span{display:none;}.help-card{max-height:90vh;}}
   .shell-title{font-size:16px;font-weight:500;color:var(--tx0);}
   .shell-badge{font-size:12px;color:#5f7a66;background:rgba(126,155,134,.16);padding:3px 9px;border-radius:8px;}
   .shell-user{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#44413A;}
@@ -977,13 +995,20 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.21 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.22 · 2026-06-10</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
   <span class="shell-title" id="shellTitle">Inicio</span>
   <span class="shell-badge" id="shellBadge" style="display:none"></span>
+  <button class="shell-help" id="shellHelp" title="¿Qué significa cada cosa?"><i class="ti ti-help" aria-hidden="true"></i> Ayuda</button>
   <span class="shell-user" id="shellUser"><span class="av">A</span>ADM <i class="ti ti-chevron-down" style="font-size:14px" aria-hidden="true"></i></span>
+</div>
+<div class="help-ov" id="helpOv">
+  <div class="help-card">
+    <div class="help-head"><span class="help-title" id="helpTitle">Ayuda</span><button class="help-x" id="helpX" title="Cerrar">×</button></div>
+    <div class="help-body" id="helpBody"></div>
+  </div>
 </div>
 <div class="user-menu" id="userMenu">
   <div class="um-item" id="umTheme"><i class="ti ti-moon" aria-hidden="true"></i> <span id="umThemeTx">Modo oscuro</span></div>
@@ -1290,7 +1315,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.21 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.22 · 2026-06-10</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2284,6 +2309,34 @@
   function applyTheme(t){ document.body.classList.toggle('dark',t==='dark'); const tx=document.getElementById('umThemeTx'); if(tx)tx.textContent=(t==='dark'?'Modo claro':'Modo oscuro'); const ic=document.querySelector('#umTheme i'); if(ic)ic.className='ti ti-'+(t==='dark'?'sun':'moon'); try{localStorage.setItem('animador_theme',t);}catch(_){ } }
   function toggleTheme(){ applyTheme(document.body.classList.contains('dark')?'light':'dark'); }
   function shellSetup(){
+    const HELP={
+      inicio:{t:'Inicio · Centro de Gobierno Municipal',h:'<p>Esta pantalla resume cómo está toda la operación del municipio <b>hoy</b>, en 10 segundos. No se opera desde aquí — se supervisa.</p>'
+        +'<h4>ISOM · Índice de Servicio Municipal</h4><p>Un solo número de 0 a 100 que resume la operación del día. Se calcula combinando: cumplimiento de rutas (35%), cobertura real recorrida (25%), flota disponible (20%) y calificación de los recorridos (20%), restando puntos si hay incidencias críticas. <i>Ejemplo:</i> ISOM 82 = "Bueno". La flechita ▲/▼ compara con el promedio de la semana pasada.</p>'
+        +'<h4>Resumen del día</h4><p>Viajes ejecutados, km recorridos, cobertura, calificación promedio y toneladas recolectadas (de los pesajes en báscula).</p>'
+        +'<h4>Inteligencia Municipal</h4><p>El sistema revisa los últimos 14 días y avisa patrones: una ruta que repite calles omitidas, un chofer con baja calificación sostenida, etc. <i>Ejemplo:</i> "Ruta Centro acumula omisiones en 3 recorridos → revisar acceso o dividir."</p>'
+        +'<h4>Expedientes del día</h4><p>Cada ruta que envías abre un "expediente". Se marca <b>Resuelto</b> si el chofer la completó sin omitir calles, o <b>Escalado</b> si quedaron calles sin recoger o la calificación fue baja. Es la trazabilidad institucional.</p>'
+        +'<h4>Mapa Estratégico · Sectores</h4><p>Agrupa las rutas por zona (Centro, Norte, Sur…) y muestra un semáforo de cumplimiento por sector. <i>Para activarlo:</i> ponle un "Sector" a cada ruta en el editor.</p>'
+        +'<h4>Salud de flota</h4><p>Verde = operativos, ámbar = en reparación. La disponibilidad se calcula solo sobre esos dos (los "fuera de uso" no se cuentan porque ese inventario no está actualizado).</p>'},
+      monitoreo:{t:'Monitoreo · Sala de control en vivo',h:'<p>Aquí ves lo que está pasando <b>ahora mismo</b> sobre el mapa. El mapa es el protagonista; el panel es solo apoyo.</p>'
+        +'<h4>Línea de estado</h4><p>Arriba del panel: "<b>3</b> en vivo · <b>2</b> de hoy sin salir · <b>1</b> sin señal". Si no hay nada: "No hay rutas activas".</p>'
+        +'<h4>Colores sobre el mapa</h4><p><b style="color:#27A35B">Verde</b> = calles ya recorridas por el camión. <b>Color de la ruta</b> = lo que falta. <b style="color:#C2402F">Rojo punteado</b> = calles que el camión <b>omitió</b> al terminar. Esto es lo más valioso: ningún GPS común te dice qué calles quedaron sin recoger.</p>'
+        +'<h4>Tarjetas en vivo</h4><p>Cada camión activo muestra su % de avance y "última señal hace X" — si pasa de 2 minutos se pone roja: puede estar sin cobertura o apagado.</p>'
+        +'<h4>Simular</h4><p>El botón ▶ en una ruta lanza un recorrido de prueba (10 seg) para ver cómo se pinta todo, sin sacar un camión real.</p>'},
+      rutas:{t:'Rutas · Crear y editar',h:'<p>Aquí defines las rutas que luego se monitorean y despachan.</p>'
+        +'<h4>Orden correcto</h4><p><b>1 · Trazado:</b> importa el archivo KMZ/KML del recorrido (o dibújalo). <b>2 · Datos:</b> nombre, sector, camión, chofer, supervisor y frecuencia (qué días se trabaja).</p>'
+        +'<h4>Sector</h4><p>La zona del municipio (Centro, Norte…). Se usa para el semáforo por sectores en Inicio. Puedes escribir uno nuevo o elegir de los ya usados.</p>'
+        +'<h4>Word de indicaciones</h4><p>Es <b>opcional</b> — genera un documento con las instrucciones de la ruta solo si le das al botón. Ya no se descarga solo.</p>'
+        +'<h4>Enviar ruta</h4><p>Desde el detalle de una ruta generas los enlaces para chofer y supervisor. Al enviar se abre el expediente del día con camión, chofer y supervisor asignados.</p>'},
+      admin:{t:'Administración',h:'<p>Aquí registras los recursos: <b>Camiones</b> (ficha, placa, capacidad, estado), <b>Choferes</b> y <b>Supervisores</b>. Estos aparecen luego como opciones al crear o enviar rutas. El estado del camión (en operación / en reparación) alimenta la salud de flota en Inicio.</p>'},
+      reportes:{t:'Reportes',h:'<p>Historial de todos los recorridos terminados, agrupados por <b>ruta</b>, <b>chofer</b>, <b>supervisor</b> o <b>camión</b>. Cada reporte trae cobertura, calles omitidas, fidelidad al trazado, distancia, calificación y — si se pesó — las toneladas. Filtra por hoy, ayer, semana o un rango de fechas.</p>'
+        +'<h4>Pesaje</h4><p>El peso se registra desde el detalle de la ruta → pestaña Viajes → "Registrar pesaje", cuando el camión llega a la báscula. Si traía carga de 2 rutas, se reparte por porcentaje.</p>'}
+    };
+    function openHelp(){ const sec=(typeof curSec!=='undefined'?curSec:'inicio'); const d=HELP[sec]||HELP.inicio;
+      document.getElementById('helpTitle').textContent=d.t; document.getElementById('helpBody').innerHTML=d.h;
+      document.getElementById('helpOv').classList.add('show'); }
+    const hb=document.getElementById('shellHelp'); if(hb)hb.addEventListener('click',openHelp);
+    const hx=document.getElementById('helpX'); if(hx)hx.addEventListener('click',()=>document.getElementById('helpOv').classList.remove('show'));
+    const hov=document.getElementById('helpOv'); if(hov)hov.addEventListener('click',e=>{ if(e.target===hov)hov.classList.remove('show'); });
     document.querySelectorAll('#shellNav .nav-item[data-sec]').forEach(n=>n.addEventListener('click',()=>setSection(n.dataset.sec)));
     const nr=document.getElementById('navReportes'), nrs=document.getElementById('navRepSub');
     if(nr&&nrs)nr.addEventListener('click',()=>{ const o=nrs.classList.toggle('open'); nr.classList.toggle('open',o); });
