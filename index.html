@@ -1015,7 +1015,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.24 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.25 · 2026-06-10</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1335,7 +1335,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.24 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.25 · 2026-06-10</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2345,7 +2345,7 @@
         +'<h4>Línea de estado</h4><p>Arriba del panel: "<b>3</b> en vivo · <b>2</b> de hoy sin salir · <b>1</b> sin señal". Si no hay nada: "No hay rutas activas".</p>'
         +'<h4>Colores sobre el mapa</h4><p><b style="color:#27A35B">Verde</b> = calles ya recorridas por el camión. <b>Color de la ruta</b> = lo que falta. <b style="color:#C2402F">Rojo punteado</b> = calles que el camión <b>omitió</b> al terminar. Esto es lo más valioso: ningún GPS común te dice qué calles quedaron sin recoger.</p>'
         +'<h4>Tarjetas en vivo</h4><p>Cada camión activo muestra su % de avance y "última señal hace X" — si pasa de 2 minutos se pone roja: puede estar sin cobertura o apagado.</p>'
-        +'<h4>Simular</h4><p>El botón ▶ en una ruta lanza un recorrido de prueba (10 seg) para ver cómo se pinta todo, sin sacar un camión real.</p>'
+        +'<h4>Simular</h4><p>El botón ▶ en una ruta lanza un recorrido de prueba (10 seg). En la tarjeta en vivo: <b>⏸</b> pausa y reanuda donde iba, <b>⏹</b> detiene del todo (la simulación parcial no se registra como viaje completo).</p>'
         +'<h4>Panel "En vivo" del viaje</h4><p>Al tocar un camión que está transmitiendo, se abre su detalle con una pestaña <b>🛰 En vivo</b>: estado del viaje (en curso / sin señal / solicita cierre), posición GPS con precisión y frescura de la señal, trazabilidad (puntos visitados vs pendientes con barra), bitácora de eventos del viaje y alertas. Tolva, salud del camión y CTR aparecen como "Próximamente" hasta que existan sus sensores/módulos.</p>'},
       rutas:{t:'Rutas · Crear y editar',h:'<p>Aquí defines las rutas que luego se monitorean y despachan.</p>'
         +'<h4>Orden correcto</h4><p><b>1 · Trazado:</b> importa el archivo KMZ/KML del recorrido (o dibújalo). <b>2 · Datos:</b> nombre, sector, camión, chofer, supervisor y frecuencia (qué días se trabaja).</p>'
@@ -2670,12 +2670,14 @@
         +'<button class="mon-iconbtn" data-act="zoom" title="Acercar"><i class="ti ti-focus-2"></i></button>'
         +'<button class="mon-iconbtn'+(on?' on':'')+'" data-act="toggle" title="'+(on?'Apagar trazado':'Prender trazado')+'"><i class="ti ti-'+(on?'eye':'eye-off')+'"></i></button>'
         +'<button class="mon-iconbtn" data-act="info" title="Ver información"><i class="ti ti-info-circle"></i></button>'
-        +(isSim?'<button class="mon-iconbtn" data-act="stop" title="Detener simulación" style="color:#C0705F"><i class="ti ti-player-stop"></i></button>':'')
+        +(isSim?('<button class="mon-iconbtn" data-act="pausesim" title="'+(simPaused?'Reanudar':'Pausar')+' simulación"><i class="ti ti-player-'+(simPaused?'play':'pause')+'"></i></button>'
+          +'<button class="mon-iconbtn" data-act="stop" title="Detener simulación" style="color:#C0705F"><i class="ti ti-player-stop"></i></button>'):'')
         +'</div>';
       card.querySelector('[data-act="zoom"]').addEventListener('click',e=>{ e.stopPropagation(); showRouteLayer(id); fitRoute(id); });
       card.querySelector('[data-act="toggle"]').addEventListener('click',e=>{ e.stopPropagation(); toggleRouteLayer(id); });
       card.querySelector('[data-act="info"]').addEventListener('click',e=>{ e.stopPropagation(); openRouteDetail(id); });
       const stp=card.querySelector('[data-act="stop"]'); if(stp)stp.addEventListener('click',e=>{ e.stopPropagation(); stopSim(); });
+      const pss=card.querySelector('[data-act="pausesim"]'); if(pss)pss.addEventListener('click',e=>{ e.stopPropagation(); if(simPaused)resumeSim(); else pauseSim(); });
       card.addEventListener('click',()=>openRouteDetail(id));
       act.appendChild(card); });
     if(!nAct)act.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Ninguna en curso.</div>';
@@ -2707,26 +2709,40 @@
     if(!nIn)inact.innerHTML='<div class="mon-sec" style="color:#ABA9A2">Sin otras rutas'+(monDaysSel.size?(' los días '+[...monDaysSel].join('·')):'')+'.</div>';
     updateLiveTrails();
   }
-  let simStartTs=0;
+  let simStartTs=0, simPaused=false, simElapsed=0, simResumeTs=0, simCtx=null;
   function startSim(id){ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2){toast('Esa ruta no tiene trazado');return;}
-    stopSim(); const code='SIM-'+(r.camion||id).toString().replace(/\s/g,''); const key=fbKey(code); simStartTs=Date.now();
+    stopSim(true); const code='SIM-'+(r.camion||id).toString().replace(/\s/g,''); const key=fbKey(code); simStartTs=Date.now();
     const cum=[0]; for(let k=1;k<pts.length;k++)cum.push(cum[k-1]+haversine(pts[k-1],pts[k])); const L=cum[cum.length-1]||1;
-    const DUR=10000; let lastFb=0;
+    const DUR=10000;
+    simElapsed=0; simPaused=false; simResumeTs=Date.now();
+    simCtx={id:id,r:r,pts:pts,cum:cum,L:L,DUR:DUR,code:code,key:key,lastFb:0};
     const seed={code:code,name:'Simulación',lat:pts[0][0],lng:pts[0][1],progress:0,status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:0,acc:5,inicio:simStartTs,ts:Date.now()};
     if(fbDb)fbDb.ref('live/'+key).update(seed); supLast=supLast||{}; supLast[key]=seed; showRouteLayer(id); renderMonitor();
-    simTimer=setInterval(()=>{ const el=Date.now()-simStartTs; let f=el/DUR; if(f>=1)f=1;
-      const d=f*L; let idx=0; while(idx<cum.length-1 && cum[idx+1]<d)idx++;
-      const segLen=(cum[idx+1]-cum[idx])||1; const fr=Math.max(0,Math.min(1,(d-cum[idx])/segLen));
-      const a=pts[idx], b=pts[Math.min(idx+1,pts.length-1)]; const lat=a[0]+(b[0]-a[0])*fr, lng=a[1]+(b[1]-a[1])*fr;
-      const _cs=new Set(); for(let q=0;q<=idx;q++)_cs.add(q); if(f>=1)for(let q=0;q<pts.length;q++)_cs.add(q);
-      const o={code:code,name:'Simulación',lat:lat,lng:lng,progress:Math.round(f*100),status:'en_ruta',route:r.nombre||null,rutaId:id,_idx:idx,cov:covEnc(_cs,pts.length),acc:5,inicio:simStartTs,ts:Date.now()};
-      supLast[key]=o;
-      if(Date.now()-lastFb>900){ lastFb=Date.now(); if(fbDb)fbDb.ref('live/'+key).update(o); }
-      if(typeof renderSupervisor==='function')renderSupervisor(supLast); updateLiveTrails();
-      if(f>=1){ if(fbDb)fbDb.ref('live/'+key).update({status:'termino',ts:Date.now()}); logViaje(id,r,code,100); stopSim(); toast('Viaje simulado registrado en '+(r.nombre||'ruta')); }
-    },100);
-    toast('Simulando '+(r.nombre||'ruta')+'… (10s)'); }
-  function stopSim(){ if(simTimer){clearInterval(simTimer);simTimer=null;} const s=document.getElementById('simStop'); if(s)s.classList.remove('show'); }
+    simTimer=setInterval(simTick,100);
+    toast('Simulando '+(r.nombre||'ruta')+'… (10s) · usa ⏸ para pausar'); }
+  function simTick(){ if(!simCtx||simPaused)return; const c=simCtx;
+    const el=simElapsed+(Date.now()-simResumeTs); let f=el/c.DUR; if(f>=1)f=1;
+    const d=f*c.L; let idx=0; while(idx<c.cum.length-1 && c.cum[idx+1]<d)idx++;
+    const segLen=(c.cum[idx+1]-c.cum[idx])||1; const fr=Math.max(0,Math.min(1,(d-c.cum[idx])/segLen));
+    const a=c.pts[idx], b=c.pts[Math.min(idx+1,c.pts.length-1)]; const lat=a[0]+(b[0]-a[0])*fr, lng=a[1]+(b[1]-a[1])*fr;
+    const _cs=new Set(); for(let q=0;q<=idx;q++)_cs.add(q); if(f>=1)for(let q=0;q<c.pts.length;q++)_cs.add(q);
+    const o={code:c.code,name:'Simulación',lat:lat,lng:lng,progress:Math.round(f*100),status:'en_ruta',route:c.r.nombre||null,rutaId:c.id,_idx:idx,cov:covEnc(_cs,c.pts.length),acc:5,inicio:simStartTs,ts:Date.now()};
+    supLast[c.key]=o;
+    if(Date.now()-c.lastFb>900){ c.lastFb=Date.now(); if(fbDb)fbDb.ref('live/'+c.key).update(o); }
+    if(typeof renderSupervisor==='function')renderSupervisor(supLast); updateLiveTrails();
+    if(f>=1){ if(fbDb)fbDb.ref('live/'+c.key).update({status:'termino',ts:Date.now()}); logViaje(c.id,c.r,c.code,100); const nm=c.r.nombre||'ruta'; stopSim(); toast('Viaje simulado registrado en '+nm); } }
+  function pauseSim(){ if(!simCtx||simPaused)return; simPaused=true; simElapsed+=Date.now()-simResumeTs; renderMonitor(); toast('Simulación en pausa'); }
+  function resumeSim(){ if(!simCtx||!simPaused)return; simPaused=false; simResumeTs=Date.now(); renderMonitor(); toast('Simulación reanudada'); }
+  function stopSim(silent){ if(simTimer){clearInterval(simTimer);simTimer=null;}
+    // limpiar marcador y trail de esta simulación del mapa
+    if(simCtx){ const k=simCtx.key;
+      try{ if(fbDb)fbDb.ref('live/'+k).update({status:'offline',ts:Date.now()}); }catch(_){ }
+      if(supLast&&supLast[k])delete supLast[k];
+      if(supMarkers&&supMarkers[k]){ map.removeLayer(supMarkers[k]); delete supMarkers[k]; }
+      if(liveTrails&&liveTrails[simCtx.id]){ map.removeLayer(liveTrails[simCtx.id]); delete liveTrails[simCtx.id]; } }
+    simCtx=null; simPaused=false; simElapsed=0;
+    const s=document.getElementById('simStop'); if(s)s.classList.remove('show');
+    if(!silent){ if(typeof renderSupervisor==='function')renderSupervisor(supLast); updateLiveTrails(); renderMonitor(); } }
   function logViaje(id,r,code,prog){ if(!fbDb)return;
     const now=new Date(); const fecha=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
     const kmIni=Number(r.kmInicio)||0; const dist=kmOf(decode(r.wp||''))*(prog/100); const kmFin=kmIni+dist;
