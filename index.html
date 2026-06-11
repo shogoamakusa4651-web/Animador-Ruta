@@ -3233,23 +3233,30 @@
     const body=document.getElementById('recBody'); if(!body)return;
     viajes.sort((a,b)=>(b.fin||0)-(a.fin||0));
     if(recTab==='pesaje'){
-      let h='<div class="rec-note">El camión se pesa <b>lleno</b> al llegar al vertedero y <b>vacío</b> al salir. La diferencia son las toneladas recolectadas. Los viajes con 🗑 fueron al vertedero.</div>';
-      const sinPesar=viajes.filter(v=>v.toneladas==null);
-      const pesados=viajes.filter(v=>v.toneladas!=null);
-      h+='<div class="mon-sec" style="color:#C2402F">PENDIENTES DE PESAJE ('+sinPesar.length+')</div>';
-      if(!sinPesar.length)h+='<div class="rd-empty" style="padding:14px">Todos los viajes están pesados.</div>';
-      sinPesar.slice(0,30).forEach(v=>{ h+=recCard(v,false); });
-      h+='<div class="mon-sec" style="margin-top:16px">PESADOS ('+pesados.length+')</div>';
-      pesados.slice(0,20).forEach(v=>{ h+=recCard(v,true); });
+      let h='<div class="rec-note">El camión se pesa <b>lleno</b> al llegar al vertedero y <b>vacío</b> al salir. Pueden registrarse en momentos distintos (mientras uno descarga, puede pesarse otro). La diferencia son las toneladas. 🗑 = fue al vertedero.</div>';
+      const sinPesar=viajes.filter(v=>v.pesoLleno==null);
+      const faltaVacio=viajes.filter(v=>v.pesoLleno!=null&&v.pesoVacio==null);
+      const completos=viajes.filter(v=>v.pesoVacio!=null);
+      h+='<div class="mon-sec" style="color:#C2402F">SIN PESAR ('+sinPesar.length+')</div>';
+      if(!sinPesar.length)h+='<div class="rd-empty" style="padding:12px">Ninguno pendiente.</div>';
+      sinPesar.slice(0,30).forEach(v=>{ h+=recCard(v,'sin'); });
+      h+='<div class="mon-sec" style="margin-top:16px;color:#B0843C">ESPERANDO PESO VACÍO ('+faltaVacio.length+')</div>';
+      if(!faltaVacio.length)h+='<div class="rd-empty" style="padding:12px">Ninguno en proceso.</div>';
+      faltaVacio.slice(0,30).forEach(v=>{ h+=recCard(v,'falta'); });
+      h+='<div class="mon-sec" style="margin-top:16px">COMPLETOS ('+completos.length+')</div>';
+      completos.slice(0,20).forEach(v=>{ h+=recCard(v,'completo'); });
       body.innerHTML=h;
-      body.querySelectorAll('.rec-pesar').forEach(b=>b.addEventListener('click',()=>openPesajeRec(b.dataset.r,b.dataset.f,b.dataset.k)));
+      body.querySelectorAll('.rec-pl').forEach(b=>b.addEventListener('click',()=>pesarLleno(b.dataset.r,b.dataset.f,b.dataset.k)));
+      body.querySelectorAll('.rec-pv').forEach(b=>b.addEventListener('click',()=>pesarVacio(b.dataset.r,b.dataset.f,b.dataset.k)));
     } else if(recTab==='combustible'){
-      let h='<div class="rec-note">El combustible se registra <b>durante el viaje</b>: cuando un chofer pulsa "Voy a echar combustible", el supervisor registra los galones desde el panel del camión en Monitoreo. Aquí ves el histórico.</div>';
+      let h='<div class="rec-note">Un supervisor registra los <b>galones cargados</b> a cada camión. Si el chofer pulsó "Voy a echar combustible", el camión queda marcado en ruta; si no, igual puedes registrar la carga aquí.</div>'
+        +'<button class="mon-tinybtn" id="recAddFuel" style="width:auto;flex:none;padding:0 14px;margin-bottom:14px;background:#2F7DC2;color:#fff;border-color:#2F7DC2"><i class="ti ti-gas-station"></i> Registrar carga de combustible</button>';
       fbDb.ref('combustible').once('value').then(s=>{ const o=s.val()||{}; const arr=Object.keys(o).map(k=>Object.assign({_k:k},o[k])).sort((a,b)=>(b.ts||0)-(a.ts||0));
-        let hh=h; if(!arr.length)hh+='<div class="rd-empty" style="padding:14px">Aún no hay cargas registradas. Se registran desde el monitor cuando un camión va a la bomba.</div>';
+        let hh=h; if(!arr.length)hh+='<div class="rd-empty" style="padding:14px">Aún no hay cargas registradas.</div>';
         arr.slice(0,40).forEach(c=>{ hh+='<div class="rd-item"><div style="display:flex;align-items:center;gap:8px"><b style="flex:1">'+esc(c.ficha||'—')+'</b><span class="mon-pct">'+(Number(c.galones)||0).toFixed(1)+' gal</span></div>'
           +'<div class="mon-line"><i class="ti ti-calendar"></i> '+esc(fmtFecha(c.fecha||''))+(c.hora?(' '+esc(c.hora)):'')+' · <i class="ti ti-user"></i> '+esc(c.sup||'—')+(c.precio?(' · RD$'+c.precio+'/gal'):'')+(c.durante==='ruta'?' · <span style="color:#2F7DC2">en ruta</span>':'')+'</div></div>'; });
         body.innerHTML=hh;
+        const af=document.getElementById('recAddFuel'); if(af)af.addEventListener('click',addFuel);
       }).catch(()=>{ body.innerHTML=h+'<div class="rd-empty">Error al cargar.</div>'; });
     } else {
       // rendimiento km/galón por camión
@@ -3273,32 +3280,53 @@
       }).catch(()=>{ body.innerHTML='<div class="rd-empty">Error.</div>'; });
     }
   }
-  function recCard(v,pesado){
+  function recCard(v,estado){
     const vert=v.viajesVertedero?(' <span class="rec-vchip">🗑 '+v.viajesVertedero+'</span>'):'';
+    const tieneL=(v.pesoLleno!=null), tieneV=(v.pesoVacio!=null);
+    let pesoLine='';
+    if(estado==='completo')pesoLine='<div class="mon-line" style="color:#27A35B"><i class="ti ti-weight"></i> <b>'+v.toneladas+' t</b> · lleno '+v.pesoLleno+' − vacío '+v.pesoVacio+(v.pesadoPor?(' · '+esc(v.pesadoPor)):'')+'</div>';
+    else if(tieneL)pesoLine='<div class="mon-line" style="color:#B0843C"><i class="ti ti-weight"></i> Lleno: <b>'+v.pesoLleno+' t</b> · falta pesar vacío</div>';
+    let botones='';
+    if(estado==='completo'){
+      botones='<button class="mon-tinybtn rec-pl" data-r="'+esc(v._ruta)+'" data-f="'+esc(v._fecha)+'" data-k="'+esc(v._vk)+'" style="width:auto;flex:none;padding:0 11px;margin-top:7px"><i class="ti ti-pencil"></i> Editar pesaje</button>';
+    } else {
+      botones='<div style="display:flex;gap:7px;margin-top:7px;flex-wrap:wrap">'
+        +'<button class="mon-tinybtn rec-pl" data-r="'+esc(v._ruta)+'" data-f="'+esc(v._fecha)+'" data-k="'+esc(v._vk)+'" style="width:auto;flex:none;padding:0 12px'+(tieneL?'':';background:#B0843C;color:#fff;border-color:#B0843C')+'"><i class="ti ti-arrow-up"></i> '+(tieneL?'Editar lleno':'Pesar LLENO')+'</button>'
+        +(tieneL?('<button class="mon-tinybtn rec-pv" data-r="'+esc(v._ruta)+'" data-f="'+esc(v._fecha)+'" data-k="'+esc(v._vk)+'" style="width:auto;flex:none;padding:0 12px;background:#27A35B;color:#fff;border-color:#27A35B"><i class="ti ti-arrow-down"></i> Pesar VACÍO</button>'):'')
+        +'</div>';
+    }
     return '<div class="rd-item"><div style="display:flex;align-items:center;gap:8px"><b style="flex:1">'+esc(v._rutaName||'')+vert+'</b><span style="font-size:11px;color:#8C887E">'+esc(fmtFecha(v._fecha||''))+'</span></div>'
       +'<div class="mon-line"><i class="ti ti-truck"></i> '+esc(v._ficha||'—')+' · <i class="ti ti-user"></i> '+esc(v.choferCode||'—')+' · <i class="ti ti-map-pin"></i> '+(Number(v.distancia)||0).toFixed(1)+' km'+(v.kmVertedero?(' (ruta '+(Number(v.kmRuta)||0).toFixed(1)+' + vert '+(Number(v.kmVertedero)||0).toFixed(1)+')'):'')+'</div>'
-      +(pesado?('<div class="mon-line" style="color:#27A35B"><i class="ti ti-weight"></i> <b>'+v.toneladas+' t</b>'+(v.pesoLleno?(' · lleno '+v.pesoLleno+' / vacío '+v.pesoVacio):'')+(v.pesadoPor?(' · '+esc(v.pesadoPor)):'')+'</div>'):'')
-      +'<button class="mon-tinybtn rec-pesar" data-r="'+esc(v._ruta)+'" data-f="'+esc(v._fecha)+'" data-k="'+esc(v._vk)+'" style="width:auto;flex:none;padding:0 12px;margin-top:7px"><i class="ti ti-scale"></i> '+(pesado?'Editar pesaje':'Registrar pesaje')+'</button></div>';
+      +pesoLine+botones+'</div>';
   }
-  async function openPesajeRec(rid,fecha,vk){
+  async function pesarLleno(rid,fecha,vk){
     const v=((await fbDb.ref('rutas/'+rid+'/viajes/'+fecha+'/'+vk).once('value')).val())||{};
-    const lleno=await promptDialog('Pesaje en vertedero','Peso del camión LLENO (toneladas):',v.pesoLleno!=null?String(v.pesoLleno):'',{numeric:true});
-    if(lleno===null)return; const ll=parseFloat(String(lleno).replace(',','.')); if(isNaN(ll)){toast('Peso inválido');return;}
-    const vacio=await promptDialog('Pesaje en vertedero','Peso del camión VACÍO (toneladas):',v.pesoVacio!=null?String(v.pesoVacio):'',{numeric:true});
-    if(vacio===null)return; const vc=parseFloat(String(vacio).replace(',','.')); if(isNaN(vc)){toast('Peso inválido');return;}
-    const ton=Math.round((ll-vc)*100)/100; if(ton<0){toast('El lleno debe pesar más que el vacío');return;}
-    const sup=await promptDialog('Pesaje en vertedero','Supervisor que registra:',v.pesadoPor||'',{});
-    if(sup===null)return;
-    let compartido=null,asignado=ton,pct=100;
+    const lleno=await promptDialog('Pesaje · camión LLENO','Peso del camión cargado al llegar al vertedero (toneladas):',v.pesoLleno!=null?String(v.pesoLleno):'',{numeric:true});
+    if(lleno===null)return; const ll=parseFloat(String(lleno).replace(',','.')); if(isNaN(ll)||ll<0){toast('Peso inválido');return;}
+    const sup=await promptDialog('Pesaje · camión LLENO','Supervisor de báscula:',v.pesadoPor||'',{});
+    const upd={ pesoLleno:ll, pesadoPor:(sup||'').trim()||v.pesadoPor||null, pesoLlenoTs:Date.now() };
+    if(v.pesoVacio!=null){ recalcTon(rid,fecha,vk,Object.assign({},v,upd)); }
+    fbDb.ref('rutas/'+rid+'/viajes/'+fecha+'/'+vk).update(upd);
+    toast('Lleno registrado: '+ll+' t · ahora pesa el vacío cuando salga'); setTimeout(renderRecursos,300);
+  }
+  async function pesarVacio(rid,fecha,vk){
+    const v=((await fbDb.ref('rutas/'+rid+'/viajes/'+fecha+'/'+vk).once('value')).val())||{};
+    if(v.pesoLleno==null){ toast('Primero registra el peso lleno'); return; }
+    const vacio=await promptDialog('Pesaje · camión VACÍO','Peso del camión vacío al salir del vertedero (toneladas):',v.pesoVacio!=null?String(v.pesoVacio):'',{numeric:true});
+    if(vacio===null)return; const vc=parseFloat(String(vacio).replace(',','.')); if(isNaN(vc)||vc<0){toast('Peso inválido');return;}
+    const ton=Math.round((v.pesoLleno-vc)*100)/100; if(ton<0){toast('El lleno debe pesar más que el vacío');return;}
+    let asignado=ton,pct=100,compartido=null;
     if(v.viajesVertedero>1||await confirmDialog('¿Carga compartida?','¿Este pesaje incluye basura de DOS rutas distintas?','Sí, compartido')){
       const p=await promptDialog('Reparto','% de toneladas para ESTA ruta ('+((mgmtRutas[rid]||{}).nombre||'')+'):','50',{numeric:true});
       if(p!==null){ pct=Math.max(0,Math.min(100,parseFloat(String(p).replace(',','.'))||100)); asignado=Math.round(ton*pct)/100; compartido=await promptDialog('Reparto','Otra ruta (referencia):',v.pesoCompartido||'',{}); }
     }
-    const upd={ toneladas:asignado, pesoLleno:ll, pesoVacio:vc, pesoTotal:ton, pesoPct:pct, pesoCompartido:(compartido||'').trim()||null, pesadoPor:(sup||'').trim()||null, pesadoTs:Date.now() };
+    const upd={ pesoVacio:vc, pesoTotal:ton, toneladas:asignado, pesoPct:pct, pesoCompartido:(compartido||'').trim()||null, pesoVacioTs:Date.now() };
     fbDb.ref('rutas/'+rid+'/viajes/'+fecha+'/'+vk).update(upd);
     try{ fbDb.ref('rutas/'+rid+'/reportes').orderByChild('fecha').equalTo(fecha).once('value').then(s=>{ const o=s.val()||{}; const rk=Object.keys(o)[0]; if(rk)fbDb.ref('rutas/'+rid+'/reportes/'+rk).update({toneladas:asignado}); }); }catch(_){ }
-    toast('Pesaje: '+asignado+' t recolectadas'); renderRecursos();
+    toast('Pesaje completo: '+asignado+' t recolectadas'); setTimeout(renderRecursos,300);
   }
+  function recalcTon(rid,fecha,vk,v){ if(v.pesoLleno!=null&&v.pesoVacio!=null){ const ton=Math.round((v.pesoLleno-v.pesoVacio)*100)/100; fbDb.ref('rutas/'+rid+'/viajes/'+fecha+'/'+vk).update({pesoTotal:ton,toneladas:ton}); } }
+  async function openPesajeRec(rid,fecha,vk){ return pesarLleno(rid,fecha,vk); }
   async function addFuel(){
     const fichas=[...new Set(Object.values(mgmtCamiones||{}).map(c=>c&&c.ficha).filter(Boolean))];
     const ficha=await promptDialog('Carga de combustible','Ficha del camión'+(fichas.length?(' (ej: '+fichas.slice(0,3).join(', ')+')'):''),'',{});
