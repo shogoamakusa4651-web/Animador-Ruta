@@ -534,6 +534,9 @@
   .ruta-acts button.warn{color:#C0705F;border-color:rgba(192,112,95,0.4);}
   .units-btn{position:fixed;right:16px;bottom:62px;z-index:2400;display:none;align-items:center;gap:7px;background:#FBFAF6;color:#44413A;border:1px solid rgba(68,65,58,0.2);border-radius:24px;padding:10px 15px;font-size:13px;font-family:-apple-system,'Segoe UI',sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.12);}
   .units-btn.show{display:inline-flex;}
+  .maplayer-btn{position:fixed;right:16px;bottom:114px;z-index:2400;display:none;align-items:center;gap:7px;background:#FBFAF6;color:#44413A;border:1px solid rgba(68,65,58,0.2);border-radius:24px;padding:10px 15px;font-size:13px;font-family:-apple-system,'Segoe UI',sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.12);}
+  body.sec-monitoreo .maplayer-btn,body.sec-rutas .maplayer-btn{display:inline-flex;}
+  body.dark .maplayer-btn{background:#2E2C27;color:#ECEAE3;border-color:rgba(255,255,255,.14);}
   .day-row{display:flex;gap:5px;margin-bottom:12px;}
   .day-row button{flex:1;height:36px;border:1px solid rgba(30,28,24,0.14);background:#fff;color:#3A3833;border-radius:9px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;}
   .day-row button.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
@@ -1039,7 +1042,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.26 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.27 · 2026-06-10</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1274,6 +1277,7 @@
 
 <button class="mgmt-btn" id="mgmtBtn">⚙ Administración</button>
 <button class="units-btn" id="unitsBtn">🛰 Unidades en vivo</button>
+<button class="maplayer-btn" id="mapLayerBtn" title="Satélite / Calles">🗺 Calles</button>
 <div class="adm-bar" id="admBar">
   <div class="adm-seg">
     <button class="adm-segbtn on" id="viewEditor">✏️ Editor</button>
@@ -1359,7 +1363,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.26 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.27 · 2026-06-10</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2002,7 +2006,12 @@
 
   document.querySelectorAll('.layer-toggle .t').forEach(t=>{t.addEventListener('click',()=>{
     document.querySelectorAll('.layer-toggle .t').forEach(x=>x.classList.remove('active'));t.classList.add('active');
-    if(t.dataset.layer==='sat'){map.removeLayer(street);satGroup.addTo(map);}else{map.removeLayer(satGroup);street.addTo(map);}});});
+    if(t.dataset.layer==='sat'){map.removeLayer(street);satGroup.addTo(map);setMapLayerBtn('sat');}else{map.removeLayer(satGroup);street.addTo(map);setMapLayerBtn('street');}});});
+  let curMapLayer='sat';
+  function setMapLayerBtn(l){ curMapLayer=l; const b=document.getElementById('mapLayerBtn'); if(b)b.textContent=(l==='sat'?'🗺 Calles':'🛰 Satélite'); }
+  const mlb=document.getElementById('mapLayerBtn');
+  if(mlb)mlb.addEventListener('click',()=>{ if(curMapLayer==='sat'){map.removeLayer(satGroup);street.addTo(map);setMapLayerBtn('street');}else{map.removeLayer(street);satGroup.addTo(map);setMapLayerBtn('sat');}
+    document.querySelectorAll('.layer-toggle .t').forEach(x=>x.classList.toggle('active',x.dataset.layer===curMapLayer)); });
 
   // ---- COMPARTIR ----
   function encode(){if(waypoints.length<1)return '';
@@ -2445,10 +2454,9 @@
     Object.keys(live).forEach(id=>{ const t=live[id]||{}; if(t.ts&&(Date.now()-t.ts)>20*60*1000)alerts.push({sev:2,tx:esc((rutas[id]||{}).nombre||id)+' en curso · <b>sin señal hace '+Math.round((Date.now()-t.ts)/60000)+' min</b>',act:'Monitorear',go:'mon',id:id}); });
     alerts.sort((a,b)=>b.sev-a.sev);
     const parts=[];
-    if(cumplim!=null)parts.push({w:.35,v:cumplim,lab:'Rutas',c:'#CF9A4A'});
-    if(cob!=null)parts.push({w:.25,v:cob,lab:'Cobertura',c:'#5E8B7E'});
-    if(fPct!=null)parts.push({w:.2,v:fPct,lab:'Flota',c:'#4E7FA8'});
-    if(avgHoy!=null)parts.push({w:.2,v:avgHoy,lab:'Calidad',c:'#7A6FA8'});
+    if(cumplim!=null)parts.push({w:.45,v:cumplim,lab:'Rutas',c:'#CF9A4A'});
+    if(cob!=null)parts.push({w:.30,v:cob,lab:'Cobertura',c:'#5E8B7E'});
+    if(avgHoy!=null)parts.push({w:.25,v:avgHoy,lab:'Calidad',c:'#7A6FA8'});
     let idx=null;
     if(parts.length){ const wsum=parts.reduce((a,p)=>a+p.w,0); idx=Math.round(parts.reduce((a,p)=>a+p.v*p.w,0)/wsum); idx=Math.max(0,idx-Math.min(15,alerts.filter(a=>a.sev===2).length*5)); }
     const EST=idx==null?['#8C887E','Sin actividad aún']:(idx>=85&&!alerts.some(a=>a.sev===2)?['#27A35B','Excelente']:(idx>=70?['#5E8B7E','Bueno']:(idx>=50?['#B0843C','Atención']:['#C2402F','Crítico'])));
@@ -2674,8 +2682,8 @@
     todayIds.forEach(id=>{ const r=rutas[id]||{}; const s=stOf(id); if(s==='pendiente'&&!r.choferCode){inc++;crit++;} if(r.camion){const c=camByFicha[r.camion]; if(c&&!camActivo(c.estado)){inc++;crit++;}} });
     Object.keys(byRuta).forEach(id=>{ const t=byRuta[id]||{}; if(t.ts&&(Date.now()-t.ts)>120000){inc++;crit++;} });
     // ISOM (igual fórmula que Inicio)
-    const parts=[]; if(todayIds.length)parts.push({w:.35,v:Math.round(nDone/todayIds.length*100)});
-    if(cob!=null)parts.push({w:.25,v:cob}); if(fPct!=null)parts.push({w:.2,v:fPct}); if(avg!=null)parts.push({w:.2,v:avg});
+    const parts=[]; if(todayIds.length)parts.push({w:.45,v:Math.round(nDone/todayIds.length*100)});
+    if(cob!=null)parts.push({w:.30,v:cob}); if(avg!=null)parts.push({w:.25,v:avg});
     let isom=null; if(parts.length){ const ws=parts.reduce((a,p)=>a+p.w,0); isom=Math.round(parts.reduce((a,p)=>a+p.v*p.w,0)/ws); isom=Math.max(0,isom-Math.min(15,crit*5)); }
     const nActivos=Object.keys(byRuta).length;
     function col(v,g,y){ return v==null?'#8C887E':(v>=g?'#27A35B':(v>=y?'#B0843C':'#C2402F')); }
@@ -2683,7 +2691,6 @@
       {l:'ISOM',v:isom==null?'—':isom,c:col(isom,80,60)},
       {l:'Viajes activos',v:nActivos,c:nActivos?'#2F7DC2':'#8C887E'},
       {l:'Cobertura',v:cob!=null?cob+'%':'—',c:col(cob,80,50)},
-      {l:'Flota',v:fPct!=null?fPct+'%':'—',c:col(fPct,70,40)},
       {l:'Completadas',v:nDone+'/'+(todayIds.length||0),c:'#3A3833'},
       {l:'Incidencias',v:inc,c:inc?(crit?'#C2402F':'#B0843C'):'#27A35B'}
     ];
