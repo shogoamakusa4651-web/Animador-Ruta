@@ -850,6 +850,43 @@
   .cc-al{grid-column:span 3;}
   .cc-side{grid-column:span 4;display:flex;flex-direction:column;gap:12px;}
   .cc-tr{grid-column:span 12;}
+  .cc-stateline{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:14px;padding:13px 16px;}
+  body.dark .cc-stateline{background:#26241F;border-color:rgba(255,255,255,.08);}
+  .cc-st{flex:1;min-width:90px;display:flex;flex-direction:column;gap:1px;border-left:1px solid rgba(30,28,24,.08);padding-left:13px;}
+  .cc-st:first-child{border-left:none;padding-left:0;}
+  .cc-st b{font-size:22px;letter-spacing:-.5px;}
+  .cc-st span{font-size:10.5px;color:#8C887E;font-weight:600;}
+  .cc-isomlbl{text-align:center;font-size:12px;font-weight:800;letter-spacing:.8px;margin:-4px 0 2px;}
+  .cc-isommeta{text-align:center;font-size:11px;color:#8C887E;margin-bottom:10px;}
+  .cc-isommeta span{font-weight:700;}
+  .cc-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;}
+  .cc-kpi{display:flex;flex-direction:column;gap:1px;background:rgba(30,28,24,.025);border:1px solid rgba(30,28,24,.05);border-radius:11px;padding:11px 12px;}
+  .cc-kpi b{font-size:24px;letter-spacing:-.5px;}
+  .cc-kpi span{font-size:11px;color:#8C887E;font-weight:600;}
+  .cc-kpi.soon{opacity:.6;}
+  .cc-kpi.soon em{font-size:9px;font-weight:700;letter-spacing:.4px;color:#B0843C;font-style:normal;margin-top:2px;text-transform:uppercase;}
+  body.dark .cc-kpi{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.06);}
+  .cc-soon{grid-column:span 3;border-style:dashed !important;opacity:.92;}
+  .cc-ia{grid-column:span 6;}
+  .cc-estrat{grid-column:span 6;}
+  .cc-soontag{font-size:9px;font-weight:800;letter-spacing:.5px;color:#fff;background:#B0843C;padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
+  .cc-soonbody{font-size:12px;line-height:1.5;color:#6C6960;}
+  .cc-soonreq{font-size:10.5px;color:#A8A49B;margin-top:9px;padding-top:8px;border-top:1px dashed rgba(30,28,24,.12);font-style:italic;}
+  body.dark .cc-soonbody{color:#B7B4AC;}
+  @media(max-width:1020px){.cc-soon{grid-column:span 6;} .cc-ia,.cc-estrat{grid-column:span 12;}}
+  @media(max-width:768px){.cc-kpis{grid-template-columns:repeat(2,1fr);} .cc-soon,.cc-ia,.cc-estrat{grid-column:span 12;} .cc-st{min-width:70px;}}
+  .cc-exrow{display:flex;gap:8px;}
+  .cc-ex{flex:1;display:flex;flex-direction:column;gap:1px;background:rgba(30,28,24,.025);border-radius:10px;padding:9px 10px;}
+  .cc-ex b{font-size:20px;}
+  .cc-ex span{font-size:10px;color:#8C887E;font-weight:600;}
+  body.dark .cc-ex{background:rgba(255,255,255,.03);}
+  .cc-secgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+  .cc-sec{display:flex;align-items:center;gap:7px;background:rgba(30,28,24,.025);border-radius:10px;padding:9px 11px;}
+  .cc-secdot{width:11px;height:11px;border-radius:50%;flex:none;}
+  .cc-secn{flex:1;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cc-sec b{font-size:14px;}
+  .cc-sec small{font-size:10px;color:#8C887E;width:100%;}
+  body.dark .cc-sec{background:rgba(255,255,255,.03);}
   .cc-ring{position:relative;width:150px;margin:4px auto 12px;}
   .cc-ring svg{width:150px;height:150px;display:block;}
   .cc-ringnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
@@ -940,7 +977,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.19 · 2026-06-10</div>
+    <div class="ver" style="padding-top:4px">v3.21 · 2026-06-10</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1253,7 +1290,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.19 · 2026-06-10</div>
+<div class="ver-badge" id="verBadge">v3.21 · 2026-06-10</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1321,6 +1358,9 @@
     <div class="section-title" id="rutaFormTitle">2 · Datos de la ruta</div>
     <label class="fld-lbl">Nombre de la ruta</label>
     <input class="fld" id="rNombre" placeholder="Ej: Ruta Centro">
+    <label class="fld-lbl">Sector / Zona</label>
+    <input class="fld" id="rSector" placeholder="Ej: Centro, Norte, Sur, Mercado" list="sectorList">
+    <datalist id="sectorList"></datalist>
     <label class="fld-lbl">Camión asignado</label>
     <select class="fld" id="rCamion"></select>
     <label class="fld-lbl">Frecuencia</label>
@@ -1540,8 +1580,46 @@
     });
   }
 
-  function haversine(a,b){const R=6371000,t=Math.PI/180;const dLat=(b[0]-a[0])*t,dLng=(b[1]-a[1])*t,la1=a[0]*t,la2=b[0]*t;
-    const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+  function promptDialog(title,text,def='',opts={}){
+    return new Promise(resolve=>{
+      const modal=document.getElementById('confirmModal');
+      document.getElementById('confirmTitle').textContent=title;
+      const txt=document.getElementById('confirmText'); txt.textContent=text;
+      let inp=document.getElementById('promptInput');
+      if(!inp){ inp=document.createElement('input'); inp.id='promptInput'; inp.className='fld'; inp.style.marginTop='10px'; txt.parentNode.insertBefore(inp,txt.nextSibling); }
+      inp.style.display=''; inp.value=def||''; inp.inputMode=opts.numeric?'decimal':'text';
+      document.getElementById('confirmOk').textContent='Guardar';
+      document.getElementById('confirmCancel').textContent='Cancelar';
+      modal.classList.remove('hide'); setTimeout(()=>inp.focus(),50);
+      const cleanup=(val)=>{modal.classList.add('hide'); inp.style.display='none'; document.getElementById('confirmCancel').textContent='Cancelar';
+        okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); modal.removeEventListener('click',onBg); inp.removeEventListener('keydown',onKey); resolve(val);};
+      const okBtn=document.getElementById('confirmOk'),cancelBtn=document.getElementById('confirmCancel');
+      const onOk=()=>cleanup(inp.value), onCancel=()=>cleanup(null);
+      const onBg=(e)=>{if(e.target===modal)cleanup(null);};
+      const onKey=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();};
+      okBtn.addEventListener('click',onOk);cancelBtn.addEventListener('click',onCancel);modal.addEventListener('click',onBg);inp.addEventListener('keydown',onKey);
+    });
+  }
+  async function openPesaje(fecha,vk){
+    if(!fbDb||!rdId)return; const v=(rdViajes[fecha]||{})[vk]||{};
+    const pesoTotal=await promptDialog('Pesaje en descarga','Peso TOTAL pesado en báscula (toneladas):',v.pesoTotal!=null?String(v.pesoTotal):(v.toneladas!=null?String(v.toneladas):''),{numeric:true});
+    if(pesoTotal===null)return; const totalN=parseFloat(String(pesoTotal).replace(',','.')); if(isNaN(totalN)||totalN<0){toast('Peso inválido');return;}
+    const sup=await promptDialog('Pesaje en descarga','Supervisor que registra el pesaje:',v.pesadoPor||'',{});
+    if(sup===null)return;
+    const compartido=await confirmDialog('¿Carga compartida?','¿Este camión traía basura de DOS rutas distintas? Registraremos qué porción corresponde a esta ruta.','Sí, compartido');
+    let asignado=totalN, otraRuta=null, pctEsta=100;
+    if(compartido){
+      const pct=await promptDialog('Reparto de carga','¿Qué % del peso corresponde a ESTA ruta ('+((mgmtRutas[rdId]||{}).nombre||'')+')?',v.pesoPct!=null?String(v.pesoPct):'50',{numeric:true});
+      if(pct===null)return; pctEsta=Math.max(0,Math.min(100,parseFloat(String(pct).replace(',','.'))||0));
+      asignado=Math.round(totalN*pctEsta)/100;
+      otraRuta=await promptDialog('Reparto de carga','Nombre/código de la OTRA ruta (referencia):',v.pesoCompartido||'',{});
+    }
+    const upd={ toneladas:asignado, pesoTotal:totalN, pesoPct:pctEsta, pesoCompartido:(otraRuta||'').trim()||null, pesadoPor:(sup||'').trim()||null, pesadoTs:Date.now() };
+    fbDb.ref('rutas/'+rdId+'/viajes/'+fecha+'/'+vk).update(upd);
+    try{ fbDb.ref('rutas/'+rdId+'/reportes').orderByChild('fecha').equalTo(fecha).once('value').then(s=>{ const o=s.val()||{}; const rk=Object.keys(o)[0]; if(rk)fbDb.ref('rutas/'+rdId+'/reportes/'+rk).update({toneladas:asignado}); }); }catch(_){ }
+    if(rdViajes[fecha]&&rdViajes[fecha][vk])Object.assign(rdViajes[fecha][vk],upd);
+    toast('Pesaje registrado: '+asignado+' t'); renderDetail();
+  }
   function bearing(a,b){const t=Math.PI/180,la1=a[0]*t,la2=b[0]*t,dLng=(b[1]-a[1])*t;
     const y=Math.sin(dLng)*Math.cos(la2),x=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dLng);
     return (Math.atan2(y,x)*180/Math.PI+360)%360;}
@@ -2136,7 +2214,8 @@
   function populateRutaForm(r){
     fillSelect('rChofer',mgmtChoferes); fillSelect('rSup',mgmtSup); fillCamiones();
     const set=(id,val)=>{const e=document.getElementById(id);if(e)e.value=val||'';};
-    set('rNombre',r?r.nombre:''); set('rCamion',r?r.camion:''); set('rChofer',r?r.choferCode:''); set('rSup',r?r.supCode:'');
+    set('rNombre',r?r.nombre:''); set('rSector',r?r.sector:''); set('rCamion',r?r.camion:''); set('rChofer',r?r.choferCode:''); set('rSup',r?r.supCode:'');
+    const dl=document.getElementById('sectorList'); if(dl){ const secs=[...new Set(Object.values(mgmtRutas||{}).map(x=>x&&x.sector).filter(Boolean))]; dl.innerHTML=secs.map(s=>'<option value="'+esc(s)+'">').join(''); }
     rDaysSel=r&&r.freq?r.freq.slice():[];
     document.querySelectorAll('#rDays button').forEach(b=>b.classList.toggle('on',rDaysSel.includes(b.dataset.d)));
     const t=document.getElementById('rutaFormTitle'); if(t)t.textContent=r?('Editando: '+(r.nombre||'ruta')):'Nueva ruta';
@@ -2155,7 +2234,7 @@
     const supCode=document.getElementById('rSup').value||null;
     let supAccess=prev.supAccess||null, supActive=(prev.supActive!==undefined?prev.supActive:true);
     if(supCode){ if(!supAccess)supAccess=String(Math.floor(1000+Math.random()*9000)); } else { supAccess=null; }
-    const data={ nombre:(document.getElementById('rNombre').value||'').trim()||'(sin nombre)', camion:document.getElementById('rCamion').value||null,
+    const data={ nombre:(document.getElementById('rNombre').value||'').trim()||'(sin nombre)', sector:(document.getElementById('rSector').value||'').trim()||null, camion:document.getElementById('rCamion').value||null,
       wp:encode(), freq:rDaysSel.slice(), choferCode:document.getElementById('rChofer').value||null,
       supCode:supCode, supAccess:supAccess, supActive:supActive, createdAt:prev.createdAt||Date.now() };
     fbDb.ref('rutas/'+id).update(data); editingRutaId=id;
@@ -2248,7 +2327,8 @@
       covRows.push({id:id,n:r.nombre||'(sin nombre)',pct:pct,s:s}); });
     const cob=(todayIds.length&&kmProg)?Math.round(kmDone/kmProg*100):null;
     covRows.sort((a,b)=>a.pct-b.pct);
-    let disp=0,fTal=0,fFue=0,tot=0; Object.keys(cam).forEach(k=>{ tot++; const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))disp++; else if(e.indexOf('fuera')>=0)fFue++; else fTal++; });
+    let disp=0,fTal=0,fFue=0,tot=0; Object.keys(cam).forEach(k=>{ const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))disp++; else if(e.indexOf('fuera')>=0)fFue++; else fTal++; });
+    tot=disp+fTal; // base operativa: ignora 'fuera de uso' (inventario no actualizado)
     const fPct=tot?Math.round(disp/tot*100):null;
     let scs=[]; ids.forEach(id=>{ const reps=(rutas[id]||{}).reportes||{}; Object.keys(reps).forEach(k=>{ const rp=reps[k]||{}; const sc=(rp.rating!=null?rp.rating:rp.routeCompletion); if(rp.fecha===hoy&&sc!=null)scs.push(Number(sc)||0); }); });
     const avgHoy=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null;
@@ -2282,30 +2362,45 @@
     const orden={pendiente:0,enviada:1,curso:2,completada:3};
     const cola=todayIds.map(id=>({id:id,s:stOf(id)})).sort((a,b)=>orden[a.s]-orden[b.s]||(((rutas[a.id]||{}).nombre||'').localeCompare((rutas[b.id]||{}).nombre||'')));
     const ringC=2*Math.PI*52;
+    // tendencia ISOM: comparar con promedio de cumplimiento de 7 días previos
+    const prevAvg=(function(){ let s=[]; for(let i=7;i<14;i++){ const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i); const L=DAYS[(d.getDay()+6)%7]; const iso=isoOf(d);
+      const prog=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(L)).length; const done=ids.filter(id=>{ const v=(rutas[id]||{}).viajes||{}; return v[iso]&&Object.keys(v[iso]).length; }).length;
+      if(prog)s.push(Math.round(Math.min(done,prog)/prog*100)); } return s.length?Math.round(s.reduce((a,b)=>a+b,0)/s.length):null; })();
+    const trendDelta=(idx!=null&&prevAvg!=null)?(idx-prevAvg):null;
+    const hora=now.toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
+    const kmHoy=kmDone;
     let h='<div class="ini-wrap cc-wrap">';
     h+='<div class="ini-daterow"><span class="ini-day">'+(DAY_FULL[today]||'')+'</span><span class="ini-date">'+fecha+'</span>'
-      +'<span class="ini-pulse" style="color:'+EST[0]+';border-color:'+EST[0]+'33;background:'+EST[0]+'14"><span class="ini-pdot" style="background:'+EST[0]+'"></span>Estado del municipio: '+EST[1]+'</span></div>';
+      +'<span class="ini-pulse" style="color:'+EST[0]+';border-color:'+EST[0]+'33;background:'+EST[0]+'14"><span class="ini-pdot" style="background:'+EST[0]+'"></span>Estado operacional municipal: '+EST[1]+'</span></div>';
+    // ===== Banda 1: Estado general (números clave del municipio)
+    h+='<div class="cc-stateline">'
+      +'<div class="cc-st"><b>'+(idx==null?'—':idx)+'</b><span>ISOM</span></div>'
+      +'<div class="cc-st"><b>'+(cob!=null?cob+'%':'—')+'</b><span>Cobertura</span></div>'
+      +'<div class="cc-st"><b>'+(fPct!=null?fPct+'%':'—')+'</b><span>Flota disponible</span></div>'
+      +'<div class="cc-st"><b>'+nDone+'/'+(todayIds.length||0)+'</b><span>Rutas hoy</span></div>'
+      +'<div class="cc-st"><b style="color:'+(alerts.some(a=>a.sev===2)?'#C2402F':'#27A35B')+'">'+alerts.filter(a=>a.sev===2).length+'</b><span>Incidencias críticas</span></div></div>';
     h+='<div class="cc-grid">';
+    // ===== ISOM hero ampliado
     h+='<div class="cc-card cc-hero">'
-      +'<div class="cc-h">ÍNDICE OPERACIONAL DEL DÍA</div>'
+      +'<div class="cc-h">ÍNDICE DE SERVICIO MUNICIPAL · ISOM</div>'
       +'<div class="cc-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(30,28,24,.08)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="'+EST[0]+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+ringC+'" stroke-dashoffset="'+(idx==null?ringC:ringC*(1-idx/100))+'" transform="rotate(-90 60 60)"/></svg>'
       +'<div class="cc-ringnum"><b style="color:'+EST[0]+'">'+(idx==null?'—':idx)+'</b><span>de 100</span></div></div>'
+      +'<div class="cc-isomlbl" style="color:'+EST[0]+'">'+EST[1].toUpperCase()+'</div>'
+      +'<div class="cc-isommeta">'+(trendDelta!=null?('<span style="color:'+(trendDelta>=0?'#27A35B':'#C2402F')+'">'+(trendDelta>=0?'▲ +':'▼ ')+trendDelta+' pts</span> vs semana previa'):'Sin histórico suficiente')+' · act. '+hora+'</div>'
       +'<div class="cc-comp">';
     parts.forEach(p=>{ h+='<div class="cc-crow"><span>'+p.lab+'</span><div class="cc-cbar"><i style="width:'+p.v+'%;background:'+p.c+'"></i></div><b>'+p.v+'</b></div>'; });
     if(!parts.length)h+='<div class="ini-empty" style="margin:0">Sin datos del día todavía.</div>';
     h+='</div></div>';
-    h+='<div class="cc-card cc-mun"><div class="cc-h">COBERTURA DEL MUNICIPIO · HOY</div>'
-      +'<div class="cc-munrow"><div class="cc-big"><b>'+(cob!=null?cob+'%':'—')+'</b><span>del recorrido programado cubierto'+(kmProg?(' · '+kmDone.toFixed(1)+' de '+kmProg.toFixed(1)+' km'):'')+'</span></div>'
-      +'<div class="cc-chips">'
-      +'<span class="cc-chip" style="color:#27A35B">'+nDone+' completadas</span>'
-      +'<span class="cc-chip" style="color:#2F7DC2">'+nCur+' en ejecución</span>'
-      +'<span class="cc-chip" style="color:#B0843C">'+nEnv+' enviadas</span>'
-      +'<span class="cc-chip" style="color:#C2402F">'+nPen+' pendientes</span></div></div>'
-      +'<div class="cc-covlist">';
-    if(!covRows.length)h+='<div class="ini-empty" style="margin:0">No hay zonas programadas hoy.</div>';
-    covRows.slice(0,8).forEach(z=>{ const c=z.pct>=100?'#27A35B':(z.s==='curso'?'#2F7DC2':(z.s==='enviada'?'#B0843C':'#C2402F'));
-      h+='<div class="cc-cov" data-id="'+esc(z.id)+'"><span class="cc-covn">'+esc(z.n)+'</span><div class="cc-cbar"><i style="width:'+z.pct+'%;background:'+c+'"></i></div><b style="color:'+c+'">'+z.pct+'%</b></div>'; });
-    h+='</div></div>';
+    let tonHoy=0,tonHubo=false; ids.forEach(id=>{ const vj=(rutas[id]||{}).viajes||{}; const dd=vj[hoy]||{}; Object.keys(dd).forEach(k=>{ if(dd[k]&&dd[k].toneladas!=null){tonHoy+=Number(dd[k].toneladas)||0;tonHubo=true;} }); });
+    h+='<div class="cc-card cc-mun"><div class="cc-h">RESUMEN DEL DÍA</div>'
+      +'<div class="cc-kpis">'
+      +'<div class="cc-kpi"><b>'+nDone+'</b><span>Viajes ejecutados</span></div>'
+      +'<div class="cc-kpi"><b>'+(kmHoy?kmHoy.toLocaleString('en-US',{maximumFractionDigits:0}):'0')+'</b><span>Km recorridos</span></div>'
+      +'<div class="cc-kpi"><b>'+(cob!=null?cob+'%':'—')+'</b><span>Cobertura del día</span></div>'
+      +'<div class="cc-kpi"><b>'+(avgHoy!=null?avgHoy:'—')+'</b><span>Calificación promedio</span></div>'
+      +'<div class="cc-kpi"><b>'+(tonHubo?tonHoy.toLocaleString('en-US',{maximumFractionDigits:1}):'—')+'</b><span>Toneladas recolectadas</span></div>'
+      +'<div class="cc-kpi soon"><b>—</b><span>CTR · costo/tonelada</span><em>Próximamente</em></div>'
+      +'</div></div>';
     h+='<div class="cc-card cc-op"><div class="cc-h">OPERACIÓN DEL DÍA · '+todayIds.length+' RUTAS</div>';
     if(!cola.length)h+='<div class="ini-empty" style="margin:0">No hay rutas programadas hoy.</div>';
     cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const t=live[x.id];
@@ -2322,9 +2417,9 @@
     h+='</div>';
     h+='<div class="cc-side">';
     h+='<div class="cc-card" data-go="admin" style="cursor:pointer"><div class="cc-h">SALUD DE FLOTA</div>'
-      +'<div class="cc-fbar">'+(tot?('<i style="width:'+(disp/tot*100)+'%;background:#27A35B"></i><i style="width:'+(fTal/tot*100)+'%;background:#B0843C"></i><i style="width:'+(fFue/tot*100)+'%;background:#8C887E"></i>'):'')+'</div>'
-      +'<div class="cc-fleg"><span><b style="color:#27A35B">'+disp+'</b> operativos</span><span><b style="color:#B0843C">'+fTal+'</b> en taller</span><span><b style="color:#8C887E">'+fFue+'</b> fuera de uso</span></div>'
-      +'<div class="q-meta" style="margin-top:7px">Disponibilidad: <b>'+(fPct!=null?fPct+'%':'—')+'</b> de '+tot+' unidades</div></div>';
+      +'<div class="cc-fbar">'+(tot?('<i style="width:'+(disp/tot*100)+'%;background:#27A35B"></i><i style="width:'+(fTal/tot*100)+'%;background:#B0843C"></i>'):'')+'</div>'
+      +'<div class="cc-fleg"><span><b style="color:#27A35B">'+disp+'</b> operativos</span><span><b style="color:#B0843C">'+fTal+'</b> en reparación</span></div>'
+      +'<div class="q-meta" style="margin-top:7px">Disponibilidad: <b>'+(fPct!=null?fPct+'%':'—')+'</b></div></div>';
     h+='<div class="cc-card"><div class="cc-h">SUPERVISIÓN · HOY</div>'
       +'<div class="cc-fleg" style="margin-top:2px"><span><b>'+nSupAsig+'</b>/'+todayIds.length+' rutas con supervisor</span><span><b>'+supVer+'</b> recorrido'+(supVer===1?'':'s')+' verificado'+(supVer===1?'':'s')+'</span></div></div>';
     h+='<div class="cc-card"><div class="cc-h">CHOFERES · 7 DÍAS</div>';
@@ -2334,6 +2429,47 @@
       if(low.length){ h+='<div class="cc-h" style="margin-top:9px;color:#C2402F">REQUIEREN ATENCIÓN</div>';
         low.forEach(p=>{ h+='<div class="cc-cho"><b style="color:#C2402F">'+p.avg+'</b><span>'+esc(p.co)+'</span><small>'+p.n+' rec.</small></div>'; }); } }
     h+='</div></div>';
+    // ===== IA Municipal (datos reales: patrones detectados)
+    const ia=[]; const d14=Date.now()-14*24*3600*1000;
+    ids.forEach(id=>{ const r=rutas[id]||{}; const reps=r.reportes||{};
+      let oDays=0, scs2=[], lastOmit=0;
+      Object.keys(reps).forEach(k=>{ const rp=reps[k]||{}; if((rp.ts||rp.fin||0)<d14)return; const sc=(rp.rating!=null?rp.rating:rp.routeCompletion); if(sc!=null)scs2.push(Number(sc)||0); if(rp.omitidos){oDays++;lastOmit=Math.max(lastOmit,rp.omitidos);} });
+      if(oDays>=2)ia.push({sev:2,tx:'<b>'+esc(r.nombre||id)+'</b> acumula omisiones en '+oDays+' recorridos recientes. Revisar acceso o dividir la ruta.'});
+      if(scs2.length>=3){ const av=scs2.reduce((a,b)=>a+b,0)/scs2.length; if(av<60)ia.push({sev:2,tx:'<b>'+esc(r.nombre||id)+'</b> mantiene calificación baja ('+Math.round(av)+'/100). Evaluar chofer o condiciones de la ruta.'}); }
+    });
+    Object.keys(perf).forEach(co=>{ if(perf[co].length>=3){ const av=perf[co].reduce((a,b)=>a+b,0)/perf[co].length; if(av<55)ia.push({sev:1,tx:'Chofer <b>'+esc(co)+'</b> con desempeño sostenido bajo ('+Math.round(av)+'/100). Considerar acompañamiento.'}); } });
+    h+='<div class="cc-card cc-ia"><div class="cc-h">INTELIGENCIA MUNICIPAL</div>';
+    if(!ia.length)h+='<div class="ini-ok" style="margin:0"><i class="ti ti-circle-check"></i> Sin patrones que requieran acción. Operación dentro de lo normal.</div>';
+    else ia.slice(0,4).forEach(a=>{ h+='<div class="ini-alert'+(a.sev===2?' grave':'')+'" style="cursor:default"><span class="ia-dot"></span><span class="ia-tx">'+a.tx+'</span></div>'; });
+    h+='<div class="cc-soonreq">Análisis sobre omisiones, calificaciones y desempeño · 14 días. Con módulo de pesaje sumará tendencias de volumen.</div></div>';
+    // ===== Expedientes del día (reales, desde envíos + viajes)
+    let exTot=0,exResuelto=0,exEscalado=0,exAbierto=0;
+    todayIds.forEach(id=>{ const r=rutas[id]||{}; if(!(r.envios&&r.envios[hoy]))return; exTot++;
+      const done=r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length;
+      if(done){ let omit=0,sc=null; const dd=r.viajes[hoy]; Object.keys(dd).forEach(k=>{ omit+=Number((dd[k]||{}).omitidos)||0; }); const reps=r.reportes||{}; Object.keys(reps).forEach(k=>{ if(reps[k].fecha===hoy){const s=(reps[k].rating!=null?reps[k].rating:reps[k].routeCompletion); if(s!=null)sc=Number(s);} });
+        if(omit>0||(sc!=null&&sc<60))exEscalado++; else exResuelto++; }
+      else exAbierto++; });
+    h+='<div class="cc-card"><div class="cc-h">EXPEDIENTES DEL DÍA</div>'
+      +'<div class="cc-exrow"><div class="cc-ex"><b>'+exTot+'</b><span>Generados</span></div>'
+      +'<div class="cc-ex"><b style="color:#B0843C">'+exAbierto+'</b><span>Abiertos</span></div>'
+      +'<div class="cc-ex"><b style="color:#27A35B">'+exResuelto+'</b><span>Resueltos</span></div>'
+      +'<div class="cc-ex"><b style="color:#C2402F">'+exEscalado+'</b><span>Escalados</span></div></div>'
+      +'<div class="q-meta" style="margin-top:8px">Cada ruta enviada abre un expediente; se resuelve al completar sin omisiones, se escala si hay calles omitidas o calificación baja.</div></div>';
+    // ===== Mapa estratégico por sectores (real, agrupa rutas por campo sector)
+    const secMap={};
+    todayIds.forEach(id=>{ const r=rutas[id]||{}; const sec=r.sector||'Sin sector'; (secMap[sec]=secMap[sec]||[]).push(id); });
+    const secKeys=Object.keys(secMap);
+    h+='<div class="cc-card cc-estrat"><div class="cc-h">MAPA ESTRATÉGICO · SECTORES</div>';
+    if(!secKeys.length||(secKeys.length===1&&secKeys[0]==='Sin sector'))h+='<div class="ini-empty" style="margin:0">Asigna un <b>Sector</b> a cada ruta en el editor para activar el semáforo por zona del municipio.</div>';
+    else{ h+='<div class="cc-secgrid">'; secKeys.sort().forEach(sec=>{ const list=secMap[sec]; let dn=0; list.forEach(id=>{ if(stOf(id)==='completada')dn++; });
+      const pc=list.length?Math.round(dn/list.length*100):0; const col=pc>=80?'#27A35B':(pc>=40?'#B0843C':'#C2402F');
+      h+='<div class="cc-sec"><span class="cc-secdot" style="background:'+col+'"></span><span class="cc-secn">'+esc(sec)+'</span><b style="color:'+col+'">'+pc+'%</b><small>'+dn+'/'+list.length+' rutas</small></div>'; });
+      h+='</div>'; }
+    h+='</div>';
+    // ===== Finanzas (único Próximamente)
+    h+='<div class="cc-card cc-soon"><div class="cc-h">PROYECCIÓN FINANCIERA <span class="cc-soontag">Próximamente</span></div>'
+      +'<div class="cc-soonbody">Costo operativo del mes vs presupuesto y margen disponible. Costo por tonelada (CTR) derivado de combustible, mantenimiento y nómina — ahora que hay pesaje, falta el módulo de costos.</div>'
+      +'<div class="cc-soonreq">Requiere: módulo de combustible y costos operativos</div></div>';
     h+='<div class="cc-card cc-tr"><div class="cc-h">CUMPLIMIENTO · ÚLTIMOS 7 DÍAS</div><div class="cc-bars">';
     trend.forEach(t=>{ const v=t.pct; const col=v==null?'rgba(30,28,24,.1)':(v>=80?'#27A35B':(v>=50?'#B0843C':'#C2402F'));
       h+='<div class="cc-bcol'+(t.today?' today':'')+'" title="'+t.done+' de '+t.prog+' rutas"><i style="height:'+(v==null?4:Math.max(4,Math.round(v*0.6)))+'px;background:'+col+'"></i><b>'+(v==null?'—':v+'%')+'</b><span>'+t.L+'</span></div>'; });
@@ -2341,7 +2477,6 @@
     h+='</div></div>';
     host.innerHTML=h;
     host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='admin')setSection('admin'); else if(g==='reportes')setSection('reportes'); }));
-    host.querySelectorAll('.cc-cov').forEach(z=>z.addEventListener('click',()=>openRouteDetail(z.dataset.id)));
     host.querySelectorAll('.ia-btn').forEach(b=>b.addEventListener('click',()=>{ const a=alerts[Number(b.dataset.i)]; if(!a)return; if(a.go==='mon')setSection('monitoreo'); else openRouteDetail(a.id); }));
     host.querySelectorAll('.ini-q').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
     host.querySelectorAll('.q-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
@@ -2580,10 +2715,14 @@
       const trips=rdViajes[rdDate]||{}; const keys=Object.keys(trips);
       body.innerHTML='<div class="mon-sec" style="color:#807E77">'+keys.length+' viaje(s) · '+fmtFecha(rdDate)+'</div>';
       keys.sort((a,b)=>(trips[a].inicio||0)-(trips[b].inicio||0)).forEach((k,n)=>{ const v=trips[k]; const it=document.createElement('div'); it.className='rd-item';
+        const pesoTxt=(v.toneladas!=null)?(v.toneladas+' t'+(v.pesoCompartido?(' · compartido con '+esc(v.pesoCompartido)):'')):'sin pesar';
         it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:600;flex:1">Viaje '+(n+1)+' · '+fmtTime(v.inicio)+'–'+fmtTime(v.fin)+'</span><span class="mon-pct">'+(v.progress!=null?v.progress+'%':'—')+'</span></div>'
-          +'<div class="mon-line"><i class="ti ti-user"></i> '+(v.choferCode||'—')+'</div>'
-          +'<div class="mon-line"><i class="ti ti-map-pin"></i> '+(v.paradas||0)+' puntos'+(v.sim?' · simulado':'')+'</div>';
+          +'<div class="mon-line"><i class="ti ti-user"></i> '+esc(v.choferCode||'—')+'</div>'
+          +'<div class="mon-line"><i class="ti ti-map-pin"></i> '+(v.paradas||0)+' puntos'+(v.sim?' · simulado':'')+(v.omitidos?(' · <b style="color:#C2402F">'+v.omitidos+' omitido(s)</b>'):'')+'</div>'
+          +'<div class="mon-line"><i class="ti ti-weight"></i> Pesaje en descarga: <b>'+pesoTxt+'</b>'+(v.pesadoPor?(' · '+esc(v.pesadoPor)):'')+'</div>'
+          +'<button class="mon-tinybtn rd-pesar" data-k="'+esc(k)+'" style="width:auto;flex:none;padding:0 12px;margin-top:7px"><i class="ti ti-scale"></i> '+(v.toneladas!=null?'Editar pesaje':'Registrar pesaje')+'</button>';
         body.appendChild(it); });
+      body.querySelectorAll('.rd-pesar').forEach(btn=>btn.addEventListener('click',()=>openPesaje(rdDate,btn.dataset.k)));
     } else {
       const keys=Object.keys(rdReportes);
       if(!keys.length){ body.innerHTML='<div class="rd-empty">Aún no hay reportes de esta ruta.</div>'; return; }
