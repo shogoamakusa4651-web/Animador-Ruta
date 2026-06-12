@@ -929,6 +929,22 @@
   .rec-ptot{font-size:12.5px;margin-top:7px;text-align:right;color:#55524B;}
   body.dark .rec-prow{background:rgba(255,255,255,.04);}
   body.dark .rec-ptot{color:#C9C6BE;}
+  .pj-form{display:none;background:rgba(30,28,24,.035);border:1px solid rgba(30,28,24,.09);border-radius:11px;padding:11px 12px;margin-top:8px;}
+  .pj-form.show{display:block;}
+  body.dark .pj-form{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09);}
+  .pj-grid{display:flex;gap:10px;align-items:flex-end;}
+  .pj-fld{flex:1;display:flex;flex-direction:column;gap:3px;}
+  .pj-fld span{font-size:10px;font-weight:700;color:#8C887E;letter-spacing:.3px;}
+  .pj-fld input{height:36px;border:1px solid rgba(30,28,24,.16);border-radius:9px;padding:0 10px;font-size:15px;font-weight:700;font-family:inherit;background:#fff;width:100%;box-sizing:border-box;}
+  .pj-fld input:disabled{background:rgba(30,28,24,.05);color:#8C887E;}
+  .pj-fld b{font-size:18px;height:36px;display:flex;align-items:center;color:#27A35B;}
+  body.dark .pj-fld input{background:#2E2C27;color:#ECEAE3;border-color:rgba(255,255,255,.14);}
+  .pj-row2{display:flex;gap:9px;align-items:center;margin-top:8px;}
+  .pj-row2 .pj-sup{flex:1;height:32px;border:1px solid rgba(30,28,24,.14);border-radius:8px;padding:0 9px;font-size:12.5px;font-family:inherit;background:#fff;}
+  body.dark .pj-row2 .pj-sup{background:#2E2C27;color:#ECEAE3;border-color:rgba(255,255,255,.12);}
+  .pj-share{font-size:11.5px;color:#8C887E;display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer;}
+  .pj-pct{width:84px;height:32px;border:1px solid rgba(30,28,24,.14);border-radius:8px;padding:0 8px;font-size:12.5px;font-family:inherit;}
+  .pj-hint{font-size:10.5px;color:#ABA9A2;margin-top:7px;line-height:1.4;}
   .rec-rgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
   .rec-r{display:flex;flex-direction:column;gap:1px;}
   .rec-r b{font-size:17px;letter-spacing:-.3px;}
@@ -3132,14 +3148,23 @@
       const trips=rdViajes[rdDate]||{}; const keys=Object.keys(trips);
       body.innerHTML='<div class="mon-sec" style="color:#807E77">'+keys.length+' viaje(s) · '+fmtFecha(rdDate)+'</div>';
       keys.sort((a,b)=>(trips[a].inicio||0)-(trips[b].inicio||0)).forEach((k,n)=>{ const v=trips[k]; const it=document.createElement('div'); it.className='rd-item';
-        const pesoTxt=(v.toneladas!=null)?(v.toneladas+' t'+(v.pesoCompartido?(' · compartido con '+esc(v.pesoCompartido)):'')):'sin pesar';
-        it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:600;flex:1">Viaje '+(n+1)+' · '+fmtTime(v.inicio)+'–'+fmtTime(v.fin)+'</span><span class="mon-pct">'+(v.progress!=null?v.progress+'%':'—')+'</span></div>'
-          +'<div class="mon-line"><i class="ti ti-user"></i> '+esc(v.choferCode||'—')+'</div>'
-          +'<div class="mon-line"><i class="ti ti-map-pin"></i> '+(v.paradas||0)+' puntos'+(v.sim?' · simulado':'')+(v.omitidos?(' · <b style="color:#C2402F">'+v.omitidos+' omitido(s)</b>'):'')+'</div>'
-          +'<div class="mon-line"><i class="ti ti-weight"></i> Pesaje en descarga: <b>'+pesoTxt+'</b>'+(v.pesadoPor?(' · '+esc(v.pesadoPor)):'')+'</div>'
-          +'<button class="mon-tinybtn rd-pesar" data-k="'+esc(k)+'" style="width:auto;flex:none;padding:0 12px;margin-top:7px"><i class="ti ti-scale"></i> '+(v.toneladas!=null?'Editar pesaje':'Registrar pesaje')+'</button>';
+        const pts=v.paradas||0; const cumpl=Math.max(0,Math.min(100,Number(v.progress!=null?v.progress:v.cobertura)||0));
+        let visit=pts?Math.round(pts*cumpl/100):0;
+        if(v.cov&&pts){ try{ const bits=covDec(v.cov,pts); visit=0; bits.forEach(b=>{if(b)visit++;}); }catch(_){ } }
+        const cCol=cumpl>=90?'#27A35B':(cumpl>=60?'#B0843C':'#C2402F');
+        const kmR=Number(v.kmRuta)||0,kmV=Number(v.kmVertedero)||0,kmC=Number(v.kmCombustible)||0,kmT=Number(v.distancia)||0;
+        it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:700;flex:1">Viaje '+(n+1)+' · '+fmtTime(v.inicio)+'–'+fmtTime(v.fin)+(v.sim?' <small style="color:#9c5532">sim</small>':'')+'</span><span class="rpx-score" style="font-size:26px;color:'+cCol+'">'+cumpl+'<small>%</small></span></div>'
+          +'<div class="lv-bar" style="margin:6px 0 8px"><i style="width:'+cumpl+'%;background:'+cCol+'"></i></div>'
+          +'<div class="lv-grid3" style="margin-bottom:8px"><div class="lv-cell"><span>Programados</span><b>'+pts+'</b></div>'
+          +'<div class="lv-cell"><span>Visitados</span><b style="color:#27A35B">'+visit+'</b></div>'
+          +'<div class="lv-cell"><span>Omitidos</span><b style="color:'+(v.omitidos?'#C2402F':'#27A35B')+'">'+(v.omitidos||0)+'</b></div></div>'
+          +'<div class="mon-line"><i class="ti ti-user"></i> '+esc(v.choferCode||'—')+(v.ficha?(' · <i class="ti ti-truck"></i> '+esc(v.ficha)):'')+'</div>'
+          +(kmT?('<div class="mon-line"><i class="ti ti-road"></i> '+kmT.toFixed(1)+' km'+((kmV||kmC)?(' = ruta '+kmR.toFixed(1)+(kmV?(' + vertedero '+kmV.toFixed(1)):'')+(kmC?(' + bomba '+kmC.toFixed(1)):'')):'')+'</div>'):'')
+          +'<div class="mon-sec" style="margin:9px 0 2px;font-size:9.5px">⚖ PESAJE EN DESCARGA'+(v.pesadoPor?(' · '+esc(v.pesadoPor)):'')+'</div>'
+          +(pesajeRowsHtml(v)||'<div class="af-subempty" style="padding:4px 2px">sin pesar</div>')
+          +pesajeFormHtml(v,rdId,rdDate,k);
         body.appendChild(it); });
-      body.querySelectorAll('.rd-pesar').forEach(btn=>btn.addEventListener('click',()=>openPesaje(rdDate,btn.dataset.k)));
+      wirePesajeForms(body,()=>{ fbDb.ref('rutas/'+rdId+'/viajes').once('value').then(s=>{ rdViajes=s.val()||{}; renderDetail(); }); });
     } else {
       const keys=Object.keys(rdReportes);
       if(!keys.length){ body.innerHTML='<div class="rd-empty">Aún no hay reportes de esta ruta.</div>'; return; }
@@ -3424,8 +3449,7 @@
       h+='<div class="mon-sec" style="margin-top:16px">COMPLETOS ('+completos.length+')</div>';
       completos.slice(0,20).forEach(v=>{ h+=recCard(v,'completo'); });
       body.innerHTML=h;
-      body.querySelectorAll('.rec-pl').forEach(b=>b.addEventListener('click',()=>pesarLleno(b.dataset.r,b.dataset.f,b.dataset.k)));
-      body.querySelectorAll('.rec-pv').forEach(b=>b.addEventListener('click',()=>pesarVacio(b.dataset.r,b.dataset.f,b.dataset.k)));
+      wirePesajeForms(body,renderRecursos);
     } else if(recTab==='combustible'){
       let h='<div class="rec-note">Un supervisor registra los <b>galones cargados</b> a cada camión. Si el chofer pulsó "Voy a echar combustible", el camión queda marcado en ruta; si no, igual puedes registrar la carga aquí.</div>'
         +'<button class="mon-tinybtn" id="recAddFuel" style="width:auto;flex:none;padding:0 14px;margin-bottom:14px;background:#2F7DC2;color:#fff;border-color:#2F7DC2"><i class="ti ti-gas-station"></i> Registrar carga de combustible</button>';
@@ -3459,22 +3483,11 @@
     }
   }
   function recCard(v,estado){
-    const ps=pesajesDe(v);
-    const cerrados=ps.filter(p=>p.ton!=null), abierto=ps.find(p=>p.lleno!=null&&p.vacio==null);
-    let pesoRows='';
-    ps.forEach((p,i)=>{ pesoRows+='<div class="rec-prow'+(p.vacio==null?' open':'')+'"><span class="rec-pn">Descarga #'+(i+1)+'</span>'
-      +'<span class="rec-pv2"><small>Lleno</small><b>'+(p.lleno!=null?p.lleno+' t':'—')+'</b></span>'
-      +'<span class="rec-pv2"><small>Vacío</small><b>'+(p.vacio!=null?p.vacio+' t':'<i style="color:#B0843C">pendiente</i>')+'</b></span>'
-      +'<span class="rec-pv2 res"><small>Recolectado</small><b style="color:'+(p.ton!=null?'#27A35B':'#ABA9A2')+'">'+(p.ton!=null?p.ton+' t':'—')+'</b></span></div>'; });
-    if(cerrados.length>1||(cerrados.length&&abierto))pesoRows+='<div class="rec-ptot">Total del viaje: <b>'+(v.toneladas!=null?v.toneladas:cerrados.reduce((a,p)=>a+p.ton,0).toFixed(2))+' t</b></div>';
-    let botones='<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap">';
-    if(abierto)botones+='<button class="mon-tinybtn rec-pv" data-r="'+esc(v._ruta)+'" data-f="'+esc(v._fecha)+'" data-k="'+esc(v._vk)+'" style="width:auto;flex:none;padding:0 12px;background:#27A35B;color:#fff;border-color:#27A35B"><i class="ti ti-arrow-down"></i> Pesar VACÍO</button>';
-    else botones+='<button class="mon-tinybtn rec-pl" data-r="'+esc(v._ruta)+'" data-f="'+esc(v._fecha)+'" data-k="'+esc(v._vk)+'" style="width:auto;flex:none;padding:0 12px'+(ps.length?'':';background:#B0843C;color:#fff;border-color:#B0843C')+'"><i class="ti ti-arrow-up"></i> '+(ps.length?'+ Otra descarga (pesar lleno)':'Pesar LLENO')+'</button>';
-    botones+='</div>';
     const vert=v.viajesVertedero?(' <span class="rec-vchip">🗑 '+v.viajesVertedero+' ida'+(v.viajesVertedero>1?'s':'')+'</span>'):'';
     return '<div class="rd-item"><div style="display:flex;align-items:center;gap:8px"><b style="flex:1">'+esc(v._rutaName||'')+vert+'</b><span style="font-size:11px;color:#8C887E">'+esc(fmtFecha(v._fecha||''))+'</span></div>'
       +'<div class="mon-line"><i class="ti ti-truck"></i> '+esc(v._ficha||'—')+' · <i class="ti ti-user"></i> '+esc(v.choferCode||'—')+' · <i class="ti ti-map-pin"></i> '+(Number(v.distancia)||0).toFixed(1)+' km'+(v.pesadoPor?(' · báscula: '+esc(v.pesadoPor)):'')+'</div>'
-      +pesoRows+botones+'</div>';
+      +pesajeRowsHtml(v)
+      +pesajeFormHtml(v,v._ruta,v._fecha,v._vk)+'</div>';
   }
   function pesajesDe(v){ const ps=v.pesajes?Object.keys(v.pesajes).sort().map(k=>Object.assign({_k:k},v.pesajes[k])):[];
     if(!ps.length&&v.pesoLleno!=null)ps.push({_k:'_legacy',lleno:v.pesoLleno,vacio:v.pesoVacio,ton:v.pesoVacio!=null?Math.round((v.pesoLleno-v.pesoVacio)*100)/100:null});
@@ -3512,8 +3525,67 @@
     try{ fbDb.ref('rutas/'+rid+'/reportes').orderByChild('fecha').equalTo(fecha).once('value').then(s=>{ const o=s.val()||{}; const rk=Object.keys(o)[0]; if(rk)fbDb.ref('rutas/'+rid+'/reportes/'+rk).update({toneladas:tot}); }); }catch(_){ }
     toast('Descarga cerrada: '+ton+' t · total del viaje: '+tot+' t'); setTimeout(renderRecursos,300);
   }
-  function recalcTon(){ }
-  async function openPesajeRec(rid,fecha,vk){ return pesarLleno(rid,fecha,vk); }
+  // ===== Pesaje inline (sin modales): filas + formulario desplegable =====
+  function pesajeRowsHtml(v){
+    const ps=pesajesDe(v); let h='';
+    ps.forEach((p,i)=>{ h+='<div class="rec-prow'+(p.vacio==null?' open':'')+'"><span class="rec-pn">Descarga #'+(i+1)+'</span>'
+      +'<span class="rec-pv2"><small>Lleno</small><b>'+(p.lleno!=null?p.lleno+' t':'—')+'</b></span>'
+      +'<span class="rec-pv2"><small>Vacío</small><b>'+(p.vacio!=null?p.vacio+' t':'<i style="color:#B0843C">pendiente</i>')+'</b></span>'
+      +'<span class="rec-pv2 res"><small>Recolectado</small><b style="color:'+(p.ton!=null?'#27A35B':'#ABA9A2')+'">'+(p.ton!=null?p.ton+' t':'—')+'</b></span></div>'; });
+    const cerrados=ps.filter(p=>p.ton!=null);
+    if(cerrados.length>1)h+='<div class="rec-ptot">Total del viaje: <b>'+(v.toneladas!=null?v.toneladas:cerrados.reduce((a,p)=>a+(p.ton||0),0).toFixed(2))+' t</b></div>';
+    return h;
+  }
+  function pesajeFormHtml(v,rid,fecha,vk){
+    const ps=pesajesDe(v); const ab=ps.find(p=>p.lleno!=null&&p.vacio==null);
+    const btnTxt=ab?'⚖ Registrar peso VACÍO':(ps.length?'⚖ + Otra descarga':'⚖ Registrar pesaje');
+    return '<button class="mon-tinybtn pj-toggle" style="width:auto;flex:none;padding:0 13px;margin-top:8px'+(ab?';background:#27A35B;color:#fff;border-color:#27A35B':(ps.length?'':';background:#B0843C;color:#fff;border-color:#B0843C'))+'">'+btnTxt+'</button>'
+      +'<div class="pj-form" data-r="'+esc(rid)+'" data-f="'+esc(fecha)+'" data-k="'+esc(vk)+'" data-ab="'+(ab?esc(ab._k):'')+'" data-abl="'+(ab?ab.lleno:'')+'">'
+      +'<div class="pj-grid">'
+      +'<label class="pj-fld"><span>Peso LLENO (t)</span><input class="pj-lleno" inputmode="decimal" '+(ab?('value="'+ab.lleno+'" disabled'):'placeholder="ej: 15.2"')+'></label>'
+      +'<label class="pj-fld"><span>Peso VACÍO (t)</span><input class="pj-vacio" inputmode="decimal" placeholder="al salir"></label>'
+      +'<div class="pj-fld"><span>Recolectado</span><b class="pj-res">—</b></div>'
+      +'</div>'
+      +'<div class="pj-row2"><input class="pj-sup" placeholder="Supervisor de báscula" value="'+esc(v.pesadoPor||'')+'">'
+      +'<label class="pj-share"><input type="checkbox" class="pj-chk"> 2 rutas</label><input class="pj-pct" inputmode="decimal" placeholder="% esta ruta" style="display:none"></div>'
+      +'<div style="display:flex;gap:7px;margin-top:8px"><button class="mon-tinybtn pj-save" style="flex:1;background:#2E2C27;color:#fff;border-color:#2E2C27">Guardar</button><button class="mon-tinybtn pj-cancel" style="flex:none;width:auto;padding:0 13px">Cancelar</button></div>'
+      +'<div class="pj-hint">Puedes guardar solo el LLENO ahora y el VACÍO cuando salga. "2 rutas" solo si esta descarga trae basura de otra ruta (caso especial).</div>'
+      +'</div>';
+  }
+  function wirePesajeForms(root,onSaved){
+    root.querySelectorAll('.pj-toggle').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const f=b.nextElementSibling; if(f)f.classList.toggle('show'); const i=f&&f.querySelector('.pj-lleno:not([disabled])')||f&&f.querySelector('.pj-vacio'); if(i&&f.classList.contains('show'))setTimeout(()=>i.focus(),60); }));
+    root.querySelectorAll('.pj-form').forEach(f=>{
+      const num=el=>{ const x=parseFloat(String(el.value||'').replace(',','.')); return isNaN(x)?null:x; };
+      const calc=()=>{ const ll=f.dataset.abl?parseFloat(f.dataset.abl):num(f.querySelector('.pj-lleno')); const vc=num(f.querySelector('.pj-vacio'));
+        let t=(ll!=null&&vc!=null&&ll>=vc)?Math.round((ll-vc)*100)/100:null;
+        if(t!=null&&f.querySelector('.pj-chk').checked){ const p=num(f.querySelector('.pj-pct')); if(p!=null)t=Math.round(t*Math.max(0,Math.min(100,p)))/100; }
+        f.querySelector('.pj-res').textContent=(t!=null?t+' t':'—'); return t; };
+      f.querySelectorAll('input').forEach(i=>i.addEventListener('input',calc));
+      f.addEventListener('click',e=>e.stopPropagation());
+      const chk=f.querySelector('.pj-chk'); chk.addEventListener('change',()=>{ f.querySelector('.pj-pct').style.display=chk.checked?'':'none'; calc(); });
+      f.querySelector('.pj-cancel').addEventListener('click',()=>f.classList.remove('show'));
+      f.querySelector('.pj-save').addEventListener('click',async ()=>{
+        const rid=f.dataset.r,fecha=f.dataset.f,vk=f.dataset.k,abk=f.dataset.ab;
+        const ll=abk?parseFloat(f.dataset.abl):num(f.querySelector('.pj-lleno'));
+        const vc=num(f.querySelector('.pj-vacio'));
+        const sup=(f.querySelector('.pj-sup').value||'').trim()||null;
+        if(ll==null){ toast('Pon el peso LLENO'); return; }
+        if(vc!=null&&vc>ll){ toast('El vacío no puede pesar más que el lleno'); return; }
+        const ton=calc();
+        const base='rutas/'+rid+'/viajes/'+fecha+'/'+vk;
+        if(abk&&abk!=='_legacy'){ await fbDb.ref(base+'/pesajes/'+abk).update({vacio:vc,ton:ton}); }
+        else await fbDb.ref(base+'/pesajes').push({lleno:ll,vacio:vc,ton:ton,por:sup,ts:Date.now()});
+        if(sup)fbDb.ref(base).update({pesadoPor:sup});
+        const snap=(await fbDb.ref(base+'/pesajes').once('value')).val()||{};
+        let tot=0,open=false; Object.keys(snap).forEach(k2=>{ if(snap[k2].ton!=null)tot+=Number(snap[k2].ton)||0; if(snap[k2].vacio==null)open=true; });
+        tot=Math.round(tot*100)/100;
+        await fbDb.ref(base).update({toneladas:(tot||open)?tot:null});
+        try{ fbDb.ref('rutas/'+rid+'/reportes').orderByChild('fecha').equalTo(fecha).once('value').then(s=>{ const o=s.val()||{}; const rk=Object.keys(o)[0]; if(rk)fbDb.ref('rutas/'+rid+'/reportes/'+rk).update({toneladas:tot}); }); }catch(_){ }
+        toast(vc!=null?('Descarga: '+ton+' t · total '+tot+' t'):('Lleno guardado ('+ll+' t) · pesa el vacío al salir'));
+        if(onSaved)onSaved();
+      });
+    });
+  }
   async function addFuel(){
     const fichas=[...new Set(Object.values(mgmtCamiones||{}).map(c=>c&&c.ficha).filter(Boolean))];
     const ficha=await promptDialog('Carga de combustible','Ficha del camión'+(fichas.length?(' (ej: '+fichas.slice(0,3).join(', ')+')'):''),'',{});
