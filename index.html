@@ -2446,11 +2446,11 @@
         +'<h4>Simular</h4><p>El botón ▶ en una ruta lanza un recorrido de prueba (10 seg). En la tarjeta en vivo: <b>⏸</b> pausa y reanuda donde iba, <b>⏹</b> detiene del todo (la simulación parcial no se registra como viaje completo).</p>'
         +'<h4>Rumbo al vertedero</h4><p>Cuando un chofer pulsa "Voy a botar basura", su ruta se pausa y el camión aparece en ámbar con 🗑. El sistema sigue contando los km hasta el vertedero (para el cálculo de combustible) y avisa al supervisor que va a descargar — momento para registrar el pesaje en Recursos.</p>'
         +'<h4>Panel "En vivo" del viaje</h4><p>Al tocar un camión que está transmitiendo, se abre su detalle con una pestaña <b>🛰 En vivo</b>: estado del viaje (en curso / sin señal / solicita cierre), posición GPS con precisión y frescura de la señal, trazabilidad (puntos visitados vs pendientes con barra), bitácora de eventos del viaje y alertas. Tolva, salud del camión y CTR aparecen como "Próximamente" hasta que existan sus sensores/módulos.</p>'},
-      rutas:{t:'Rutas · Crear y editar',h:'<p>Aquí defines las rutas que luego se monitorean y despachan.</p>'
-        +'<h4>Orden correcto</h4><p><b>1 · Trazado:</b> importa el archivo KMZ/KML del recorrido (o dibújalo). <b>2 · Datos:</b> nombre, sector, camión, chofer, supervisor y frecuencia (qué días se trabaja).</p>'
-        +'<h4>Sector</h4><p>La zona del municipio (Centro, Norte…). Se usa para el semáforo por sectores en Inicio. Puedes escribir uno nuevo o elegir de los ya usados.</p>'
-        +'<h4>Word de indicaciones</h4><p>Es <b>opcional</b> — genera un documento con las instrucciones de la ruta solo si le das al botón. Ya no se descarga solo.</p>'
-        +'<h4>Enviar ruta</h4><p>Desde el detalle de una ruta generas los enlaces para chofer y supervisor. Al enviar se abre el expediente del día con camión, chofer y supervisor asignados.</p>'},
+      rutas:{t:'Rutas · Centro de Planificación',h:'<p>Antes de la lista, la pantalla responde: ¿cuánta cobertura tengo planificada y qué rutas están incompletas?</p>'
+        +'<h4>Banda superior</h4><p>Rutas registradas, km de cobertura total, programadas hoy, listas para operar y <b>asignaciones pendientes</b>.</p>'
+        +'<h4>Asignaciones pendientes</h4><p>Una ruta está incompleta si le falta camión, chofer, supervisor, días o trazado. Aparecen arriba con botón <b>Completar</b> que te lleva directo al editor.</p>'
+        +'<h4>Rutas</h4><p>Las <b>programadas hoy</b> primero. Cada ruta muestra: sector, km, días, camión y chofer (en rojo lo que falta). Clic abre el perfil con viajes y reportes.</p>'
+        +'<h4>Orden correcto al crear</h4><p><b>1 · Trazado:</b> importa el KMZ/KML. <b>2 · Datos:</b> nombre, sector, camión, chofer, supervisor y frecuencia. El Word de indicaciones es opcional.</p>'},
       recursos:{t:'Recursos · Pesaje, combustible y rendimiento',h:'<p>Aquí se registran los insumos físicos de la operación, separados de la gestión de rutas.</p>'
         +'<h4>⚖ Pesaje</h4><p>Cuando un camión llega al vertedero se pesa <b>lleno</b>, y al salir <b>vacío</b>. La diferencia son las toneladas recolectadas. Los viajes marcados 🗑 fueron al vertedero. Si la carga es de dos rutas, se reparte por porcentaje. Las toneladas alimentan el KPI de Inicio.</p>'
         +'<h4>⛽ Combustible</h4><p>Se registra <b>durante el viaje</b>: el chofer pulsa "Voy a echar combustible" (pausa la ruta y cuenta los km del desvío a la bomba), y el supervisor registra los galones desde el panel del camión en Monitoreo. Esta pestaña muestra el histórico.</p>'
@@ -3248,24 +3248,60 @@
   function buildRutasList(){ const host=document.getElementById('rutasBody'); if(!host)return;
     const rutas=mgmtRutas||{}; const ids=Object.keys(rutas).sort((a,b)=>((rutas[a].nombre||'').localeCompare(rutas[b].nombre||'')));
     const live=(typeof liveByRuta==='function')?liveByRuta():{};
-    let h='<div class="ru-top"><div><div class="ini-day" style="font-size:20px">Rutas</div><div class="ini-date">'+ids.length+' registrada'+(ids.length===1?'':'s')+'</div></div>'
+    const tl=todayLetter();
+    // ---- métricas reales
+    let kmTotal=0; const pend=[],completas=[],hoyIds=[];
+    ids.forEach(id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); kmTotal+=km;
+      const falta=[]; if(!r.camion)falta.push('camión'); if(!r.choferCode)falta.push('chofer'); if(!r.supCode)falta.push('supervisor'); if(!(r.freq&&r.freq.length))falta.push('días'); if(!r.wp)falta.push('trazado');
+      if(falta.length)pend.push({id:id,falta:falta}); else completas.push(id);
+      if((r.freq||[]).includes(tl))hoyIds.push(id); });
+    // ---- HERO
+    let h='<div class="ru-top"><div><div class="ini-day" style="font-size:20px">Rutas</div><div class="ini-date">Centro de planificación</div></div>'
       +'<button class="ru-new" id="ruNew"><i class="ti ti-plus" aria-hidden="true"></i> Nueva ruta</button></div>';
-    if(!ids.length)h+='<div class="ini-empty">Aún no hay rutas. Crea la primera con "Nueva ruta": carga el KMZ, genera el Word y guarda.</div>';
-    h+='<div class="ru-grid">';
-    ids.forEach(id=>{ const r=rutas[id]; const km=kmOf(decode(r.wp||'')); const t=live[id];
-      h+='<div class="ru-card" data-id="'+id+'">'
-        +'<div class="ru-head"><span class="ru-dot" style="background:'+routeColor(id)+'"></span><span class="ru-name">'+esc(r.nombre||'(sin nombre)')+'</span>'+(t?'<span class="ini-mini">en curso</span>':'')+'</div>'
-        +'<div class="ru-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+esc(r.camion||'sin camión')+' &nbsp; <i class="ti ti-user" aria-hidden="true"></i> '+esc(r.choferCode||'sin chofer')+'</div>'
-        +'<div class="ru-meta"><i class="ti ti-map-pin" aria-hidden="true"></i> '+km.toFixed(2)+' km &nbsp; <i class="ti ti-calendar" aria-hidden="true"></i> '+esc((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
+    const pCol=pend.length?'#C2402F':'#27A35B';
+    h+='<div class="af-hero"><div class="af-cell"><b>'+ids.length+'</b><span>Rutas registradas</span></div>'
+      +'<div class="af-cell"><b>'+kmTotal.toFixed(1)+'</b><span>Km de cobertura total</span></div>'
+      +'<div class="af-cell"><b style="color:#2F7DC2">'+hoyIds.length+'</b><span>Programadas hoy ('+tl+')</span></div>'
+      +'<div class="af-cell"><b style="color:#27A35B">'+completas.length+'</b><span>Listas para operar</span></div>'
+      +'<div class="af-cell"><b style="color:'+pCol+'">'+pend.length+'</b><span>Asignaciones pendientes</span></div></div>';
+    // ---- EXCEPCIONES: rutas incompletas primero
+    if(pend.length){
+      h+='<details class="af-exc" open><summary class="af-exch">⚠ ASIGNACIONES PENDIENTES · '+pend.length+' ruta'+(pend.length>1?'s':'')+' incompleta'+(pend.length>1?'s':'')+' <span class="af-excmore">ver detalle</span></summary>';
+      pend.forEach(p=>{ const r=rutas[p.id]||{};
+        h+='<div class="af-excrow"><b>'+esc(r.nombre||'(sin nombre)')+'</b><span>falta: '+p.falta.join(', ')+'</span>'
+          +'<button class="mon-tinybtn ru-fix" data-id="'+esc(p.id)+'" style="width:auto;flex:none;padding:0 11px;margin-left:auto">Completar</button></div>'; });
+      h+='</details>';
+    } else if(ids.length) h+='<div class="ini-ok" style="margin:0 0 14px"><i class="ti ti-circle-check"></i> Todas las rutas tienen su asignación completa.</div>';
+    if(!ids.length)h+='<div class="ini-empty">Aún no hay rutas. Crea la primera con "Nueva ruta": carga el KMZ y guarda.</div>';
+    // ---- RUTAS como activos: hoy primero, luego el resto
+    const cardOf=id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); const t=live[id];
+      const esHoy=(r.freq||[]).includes(tl);
+      const inc=pend.find(p=>p.id===id);
+      return '<div class="ru-card" data-id="'+esc(id)+'">'
+        +'<div class="ru-head"><span class="ru-dot" style="background:'+routeColor(id)+'"></span><span class="ru-name">'+esc(r.nombre||'(sin nombre)')+'</span>'
+        +(t?'<span class="ini-mini" style="background:rgba(39,163,91,.12);color:#27A35B">● en curso</span>':(esHoy?'<span class="ini-mini" style="background:rgba(47,125,194,.1);color:#2F7DC2">hoy</span>':''))+'</div>'
+        +(r.sector?('<div class="af-meta" style="margin-top:2px"><i class="ti ti-map-2"></i> '+esc(r.sector)+'</div>'):'')
+        +'<div class="ru-meta" style="margin-top:6px"><i class="ti ti-map-pin" aria-hidden="true"></i> <b>'+km.toFixed(1)+' km</b> &nbsp; <i class="ti ti-calendar" aria-hidden="true"></i> '+esc((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
+        +'<div class="ru-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion?esc(r.camion):'<span style="color:#C2402F">sin camión</span>')+' &nbsp; <i class="ti ti-user" aria-hidden="true"></i> '+(r.choferCode?esc(r.choferCode):'<span style="color:#C2402F">sin chofer</span>')+'</div>'
+        +(inc?'<div class="af-rutas" style="color:#C2402F"><i class="ti ti-alert-triangle"></i> Incompleta: falta '+inc.falta.join(', ')+'</div>':'')
         +'<div class="ru-acts"><button class="mon-tinybtn" data-act="perfil">Perfil</button><button class="mon-tinybtn" data-act="editar">Editar</button><button class="mon-tinybtn" data-act="del" style="flex:none;width:auto;padding:0 11px;color:#C0705F;border-color:rgba(192,112,95,.4)"><i class="ti ti-trash"></i></button></div>'
-        +'</div>'; });
-    h+='</div>'; host.innerHTML=h;
+        +'</div>'; };
+    const hoy=ids.filter(id=>(rutas[id].freq||[]).includes(tl));
+    const resto=ids.filter(id=>!(rutas[id].freq||[]).includes(tl));
+    if(hoy.length)h+='<div class="sec-head" style="margin:12px 0 9px 2px;color:#2F7DC2">PROGRAMADAS HOY · '+hoy.length+'</div><div class="ru-grid">'+hoy.map(cardOf).join('')+'</div>';
+    if(resto.length)h+='<div class="sec-head" style="margin:'+(hoy.length?'18px':'12px')+' 0 9px 2px">OTRAS RUTAS · '+resto.length+'</div><div class="ru-grid">'+resto.map(cardOf).join('')+'</div>';
+    host.innerHTML=h;
     const nb=document.getElementById('ruNew'); if(nb)nb.addEventListener('click',()=>{ if(typeof newRuta==='function')newRuta(); setRutasView('editor'); });
+    host.querySelectorAll('.ru-fix').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const id=b.dataset.id; const pts=decode((mgmtRutas[id]||{}).wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(mgmtRutas[id]); setRutasView('editor'); toast('Completa los datos que faltan y guarda'); }));
     host.querySelectorAll('.ru-card').forEach(card=>{ const id=card.dataset.id;
       card.querySelector('[data-act="perfil"]').addEventListener('click',e=>{ e.stopPropagation(); openRouteDetail(id); });
       card.querySelector('[data-act="editar"]').addEventListener('click',e=>{ e.stopPropagation(); const pts=decode((mgmtRutas[id]||{}).wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(mgmtRutas[id]); setRutasView('editor'); toast('Ruta cargada — edita y guarda'); });
       card.querySelector('[data-act="del"]').addEventListener('click',e=>{ e.stopPropagation(); const nm=(mgmtRutas[id]||{}).nombre||'esta ruta'; if(!confirm('¿Eliminar '+nm+'? Esto borra la ruta y sus viajes/reportes.'))return; if(fbDb)fbDb.ref('rutas/'+id).remove(); hideRouteLayer(id); delete mgmtRutas[id]; buildRutasList(); toast('Ruta eliminada ✓'); });
       card.addEventListener('click',()=>openRouteDetail(id)); }); }
+  // ---- auto-scroll al arrastrar tarjetas (drag cerca del borde mueve la página)
+  document.addEventListener('dragover',e=>{ const sec=document.querySelector('body.sec-admin #secAdmin'); if(!sec)return;
+    const M=80,S=18; const y=e.clientY, h=window.innerHeight;
+    if(y>h-M)sec.scrollTop+=S; else if(y<M+60)sec.scrollTop-=S; });
 
   // ----- ADMINISTRACIÓN (sección) -----
   const CAM_ESTADOS=['en operación','en reparación','fuera de uso'];
