@@ -551,6 +551,29 @@
   .cam-subzone{border-radius:12px;padding:2px 4px;}
   .cam-subzone.zone-over{outline:2px dashed #CF9A4A;outline-offset:2px;background:rgba(207,154,74,.05);}
   .af-subempty{font-size:11px;color:#C4C2BB;padding:10px 6px;font-style:italic;}
+  .cam-subzone{margin-bottom:6px;padding:4px 8px 10px;border-left:3px solid transparent;}
+  .cam-subzone[data-estado="en operación"]{background:rgba(39,163,91,.045);border-left-color:rgba(39,163,91,.45);}
+  .cam-subzone[data-estado="en reparación"]{background:rgba(176,132,60,.05);border-left-color:rgba(176,132,60,.5);}
+  .cam-subzone[data-estado="en análisis"]{background:rgba(122,111,168,.05);border-left-color:rgba(122,111,168,.5);}
+  .cam-subzone[data-estado="sin uso"]{background:rgba(140,136,126,.05);border-left-color:rgba(140,136,126,.4);}
+  body.dark .cam-subzone[data-estado="en operación"]{background:rgba(39,163,91,.07);}
+  body.dark .cam-subzone[data-estado="en reparación"]{background:rgba(176,132,60,.08);}
+  body.dark .cam-subzone[data-estado="en análisis"]{background:rgba(122,111,168,.09);}
+  body.dark .cam-subzone[data-estado="sin uso"]{background:rgba(140,136,126,.08);}
+  /* ===== Reportes: la calificación domina ===== */
+  .rpx-hero{display:flex;align-items:center;gap:16px;margin-bottom:8px;}
+  .rpx-score{font-size:46px;font-weight:800;letter-spacing:-2px;line-height:1;flex:none;}
+  .rpx-score small{font-size:15px;font-weight:600;letter-spacing:0;color:#ABA9A2;}
+  .rpx-lvl{font-size:16px;font-weight:800;letter-spacing:-.2px;}
+  .rpx-ruta{font-size:12.5px;color:#8C887E;margin:1px 0 7px;}
+  .rpx-chips{display:flex;flex-wrap:wrap;gap:5px;}
+  .rpx-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(30,28,24,.06);color:#55524B;}
+  .rpx-chip.good{background:rgba(39,163,91,.12);color:#27A35B;}
+  .rpx-chip.bad{background:rgba(194,64,47,.12);color:#C2402F;}
+  body.dark .rpx-chip{background:rgba(255,255,255,.08);color:#C9C6BE;}
+  body.dark .rpx-chip.good{background:rgba(39,163,91,.18);}
+  body.dark .rpx-chip.bad{background:rgba(194,64,47,.2);}
+  .rpx-det{font-size:11.5px;color:#8C887E;margin-top:7px;line-height:1.5;}
   details.af-exc summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:7px;margin-bottom:0;}
   details.af-exc[open] summary{margin-bottom:8px;}
   details.af-exc summary::-webkit-details-marker{display:none;}
@@ -2463,8 +2486,10 @@
         +'<h4>Requieren atención</h4><p>Los camiones en reparación aparecen primero. Si uno está <b>asignado a una ruta de hoy</b>, se marca en rojo — hay que reasignar el camión de esa ruta. Si toda la flota está operativa, verás el mensaje verde.</p>'
         +'<h4>Flota</h4><p>Agrupada por estado: operativos primero. Cada ficha muestra identificación, capacidad y <b>qué rutas tiene asignadas</b>. El selector de estado cambia el estado al instante; clic en la ficha abre el perfil completo (ahí también defines si es pesado o ligero). Los "fuera de uso" quedan colapsados al final.</p>'
         +'<h4>Choferes y Supervisores</h4><p>En sus pestañas: se registran y luego aparecen como opciones al crear o enviar rutas.</p>'},
-      reportes:{t:'Reportes',h:'<p>Historial de todos los recorridos terminados, agrupados por <b>ruta</b>, <b>chofer</b>, <b>supervisor</b> o <b>camión</b>. Cada reporte trae cobertura, calles omitidas, fidelidad al trazado, distancia, calificación y — si se pesó — las toneladas. Filtra por hoy, ayer, semana o un rango de fechas.</p>'
-        +'<h4>Pesaje</h4><p>El peso se registra desde el detalle de la ruta → pestaña Viajes → "Registrar pesaje", cuando el camión llega a la báscula. Si traía carga de 2 rutas, se reparte por porcentaje.</p>'}
+      reportes:{t:'Reportes · Centro de Evaluación',h:'<p>Cada recorrido terminado se evalúa. La <b>calificación domina</b>: el número grande con su nivel (Excelente, Bueno…) te dice de inmediato cómo salió.</p>'
+        +'<h4>Diagnóstico rápido</h4><p>Las etiquetas debajo del número resumen qué salió bien (verde) y qué mal (rojo): omisiones, cobertura, fidelidad, toneladas y desvíos. Los detalles técnicos (horas, km, odómetro) quedan en letra pequeña.</p>'
+        +'<h4>Agrupación y filtros</h4><p>Por ruta, chofer, supervisor o camión (submenú). Filtra por hoy, ayer, semana o rango. "Descargar reporte" genera el Word.</p>'
+        +'<h4>Pesaje</h4><p>Las toneladas vienen del pesaje lleno/vacío registrado en Recursos.</p>'}
     };
     function openHelp(){ const sec=(typeof curSec!=='undefined'?curSec:'inicio'); const d=HELP[sec]||HELP.inicio;
       document.getElementById('helpTitle').textContent=d.t; document.getElementById('helpBody').innerHTML=d.h;
@@ -3122,16 +3147,24 @@
   function ratingColor(s){ s=Number(s)||0; return s>=80?'#27A35B':(s>=50?'#C7A765':'#C0705F'); }
   function repInd(l,v){ return v!=null?('<div class="rep-ind"><b>'+v+'%</b><span>'+l+'</span></div>'):''; }
   function repItemHtml(rp,i){ const sc=rp.rating; const col=ratingColor(sc);
-    return '<div class="rd-item">'
-      +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">'+esc(rp._rutaName||'')+'</span>'
-      +(sc!=null?'<span class="rep-badge" style="background:'+col+'22;color:'+col+'">'+esc(sc)+'/100</span>':'')
-      +'<span style="font-size:11px;color:#ABA9A2">'+esc(fmtFecha(rp.fecha||''))+'</span></div>'
-      +'<div class="mon-line"><i class="ti ti-clock"></i> '+fmtTime(rp.inicio)+' → '+fmtTime(rp.fin||rp.ts)+' · <i class="ti ti-user"></i> '+esc(rp.choferCode||'—')+(rp.supCode?(' · Sup '+esc(rp.supCode)):'')+(rp._camion?(' · <i class="ti ti-truck"></i> '+esc(rp._camion)):'')+'</div>'
-      +(rp.kmFin!=null?'<div class="mon-line"><i class="ti ti-gauge"></i> Odómetro '+fmtKm(rp.kmFin)+(rp.distancia!=null?(' · recorrió '+fmtKm(rp.distancia)):'')+'</div>':'')
-      +'<div class="mon-line" style="color:var(--tx0)">'+esc(rp.texto||'')+'</div>'
-      +(sc!=null?('<div class="rep-vis"><div class="rep-num" style="color:'+col+'">'+esc(sc)+'</div><div><div style="font-weight:600">'+esc(rp.ratingLevel||'')+'</div><div class="mon-line" style="margin:0">'+esc(rp.message||'Calificación del recorrido.')+'</div></div></div>'
-        +'<div class="rep-inds">'+repInd('Completado',rp.routeCompletion)+repInd('Fidelidad ruta',rp.routeFidelity)+repInd('Eficiencia tiempo',rp.timeEfficiency)+(rp.criticalPct!=null?repInd('Críticas omitidas',rp.criticalPct):'')+'</div>'):'')
-      +'<button class="mon-tinybtn rep-word" data-i="'+i+'" style="margin-top:11px;width:auto;flex:none;padding:0 13px"><i class="ti ti-download"></i> Descargar reporte</button>'
+    // diagnóstico: qué salió bien / mal (datos reales)
+    let chips='';
+    if(rp.omitidos)chips+='<span class="rpx-chip bad">⚠ '+rp.omitidos+' tramo'+(rp.omitidos>1?'s':'')+' omitido'+(rp.omitidos>1?'s':'')+'</span>';
+    else if(rp.routeCompletion!=null)chips+='<span class="rpx-chip good">✓ Sin omisiones</span>';
+    if(rp.routeCompletion!=null)chips+='<span class="rpx-chip'+(rp.routeCompletion>=90?' good':(rp.routeCompletion<60?' bad':''))+'">Cobertura '+rp.routeCompletion+'%</span>';
+    if(rp.routeFidelity!=null)chips+='<span class="rpx-chip'+(rp.routeFidelity>=90?' good':(rp.routeFidelity<60?' bad':''))+'">Fidelidad '+rp.routeFidelity+'%</span>';
+    if(rp.toneladas!=null)chips+='<span class="rpx-chip">⚖ '+rp.toneladas+' t</span>';
+    if(rp.viajesVertedero)chips+='<span class="rpx-chip">🗑 '+rp.viajesVertedero+'</span>';
+    if(rp.kmVertedero||rp.kmCombustible)chips+='<span class="rpx-chip">desvíos '+((Number(rp.kmVertedero)||0)+(Number(rp.kmCombustible)||0)).toFixed(1)+' km</span>';
+    return '<div class="rd-item rpx">'
+      +(sc!=null?('<div class="rpx-hero"><div class="rpx-score" style="color:'+col+'">'+esc(sc)+'<small>/100</small></div>'
+        +'<div class="rpx-info"><div class="rpx-lvl" style="color:'+col+'">'+esc(rp.ratingLevel||ratingLabel(sc).lbl||'')+'</div>'
+        +'<div class="rpx-ruta">'+esc(rp._rutaName||'')+' · '+esc(fmtFecha(rp.fecha||''))+'</div>'
+        +'<div class="rpx-chips">'+chips+'</div></div></div>')
+        :('<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;flex:1">'+esc(rp._rutaName||'')+'</span><span style="font-size:11px;color:#ABA9A2">'+esc(fmtFecha(rp.fecha||''))+'</span></div><div class="rpx-chips" style="margin-top:6px">'+chips+'</div>'))
+      +'<div class="rpx-det"><i class="ti ti-clock"></i> '+fmtTime(rp.inicio)+' → '+fmtTime(rp.fin||rp.ts)+' · <i class="ti ti-user"></i> '+esc(rp.choferCode||'—')+(rp.supCode?(' · Sup '+esc(rp.supCode)):'')+(rp._camion?(' · <i class="ti ti-truck"></i> '+esc(rp._camion)):'')
+      +(rp.distancia!=null?(' · recorrió '+fmtKm(rp.distancia)):'')+(rp.kmFin!=null?(' · odóm. '+fmtKm(rp.kmFin)):'')+'</div>'
+      +'<button class="mon-tinybtn rep-word" data-i="'+i+'" style="margin-top:9px;width:auto;flex:none;padding:0 13px"><i class="ti ti-download"></i> Descargar reporte</button>'
       +'</div>'; }
   function repListHtml(list){ repShown=list; return list.length?list.map((rp,i)=>repItemHtml(rp,i)).join(''):'<div class="rd-empty">Sin reportes.</div>'; }
   function downloadReportWord(rp){ if(!rp)return; if(typeof docx==='undefined'||!docx.Document){ toast('Librería Word cargando · reintenta'); return; }
