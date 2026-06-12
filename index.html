@@ -575,6 +575,16 @@
   body.dark .rpx-chip.bad{background:rgba(194,64,47,.2);}
   .rpx-det{font-size:11.5px;color:#8C887E;margin-top:7px;line-height:1.5;}
   .rep-mini{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:11px;font-weight:600;color:#55524B;margin-top:7px;}
+  .rtab-bar{display:inline-flex;gap:3px;background:rgba(30,28,24,.06);border-radius:13px;padding:4px;margin-bottom:16px;flex-wrap:wrap;}
+  body.dark .rtab-bar{background:rgba(255,255,255,.06);}
+  .rtab{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;border:none;border-radius:10px;background:transparent;color:#6C6960;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;}
+  .rtab i{font-size:15px;}
+  .rtab:hover{color:#23211D;}
+  .rtab.on{background:#2E2C27;color:#fff;box-shadow:0 2px 8px rgba(30,28,24,.22);}
+  body.dark .rtab{color:#A8A49B;}
+  body.dark .rtab:hover{color:#ECEAE3;}
+  body.dark .rtab.on{background:#7E9B86;color:#1A1916;}
+  @media(max-width:768px){.rtab span{display:none;}.rtab{padding:0 13px;}}
   body.dark .rep-mini{color:#C9C6BE;}
   .rep-chart{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:13px;padding:13px 14px 9px;margin-bottom:12px;}
   body.dark .rep-chart{background:#26241F;border-color:rgba(255,255,255,.08);}
@@ -1168,7 +1178,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.41 · 2026-06-12</div>
+    <div class="ver" style="padding-top:4px">v3.42 · 2026-06-12</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1493,7 +1503,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.41 · 2026-06-12</div>
+<div class="ver-badge" id="verBadge">v3.42 · 2026-06-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3301,8 +3311,8 @@
     ]}]});
     docx.Packer.toBlob(doc).then(blob=>{ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='reporte_'+String(rp._rutaName||'ruta').replace(/\s+/g,'_')+'_'+(rp.fecha||'')+'.docx'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); toast('Reporte descargado ✓'); }).catch(()=>toast('No se pudo generar el Word')); }
   function renderReportes(){ const body=document.getElementById('repBody'); const filt=document.getElementById('repFilt'); if(filt)filt.innerHTML=''; if(!body)return;
-    body.innerHTML='<div class="adm2-tabs" style="margin-bottom:16px">'+[['rutas','Rutas'],['choferes','Choferes'],['supervisores','Supervisores'],['camiones','Camiones']].map(s=>'<button class="adm2-tab'+(repView===s[0]?' on':'')+'" data-v="'+s[0]+'">'+s[1]+'</button>').join('')+'</div><div id="repContent"></div>';
-    body.querySelectorAll('.adm2-tab').forEach(t=>t.addEventListener('click',()=>{ repView=t.dataset.v; repSel=null; renderReportes(); }));
+    body.innerHTML=repTabsHtml(repView)+'<div id="repContent"></div>';
+    wireRepTabs(body);
     const c=document.getElementById('repContent'); let ch='';
     // filtros de fecha SIEMPRE visibles, en todas las vistas
     ch+='<div class="rep-scope">'+[['hoy','Hoy'],['ayer','Ayer'],['semana','7 días'],['todos','Todos']].map(s=>'<button class="rd-fchip'+(repScope===s[0]?' on':'')+'" data-sc="'+s[0]+'">'+s[1]+'</button>').join('')
@@ -3469,15 +3479,22 @@
   const CAM_ESTADOS=['en operación','en reparación','en análisis','sin uso','fuera de uso'];
   function camActivo(est){ const e=(est||'').toString().toLowerCase(); return e.indexOf('opera')>=0||e==='disponible'||e===''; }
   let admTab='cam';
+  function repTabsHtml(active){ const T=[['rutas','ti-route','Rutas'],['choferes','ti-user','Choferes'],['supervisores','ti-eye','Supervisores'],['camiones','ti-truck','Camiones'],['recursos','ti-clipboard-data','Recursos']];
+    return '<div class="rtab-bar">'+T.map(t=>'<button class="rtab'+(active===t[0]?' on':'')+'" data-v="'+t[0]+'"><i class="ti '+t[1]+'"></i><span>'+t[2]+'</span></button>').join('')+'</div>'; }
+  function wireRepTabs(root){ root.querySelectorAll('.rtab').forEach(t=>t.addEventListener('click',()=>{ const v=t.dataset.v;
+    if(v==='recursos'){ setSection('recursos'); return; }
+    repView=v; repSel=null; setSection('reportes'); if(typeof renderReportes==='function')renderReportes(); })); }
   let recTab='pesaje', recData=null;
   function renderRecursos(){
     const host=document.getElementById('recursosBody'); if(!host)return;
     if(!fbDb){ host.innerHTML='<div class="rd-empty">Sin conexión.</div>'; return; }
-    host.innerHTML='<div class="ini-day" style="font-size:20px">Recursos</div><div class="ini-date">Centro de validación · pesaje · combustible · rendimiento</div>'
+    host.innerHTML=repTabsHtml('recursos')
+      +'<div class="ini-day" style="font-size:20px">Recursos</div><div class="ini-date">Centro de validación · pesaje · combustible · rendimiento</div>'
       +'<div id="recHero" style="margin-top:12px"></div>'
       +'<div class="rec-tabs"><button class="rec-tab'+(recTab==='pesaje'?' on':'')+'" data-rt="pesaje">⚖ Pesaje</button><button class="rec-tab'+(recTab==='combustible'?' on':'')+'" data-rt="combustible">⛽ Combustible</button><button class="rec-tab'+(recTab==='rendimiento'?' on':'')+'" data-rt="rendimiento">📊 Rendimiento</button></div>'
       +'<div id="recBody"><div class="rd-empty">Cargando…</div></div>';
     host.querySelectorAll('.rec-tab').forEach(b=>b.addEventListener('click',()=>{ recTab=b.dataset.rt; renderRecursos(); }));
+    wireRepTabs(host);
     // cargar viajes de todas las rutas
     const ids=Object.keys(mgmtRutas); let pend=ids.length; const viajes=[];
     if(!ids.length){ recRender(viajes); return; }
