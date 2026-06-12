@@ -574,6 +574,20 @@
   body.dark .rpx-chip.good{background:rgba(39,163,91,.18);}
   body.dark .rpx-chip.bad{background:rgba(194,64,47,.2);}
   .rpx-det{font-size:11.5px;color:#8C887E;margin-top:7px;line-height:1.5;}
+  .rep-mini{display:flex;flex-wrap:wrap;gap:5px 12px;font-size:11px;font-weight:600;color:#55524B;margin-top:7px;}
+  body.dark .rep-mini{color:#C9C6BE;}
+  .rep-chart{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:13px;padding:13px 14px 9px;margin-bottom:12px;}
+  body.dark .rep-chart{background:#26241F;border-color:rgba(255,255,255,.08);}
+  .rep-bars{display:flex;align-items:flex-end;gap:7px;height:110px;}
+  .rep-bcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;min-width:0;}
+  .rep-bcol b{font-size:10.5px;color:#55524B;}
+  body.dark .rep-bcol b{color:#C9C6BE;}
+  .rep-bcol i{display:block;width:100%;max-width:38px;border-radius:6px 6px 2px 2px;}
+  .rep-bcol span{font-size:9px;color:#8C887E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .rep-day{display:flex;align-items:baseline;gap:10px;margin:18px 0 9px;padding:8px 13px;background:rgba(30,28,24,.05);border-left:4px solid #7E9B86;border-radius:9px;}
+  .rep-day span{font-size:13.5px;font-weight:800;letter-spacing:-.2px;}
+  .rep-day small{font-size:11px;color:#8C887E;font-weight:600;}
+  body.dark .rep-day{background:rgba(255,255,255,.05);}
   details.af-exc summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:7px;margin-bottom:0;}
   details.af-exc[open] summary{margin-bottom:8px;}
   details.af-exc summary::-webkit-details-marker{display:none;}
@@ -1154,7 +1168,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.40 · 2026-06-12</div>
+    <div class="ver" style="padding-top:4px">v3.41 · 2026-06-12</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1479,7 +1493,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.40 · 2026-06-12</div>
+<div class="ver-badge" id="verBadge">v3.41 · 2026-06-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3251,7 +3265,22 @@
       +'<div class="af-cell"><b>'+(km?km.toFixed(0):'—')+'</b><span>Km recorridos</span></div>'
       +'<div class="af-cell"><b style="color:'+(omitV?'#C2402F':'#27A35B')+'">'+omitV+'</b><span>Con calles omitidas</span></div></div>';
     if(omitV)hero+='<div class="af-exc" style="border-left-color:#C2402F;margin-bottom:12px"><div class="af-exch" style="color:#C2402F">⚠ '+omitT+' tramo'+(omitT>1?'s':'')+' omitido'+(omitT>1?'s':'')+' en '+omitV+' recorrido'+(omitV>1?'s':'')+' de este período — abre cada reporte para ver qué calles quedaron sin recoger</div></div>';
-    return hero+list.map((rp,i)=>repItemHtml(rp,i)).join(''); }
+    // ---- gráfica de barras por día (calificación promedio · semáforo)
+    const byF={}; list.forEach(rp=>{ const f=rp.fecha||'—'; (byF[f]=byF[f]||[]).push(rp); });
+    const fechas=Object.keys(byF).sort();
+    if(fechas.length>=2){
+      hero+='<div class="rep-chart"><div class="lv-h" style="margin-bottom:7px">EVOLUCIÓN DIARIA · calificación promedio</div><div class="rep-bars">';
+      fechas.slice(-14).forEach(f=>{ const rs=byF[f]; let ss=[]; rs.forEach(rp=>{ const s=(rp.rating!=null?rp.rating:rp.routeCompletion); if(s!=null)ss.push(Number(s)||0); });
+        const a=ss.length?Math.round(ss.reduce((x,y)=>x+y,0)/ss.length):0; const cl=ratingColor(a);
+        hero+='<div class="rep-bcol" title="'+fmtFecha(f)+' · '+a+'/100 · '+rs.length+' recorrido(s)"><b>'+a+'</b><i style="height:'+Math.max(4,a)+'%;background:'+cl+'"></i><span>'+esc(fmtFecha(f).replace(/ 20\d\d$/,''))+'</span></div>'; });
+      hero+='</div></div>';
+    }
+    // ---- reportes agrupados por fecha con marco
+    let out=hero;
+    fechas.slice().reverse().forEach(f=>{ const rs=byF[f]; let tf=0; rs.forEach(rp=>{ if(rp.toneladas!=null)tf+=Number(rp.toneladas)||0; });
+      out+='<div class="rep-day"><span>'+esc(fmtFecha(f))+'</span><small>'+rs.length+' recorrido'+(rs.length>1?'s':'')+(tf?(' · ⚖ '+tf.toFixed(1)+' t'):'')+'</small></div>';
+      rs.forEach(rp=>{ out+=repItemHtml(rp,list.indexOf(rp)); }); });
+    return out; }
   function downloadReportWord(rp){ if(!rp)return; if(typeof docx==='undefined'||!docx.Document){ toast('Librería Word cargando · reintenta'); return; }
     const P=docx.Paragraph,T=docx.TextRun; const line=(t,b,sz)=>new P({children:[new T({text:t,bold:!!b,size:sz||22})]});
     const doc=new docx.Document({sections:[{children:[
@@ -3275,22 +3304,34 @@
     body.innerHTML='<div class="adm2-tabs" style="margin-bottom:16px">'+[['rutas','Rutas'],['choferes','Choferes'],['supervisores','Supervisores'],['camiones','Camiones']].map(s=>'<button class="adm2-tab'+(repView===s[0]?' on':'')+'" data-v="'+s[0]+'">'+s[1]+'</button>').join('')+'</div><div id="repContent"></div>';
     body.querySelectorAll('.adm2-tab').forEach(t=>t.addEventListener('click',()=>{ repView=t.dataset.v; repSel=null; renderReportes(); }));
     const c=document.getElementById('repContent'); let ch='';
+    // filtros de fecha SIEMPRE visibles, en todas las vistas
+    ch+='<div class="rep-scope">'+[['hoy','Hoy'],['ayer','Ayer'],['semana','7 días'],['todos','Todos']].map(s=>'<button class="rd-fchip'+(repScope===s[0]?' on':'')+'" data-sc="'+s[0]+'">'+s[1]+'</button>').join('')
+      +'<span class="rep-range"><label>Desde</label><input type="date" id="repFrom" class="fld" value="'+(repFrom||'')+'"><label>Hasta</label><input type="date" id="repTo" class="fld" value="'+(repTo||'')+'"></span></div>';
+    const flist=repCache.filter(rp=>scopeMatch(rp.fecha||'')).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    // tarjeta de actor con resumen real: promedio a color, recorridos, toneladas, última actividad
+    const entCard=(icon,code,name,list)=>{ let scs=[],ton=0,om=0,last='';
+      list.forEach(rp=>{ const s=(rp.rating!=null?rp.rating:rp.routeCompletion); if(s!=null)scs.push(Number(s)||0); if(rp.toneladas!=null)ton+=Number(rp.toneladas)||0; if(rp.omitidos)om++; if((rp.fecha||'')>last)last=rp.fecha||''; });
+      const avg=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null; const col=avg==null?'#8C887E':ratingColor(avg);
+      return '<div class="ru-card rep-ent" data-e="'+esc(code)+'">'
+        +'<div class="ru-head"><i class="ti '+icon+'" style="color:#7E9B86"></i><span class="ru-name">'+esc(code)+'</span><span class="rpx-score" style="font-size:24px;color:'+col+'">'+(avg!=null?avg:'—')+'</span></div>'
+        +'<div class="cam-meta">'+esc(name||'—')+(last?(' · últ. '+fmtFecha(last)):'')+'</div>'
+        +'<div class="rep-mini"><span>'+list.length+' recorridos</span>'+(ton?('<span>⚖ '+ton.toFixed(1)+' t</span>'):'')+(om?('<span style="color:#C2402F">⚠ '+om+' con omisiones</span>'):'<span style="color:#27A35B">✓ sin omisiones</span>')+'</div></div>'; };
     if(repView==='rutas'){
-      ch+='<div class="rep-scope">'+[['hoy','Hoy'],['ayer','Ayer'],['semana','7 días'],['todos','Todos']].map(s=>'<button class="rd-fchip'+(repScope===s[0]?' on':'')+'" data-sc="'+s[0]+'">'+s[1]+'</button>').join('')
-        +'<span class="rep-range"><label>Desde</label><input type="date" id="repFrom" class="fld" value="'+(repFrom||'')+'"><label>Hasta</label><input type="date" id="repTo" class="fld" value="'+(repTo||'')+'"></span></div>';
-      const list=repCache.filter(rp=>scopeMatch(rp.fecha||'')).sort((a,b)=>(b.ts||0)-(a.ts||0));
-      ch+='<div style="margin-top:14px">'+(list.length?repListHtml(list):'<div class="rd-empty">No hay reportes en este rango.<br>Simula una ruta (Monitoreo → ▶) para generar datos.</div>')+'</div>';
+      ch+='<div style="margin-top:14px">'+(flist.length?repListHtml(flist):'<div class="rd-empty">No hay reportes en este rango.<br>Simula una ruta (Monitoreo → ▶) para generar datos.</div>')+'</div>';
     } else if(repView==='choferes'){
       const set={}; Object.keys(mgmtChoferes||{}).forEach(co=>set[co]=(mgmtChoferes[co]||{}).name||''); repCache.forEach(r=>{ if(r.choferCode&&!(r.choferCode in set))set[r.choferCode]=''; });
-      if(!repSel){ const ks=Object.keys(set); ch+=ks.length?('<div class="ru-grid">'+ks.map(co=>{ const n=repCache.filter(r=>r.choferCode===co).length; return '<div class="ru-card rep-ent" data-e="'+esc(co)+'"><div class="ru-head"><i class="ti ti-user" style="color:#7E9B86"></i><span class="ru-name">'+esc(co)+'</span></div><div class="cam-meta">'+esc(set[co]||'—')+'</div><div class="rep-count">'+n+' reportes</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">No hay choferes.</div>'; }
-      else { const list=repCache.filter(r=>r.choferCode===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Choferes</button><div class="cam-meta" style="margin-bottom:10px">Chofer '+esc(repSel)+(set[repSel]?(' · '+esc(set[repSel])):'')+' · '+list.length+' reportes</div>'+repListHtml(list); }
+      if(!repSel){ const ks=Object.keys(set).filter(co=>co.indexOf('SIM-')!==0); const sims=flist.filter(r=>(r.choferCode||'').indexOf('SIM-')===0);
+        ch+='<div class="ru-grid" style="margin-top:14px">'+ks.map(co=>entCard('ti-user',co,set[co],flist.filter(r=>r.choferCode===co))).join('')
+        +(sims.length?entCard('ti-flask','PRUEBAS','recorridos del simulador',sims):'')+'</div>'
+        +(!ks.length&&!sims.length?'<div class="rd-empty">No hay choferes con reportes en este rango.</div>':''); }
+      else { const list=(repSel==='PRUEBAS')?flist.filter(r=>(r.choferCode||'').indexOf('SIM-')===0):flist.filter(r=>r.choferCode===repSel); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin:12px 0"><i class="ti ti-arrow-left"></i> Choferes</button><div class="cam-meta" style="margin-bottom:10px">'+(repSel==='PRUEBAS'?'Recorridos del simulador':('Chofer '+esc(repSel)+(set[repSel]?(' · '+esc(set[repSel])):'')))+' · '+list.length+' reportes</div>'+repListHtml(list); }
     } else if(repView==='supervisores'){
       const set={}; Object.keys(mgmtSup||{}).forEach(co=>set[co]=(mgmtSup[co]||{}).name||''); repCache.forEach(r=>{ if(r.supCode&&!(r.supCode in set))set[r.supCode]=''; });
-      if(!repSel){ const ks=Object.keys(set); ch+=ks.length?('<div class="ru-grid">'+ks.map(co=>{ const n=repCache.filter(r=>r.supCode===co).length; return '<div class="ru-card rep-ent" data-e="'+esc(co)+'"><div class="ru-head"><i class="ti ti-eye" style="color:#7E9B86"></i><span class="ru-name">'+esc(co)+'</span></div><div class="cam-meta">'+esc(set[co]||'—')+'</div><div class="rep-count">'+n+' reportes</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">No hay supervisores.</div>'; }
-      else { const list=repCache.filter(r=>r.supCode===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Supervisores</button><div class="cam-meta" style="margin-bottom:10px">Supervisor '+esc(repSel)+(set[repSel]?(' · '+esc(set[repSel])):'')+' · '+list.length+' reportes</div>'+repListHtml(list); }
+      if(!repSel){ const ks=Object.keys(set).filter(co=>co.indexOf('SIM-')!==0); ch+='<div class="ru-grid" style="margin-top:14px">'+ks.map(co=>entCard('ti-eye',co,set[co],flist.filter(r=>r.supCode===co))).join('')+'</div>'+(ks.length?'':'<div class="rd-empty">No hay supervisores con reportes.</div>'); }
+      else { const list=flist.filter(r=>r.supCode===repSel); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin:12px 0"><i class="ti ti-arrow-left"></i> Supervisores</button><div class="cam-meta" style="margin-bottom:10px">Supervisor '+esc(repSel)+(set[repSel]?(' · '+esc(set[repSel])):'')+' · '+list.length+' reportes</div>'+repListHtml(list); }
     } else {
-      if(!repSel){ const ks=Object.keys(set).filter(f=>repCache.some(r=>r._camion===f)); ch+=ks.length?('<div class="ru-grid">'+ks.map(f=>{ const rps=repCache.filter(r=>r._camion===f); const dias=new Set(rps.map(r=>r.fecha)).size; return '<div class="ru-card rep-ent" data-e="'+esc(f)+'"><div class="ru-head"><i class="ti ti-truck" style="color:#7E9B86"></i><span class="ru-name">'+esc(f)+'</span></div><div class="cam-meta">'+dias+' día(s) trabajado(s)</div><div class="rep-count">'+rps.length+' recorridos</div></div>'; }).join('')+'</div>'):'<div class="rd-empty">Aún no hay recorridos por camión. Simula una ruta con camión asignado.</div>'; }
-      else { const list=repCache.filter(r=>r._camion===repSel).sort((a,b)=>(b.ts||0)-(a.ts||0)); const dias=new Set(list.map(r=>r.fecha)).size; ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin-bottom:12px"><i class="ti ti-arrow-left"></i> Camiones</button><div class="cam-meta" style="margin-bottom:10px">Camión '+esc(repSel)+' · '+dias+' día(s) trabajados · '+list.length+' recorridos</div>'+repListHtml(list); }
+      if(!repSel){ const ks=Object.keys(set).filter(f=>flist.some(r=>r._camion===f)); ch+=ks.length?('<div class="ru-grid" style="margin-top:14px">'+ks.map(f=>entCard('ti-truck',f,(new Set(flist.filter(r=>r._camion===f).map(r=>r.fecha)).size)+' día(s) trabajados',flist.filter(r=>r._camion===f))).join('')+'</div>'):'<div class="rd-empty">Aún no hay recorridos por camión en este rango.</div>'; }
+      else { const list=flist.filter(r=>r._camion===repSel); const dias=new Set(list.map(r=>r.fecha)).size; ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin:12px 0"><i class="ti ti-arrow-left"></i> Camiones</button><div class="cam-meta" style="margin-bottom:10px">Camión '+esc(repSel)+' · '+dias+' día(s) trabajados · '+list.length+' recorridos</div>'+repListHtml(list); }
     }
     c.innerHTML=ch;
     c.querySelectorAll('[data-sc]').forEach(b=>b.addEventListener('click',()=>{ repScope=b.dataset.sc; repFrom=null; repTo=null; renderReportes(); }));
