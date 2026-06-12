@@ -854,7 +854,10 @@
   .mon-row .ic.on{color:#CF9A4A;}
   .rd-ov{position:fixed;top:0;right:0;bottom:0;width:384px;max-width:93vw;z-index:4000;transform:translateX(106%);transition:transform .25s ease;background:#F4F3F0;border-left:1px solid rgba(30,28,24,0.10);box-shadow:-10px 0 34px rgba(0,0,0,0.13);display:flex;flex-direction:column;padding:18px;font-family:-apple-system,'Segoe UI',sans-serif;color:var(--tx0);overflow-y:auto;}
   .rd-ov.show{transform:none;}
-  .rd-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .rd-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;position:sticky;top:0;z-index:10;background:#FBFAF6;padding:10px 0 8px;border-bottom:1px solid rgba(30,28,24,.08);margin-top:-10px;}
+  body.dark .rd-head{background:#26241F;border-bottom-color:rgba(255,255,255,.08);}
+  .rd-dpick{height:28px;border:1px solid rgba(30,28,24,.16);border-radius:999px;padding:0 9px;font-size:11.5px;font-family:inherit;background:#fff;color:#55524B;}
+  body.dark .rd-dpick{background:#2E2C27;color:#ECEAE3;border-color:rgba(255,255,255,.14);}
   .rd-x{border:none;background:transparent;color:#807E77;font-size:21px;cursor:pointer;line-height:1;padding:0 4px;}
   .rd-name{font-size:18px;font-weight:600;flex:1;}
   .rd-tag{font-size:12px;background:rgba(207,154,74,0.16);color:#9A6A1C;padding:3px 9px;border-radius:8px;}
@@ -1151,7 +1154,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.28 · 2026-06-11</div>
+    <div class="ver" style="padding-top:4px">v3.40 · 2026-06-12</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1476,7 +1479,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.28 · 2026-06-11</div>
+<div class="ver-badge" id="verBadge">v3.40 · 2026-06-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2385,7 +2388,7 @@
       card.appendChild(acts); el.appendChild(card);
     });
   }
-  function startRutas(){ if(!fbDb)return; fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; rutaListRender(); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); if(typeof curSec!=='undefined'&&curSec==='rutas'&&rutasView==='list')buildRutasList(); }); }
+  function startRutas(){ if(!fbDb)return; fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; rutaListRender(); updateKpis(); renderMonitor(); if(typeof refreshRouteLayers==='function')refreshRouteLayers(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); if(typeof curSec!=='undefined'&&curSec==='rutas'&&rutasView==='list')buildRutasList(); }); }
   function fillSelect(id,data){ const sel=document.getElementById(id); if(!sel)return;
     sel.innerHTML='<option value="">(ninguno)</option>';
     Object.keys(data||{}).sort().forEach(code=>{ const v=data[code]||{}; const o=document.createElement('option'); o.value=code; o.textContent=code+(v.name?(' · '+v.name):''); sel.appendChild(o); }); }
@@ -2467,6 +2470,9 @@
     curSec=name;
     document.body.classList.add('adm-shell');
     ['inicio','monitoreo','rutas','recursos','admin','reportes'].forEach(s=>document.body.classList.toggle('sec-'+s,s===name));
+    // el cajón de detalle no sigue entre pantallas
+    const _rd=document.getElementById('rdOv'); if(_rd&&_rd.classList.contains('show'))closeRouteDetail();
+    const _cam=document.getElementById('camOv'); if(_cam)_cam.classList.remove('show');
     document.querySelectorAll('#shellNav .nav-item').forEach(n=>n.classList.toggle('on',n.dataset.sec===name));
     const nrep=document.getElementById('navReportes'), nrsub=document.getElementById('navRepSub');
     if(nrep)nrep.classList.toggle('on',name==='reportes');
@@ -2767,7 +2773,8 @@
   map.on('zoomend',adjustRouteWeights);
   function hideRouteLayer(id){ if(routeLayers[id]){map.removeLayer(routeLayers[id]);delete routeLayers[id];}
     if(liveTrails&&liveTrails[id]){map.removeLayer(liveTrails[id]);delete liveTrails[id];}
-    Object.keys(omitLayers||{}).forEach(k=>{ if(k===id||k.indexOf(id)===0){map.removeLayer(omitLayers[k]);delete omitLayers[k];} }); }
+    const ok='omit_'+id; if(omitLayers&&omitLayers[ok]){map.removeLayer(omitLayers[ok]);delete omitLayers[ok];} }
+  function refreshRouteLayers(){ Object.keys(routeLayers).forEach(id=>{ const keep=liveTrails[id]; map.removeLayer(routeLayers[id]); delete routeLayers[id]; showRouteLayer(id); }); }
   function toggleRouteLayer(id){ if(routeLayers[id])hideRouteLayer(id); else showRouteLayer(id); renderMonitor(); }
   let monAllOn=false, liveTrails={};
   function syncMonLayers(){ const live=liveByRuta(); Object.keys(mgmtRutas).forEach(id=>{ const show=monAllOn||live[id]||(monDaysSel.size&&[...monDaysSel].some(d=>(mgmtRutas[id].freq||[]).includes(d))); if(show)showRouteLayer(id); else hideRouteLayer(id); }); }
@@ -2789,17 +2796,29 @@
       if(done.length<2)done=[pts[0],pts[0]];
       if(liveTrails[id]&&liveTrails[id].setLatLngs)liveTrails[id].setLatLngs(done);
       else { if(liveTrails[id])map.removeLayer(liveTrails[id]); liveTrails[id]=L.polyline(done,{color:'#27A35B',weight:routeWeights().main+1.6,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map); } });
-    // rutas que terminaron: dejar visible lo omitido en rojo
+    // rutas que terminaron: rojo omitido SOLO si el viaje real registró omisiones
     const all=supLast||{};
+    const _n2=new Date(); const _hoy2=_n2.getFullYear()+'-'+String(_n2.getMonth()+1).padStart(2,'0')+'-'+String(_n2.getDate()).padStart(2,'0');
     Object.keys(all).forEach(k=>{ const t=all[k]; if(!t||t.status!=='termino'||!t.rutaId||!t.cov)return; const id=t.rutaId;
-      if(live[id])return; const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2)return;
       const key='omit_'+id;
-      const bits=covDec(t.cov,pts.length); const miss=covSegs(pts,bits,false);
+      if(live[id]){ return; }
+      const r=mgmtRutas[id]; if(!r){ if(omitLayers[key]){map.removeLayer(omitLayers[key]);delete omitLayers[key];} return; }
+      // ¿el último viaje de HOY registró omisiones? si no, la ruta quedó completa: nada de rojo
+      let omitReal=0; const dd=(r.viajes||{})[_hoy2]||{}; const vks=Object.keys(dd).sort((a,b)=>(dd[a].inicio||0)-(dd[b].inicio||0));
+      if(vks.length)omitReal=Number(dd[vks[vks.length-1]].omitidos)||0;
       if(omitLayers[key]){ map.removeLayer(omitLayers[key]); delete omitLayers[key]; }
-      if(!miss.length||!routeLayers[id])return;
+      if(!omitReal||!routeLayers[id])return;
+      const pts=decode(r.wp||''); if(!pts||pts.length<2)return;
+      const bits=covDec(t.cov,pts.length); const miss=covSegs(pts,bits,false);
+      if(!miss.length)return;
       const g=L.layerGroup(); miss.forEach(s=>L.polyline(s,{color:'#C2402F',weight:routeWeights().main+1.4,opacity:.95,dashArray:'7 7',lineCap:'round',interactive:false}).addTo(g));
       g.addTo(map); omitLayers[key]=g; }); }
   let omitLayers={};
+  document.addEventListener('keydown',e=>{ if(e.key!=='Escape')return;
+    const help=document.getElementById('helpOv'); if(help&&help.classList.contains('show')){help.classList.remove('show');return;}
+    const cm=document.getElementById('confirmModal'); if(cm&&!cm.classList.contains('hide')){const c=document.getElementById('confirmCancel');if(c)c.click();return;}
+    const cam=document.getElementById('camOv'); if(cam&&cam.classList.contains('show')){cam.classList.remove('show');return;}
+    const rd=document.getElementById('rdOv'); if(rd&&rd.classList.contains('show')){closeRouteDetail();return;} });
   function liveByRuta(){ const live=supLast||{}, m={}; Object.keys(live).forEach(k=>{ const t=live[k]; const age=(Date.now()-((t&&t.ts)||0))/1000; if(t&&t.rutaId&&t.status!=='offline'&&t.status!=='termino'&&age<=40)m[t.rutaId]=t; }); return m; }
   function renderMonStrip(byRuta){
     const strip=document.getElementById('monStrip'); if(!strip)return;
@@ -3144,7 +3163,10 @@
       const fechas=Object.keys(rdViajes).sort().reverse();
       if(!fechas.length){ body.innerHTML='<div class="rd-empty">Aún no hay viajes registrados.<br>Usa "simular" en una ruta para generar uno de prueba.</div>'; return; }
       if(!rdDate||!rdViajes[rdDate])rdDate=fechas[0];
-      fechas.forEach(f=>{ const c=document.createElement('button'); c.className='rd-dchip'+(f===rdDate?' on':''); c.textContent=fmtFecha(f); c.addEventListener('click',()=>{ rdDate=f; renderDetail(); }); dates.appendChild(c); });
+      fechas.slice(0,7).forEach(f=>{ const c=document.createElement('button'); c.className='rd-dchip'+(f===rdDate?' on':''); c.textContent=fmtFecha(f); c.addEventListener('click',()=>{ rdDate=f; renderDetail(); }); dates.appendChild(c); });
+      const di=document.createElement('input'); di.type='date'; di.className='rd-dpick'; di.value=rdDate||''; di.title='Ir a una fecha';
+      di.addEventListener('change',()=>{ if(!di.value)return; if(rdViajes[di.value]){ rdDate=di.value; renderDetail(); } else toast('Sin viajes el '+fmtFecha(di.value)); });
+      dates.appendChild(di);
       const trips=rdViajes[rdDate]||{}; const keys=Object.keys(trips);
       body.innerHTML='<div class="mon-sec" style="color:#807E77">'+keys.length+' viaje(s) · '+fmtFecha(rdDate)+'</div>';
       keys.sort((a,b)=>(trips[a].inicio||0)-(trips[b].inicio||0)).forEach((k,n)=>{ const v=trips[k]; const it=document.createElement('div'); it.className='rd-item';
