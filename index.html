@@ -548,6 +548,9 @@
   .af-zonet span{font-size:11px;font-weight:500;color:#ABA9A2;letter-spacing:0;}
   body.dark .af-zonet{background:rgba(255,255,255,.05);}
   .cam-zone.zone-over{outline:2px dashed #CF9A4A;outline-offset:4px;border-radius:12px;}
+  .cam-subzone{border-radius:12px;padding:2px 4px;}
+  .cam-subzone.zone-over{outline:2px dashed #CF9A4A;outline-offset:2px;background:rgba(207,154,74,.05);}
+  .af-subempty{font-size:11px;color:#C4C2BB;padding:10px 6px;font-style:italic;}
   details.af-exc summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:7px;margin-bottom:0;}
   details.af-exc[open] summary{margin-bottom:8px;}
   details.af-exc summary::-webkit-details-marker{display:none;}
@@ -3304,14 +3307,15 @@
     if(y>h-M)sec.scrollTop+=S; else if(y<M+60)sec.scrollTop-=S; });
 
   // ----- ADMINISTRACIÓN (sección) -----
-  const CAM_ESTADOS=['en operación','en reparación','fuera de uso'];
+  const CAM_ESTADOS=['en operación','en reparación','en análisis','sin uso','fuera de uso'];
   function camActivo(est){ const e=(est||'').toString().toLowerCase(); return e.indexOf('opera')>=0||e==='disponible'||e===''; }
   let admTab='cam';
   let recTab='pesaje', recData=null;
   function renderRecursos(){
     const host=document.getElementById('recursosBody'); if(!host)return;
     if(!fbDb){ host.innerHTML='<div class="rd-empty">Sin conexión.</div>'; return; }
-    host.innerHTML='<div class="ini-day" style="font-size:20px">Recursos</div><div class="ini-date">Pesaje de recolección · combustible · rendimiento</div>'
+    host.innerHTML='<div class="ini-day" style="font-size:20px">Recursos</div><div class="ini-date">Centro de validación · pesaje · combustible · rendimiento</div>'
+      +'<div id="recHero" style="margin-top:12px"></div>'
       +'<div class="rec-tabs"><button class="rec-tab'+(recTab==='pesaje'?' on':'')+'" data-rt="pesaje">⚖ Pesaje</button><button class="rec-tab'+(recTab==='combustible'?' on':'')+'" data-rt="combustible">⛽ Combustible</button><button class="rec-tab'+(recTab==='rendimiento'?' on':'')+'" data-rt="rendimiento">📊 Rendimiento</button></div>'
       +'<div id="recBody"><div class="rd-empty">Cargando…</div></div>';
     host.querySelectorAll('.rec-tab').forEach(b=>b.addEventListener('click',()=>{ recTab=b.dataset.rt; renderRecursos(); }));
@@ -3323,6 +3327,18 @@
   function recRender(viajes){
     const body=document.getElementById('recBody'); if(!body)return;
     viajes.sort((a,b)=>(b.fin||0)-(a.fin||0));
+    // ---- HERO de validación (siempre visible, los pendientes dominan)
+    const heroHost=document.getElementById('recHero');
+    if(heroHost){
+      const sinP=viajes.filter(v=>v.pesoLleno==null).length;
+      const faltaV=viajes.filter(v=>v.pesoLleno!=null&&v.pesoVacio==null).length;
+      let tonT=0; viajes.forEach(v=>{ if(v.toneladas!=null)tonT+=Number(v.toneladas)||0; });
+      const sCol=sinP?'#C2402F':'#27A35B', fCol=faltaV?'#B0843C':'#27A35B';
+      heroHost.innerHTML='<div class="af-hero"><div class="af-cell"><b style="color:'+sCol+'">'+sinP+'</b><span>Viajes sin pesar</span></div>'
+        +'<div class="af-cell"><b style="color:'+fCol+'">'+faltaV+'</b><span>Esperando peso vacío</span></div>'
+        +'<div class="af-cell"><b>'+tonT.toFixed(1)+'</b><span>Toneladas validadas</span></div></div>'
+        +((sinP||faltaV)?('<div class="af-exc" style="border-left-color:'+(sinP?'#C2402F':'#B0843C')+'"><div class="af-exch" style="color:'+(sinP?'#C2402F':'#B0843C')+'">⚖ ACCIÓN PENDIENTE: '+(sinP?(sinP+' viaje'+(sinP>1?'s':'')+' sin pesar'):'')+(sinP&&faltaV?' · ':'')+(faltaV?(faltaV+' esperando el peso vacío'):'')+'</div></div>'):'<div class="ini-ok" style="margin:0 0 12px"><i class="ti ti-circle-check"></i> Sin pesajes pendientes.</div>');
+    }
     if(recTab==='pesaje'){
       let h='<div class="rec-note">El camión se pesa <b>lleno</b> al llegar al vertedero y <b>vacío</b> al salir. Pueden registrarse en momentos distintos (mientras uno descarga, puede pesarse otro). La diferencia son las toneladas. 🗑 = fue al vertedero.</div>';
       const sinPesar=viajes.filter(v=>v.pesoLleno==null);
@@ -3453,11 +3469,11 @@
     if(q)keys=keys.filter(k=>{ const v=cam[k]||{}; return camNorm(v.ficha||k).includes(q)||camNorm(v.placa).includes(q)||camNorm(v.marca).includes(q); });
     // ---- clasificación estado (sobre todos, para hero) y tipo (sobre filtrados)
     const all=Object.keys(cam); const operA=[],repA=[];
-    all.forEach(k=>{ const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))operA.push(k); else if(e.indexOf('fuera')<0)repA.push(k); });
+    all.forEach(k=>{ const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))operA.push(k); else if(e.indexOf('fuera')<0&&e.indexOf('sin uso')<0)repA.push(k); });
     const base=operA.length+repA.length; const dispPct=base?Math.round(operA.length/base*100):null;
     const nsort=(a,b)=>(cam[a].ficha||a).localeCompare(cam[b].ficha||b,undefined,{numeric:true});
     const pes=keys.filter(k=>tipoOf(cam[k])!=='ligero'), lig=keys.filter(k=>tipoOf(cam[k])==='ligero');
-    const split=arr=>{ const o=[],r=[],f=[]; arr.forEach(k=>{ const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))o.push(k); else if(e.indexOf('fuera')>=0)f.push(k); else r.push(k); }); return {o:o.sort(nsort),r:r.sort(nsort),f:f.sort(nsort)}; };
+    const split=arr=>{ const o=[],r=[],a=[],f=[]; arr.forEach(k=>{ const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))o.push(k); else if(e.indexOf('análisis')>=0||e.indexOf('analisis')>=0)a.push(k); else if(e.indexOf('fuera')>=0||e.indexOf('sin uso')>=0)f.push(k); else r.push(k); }); return {o:o.sort(nsort),r:r.sort(nsort),a:a.sort(nsort),f:f.sort(nsort)}; };
     const P=split(pes), L=split(lig);
     // ---- rutas por ficha
     const rutasByFicha={}, hoyByFicha={}; const tl=todayLetter();
@@ -3492,15 +3508,13 @@
         +(nr?('<div class="af-rutas"><i class="ti ti-route"></i> '+nr+' ruta'+(nr>1?'s':'')+': '+esc((rutasByFicha[f]||[]).join(', '))+'</div>'):'<div class="af-rutas off">Sin rutas asignadas</div>')
         +'<select class="estado-mini" data-k="'+esc(k)+'">'+estadoOpts(v.estado)+'</select>'
         +'</div>'; };
-    const grupo=(arr,t,c)=>arr.length?('<div class="sec-head" style="margin:12px 0 9px 2px;color:'+c+'">'+t+' · '+arr.length+'</div><div class="ru-grid">'+arr.map(cardOf).join('')+'</div>'):'';
-    let h='<div class="cam-zone" data-tipo="pesado"><div class="af-zonet">🚛 EQUIPOS PESADOS · '+pes.length+' <span>camiones de recolección · arrastra aquí</span></div>'
-      +grupo(P.o,'OPERATIVOS','#27A35B')+grupo(P.r,'EN REPARACIÓN','#B0843C')
-      +(P.f.length?('<details class="af-fuera"><summary>Fuera de uso · '+P.f.length+'</summary><div class="ru-grid" style="margin-top:10px">'+P.f.map(cardOf).join('')+'</div></details>'):'')
-      +(!pes.length?'<div class="ini-empty" style="padding:14px">Ninguno'+(q?' con esa búsqueda':'')+'.</div>':'')+'</div>';
-    h+='<div class="cam-zone" data-tipo="ligero" style="margin-top:22px"><div class="af-zonet">🚙 LIGEROS · '+lig.length+' <span>camionetas / jeepetas de supervisores y directores · arrastra aquí</span></div>'
-      +grupo(L.o,'OPERATIVOS','#27A35B')+grupo(L.r,'EN REPARACIÓN','#B0843C')
-      +(L.f.length?('<details class="af-fuera"><summary>Fuera de uso · '+L.f.length+'</summary><div class="ru-grid" style="margin-top:10px">'+L.f.map(cardOf).join('')+'</div></details>'):'')
-      +(!lig.length?'<div class="ini-empty" style="padding:14px">Ninguno'+(q?' con esa búsqueda':'')+'. Arrastra aquí las camionetas y jeepetas.</div>':'')+'</div>';
+    const grupo=(arr,t,c,est,tipo)=>'<div class="cam-subzone" data-tipo="'+tipo+'" data-estado="'+est+'"><div class="sec-head" style="margin:12px 0 9px 2px;color:'+c+'">'+t+' · '+arr.length+' <span style="color:#ABA9A2;text-transform:none;letter-spacing:0;font-weight:400">arrastra aquí</span></div><div class="ru-grid">'+(arr.length?arr.map(cardOf).join(''):'<div class="af-subempty">vacío</div>')+'</div></div>';
+    const zonaDe=(S,tipo)=>grupo(S.o,'EN OPERACIÓN','#27A35B','en operación',tipo)
+      +grupo(S.r,'EN REPARACIÓN','#B0843C','en reparación',tipo)
+      +grupo(S.a,'EN ANÁLISIS','#7A6FA8','en análisis',tipo)
+      +grupo(S.f,'SIN USO · cementerio','#8C887E','sin uso',tipo);
+    let h='<div class="cam-zone" data-tipo="pesado"><div class="af-zonet">🚛 EQUIPOS PESADOS · '+pes.length+' <span>camiones de recolección</span></div>'+zonaDe(P,'pesado')+'</div>';
+    h+='<div class="cam-zone" data-tipo="ligero" style="margin-top:26px"><div class="af-zonet">🚙 LIGEROS · '+lig.length+' <span>camionetas / jeepetas de supervisores y directores</span></div>'+zonaDe(L,'ligero')+'</div>';
     host.innerHTML=h;
     host.querySelectorAll('.estado-mini').forEach(sel=>{ sel.addEventListener('click',e=>e.stopPropagation()); sel.addEventListener('mousedown',e=>e.stopPropagation());
       sel.addEventListener('change',e=>{ e.stopPropagation(); const k=sel.dataset.k,val=sel.value; if(fbDb)fbDb.ref('config/camiones/'+k+'/estado').set(val); if(mgmtCamiones[k])mgmtCamiones[k].estado=val; renderCamGrid(); }); });
@@ -3508,12 +3522,12 @@
       c.addEventListener('click',()=>{ if(c.dataset.moved){c.dataset.moved='';return;} if(camSelMode){ if(camSel.has(k))camSel.delete(k); else camSel.add(k); updateCamSelUI(); } else openCamProfile(k); });
       c.addEventListener('dragstart',e=>{ camDragKey=k; e.dataTransfer.setData('text/plain',k); e.dataTransfer.effectAllowed='move'; c.style.opacity='.5'; });
       c.addEventListener('dragend',()=>{ c.style.opacity=''; c.dataset.moved='1'; }); });
-    host.querySelectorAll('.cam-zone').forEach(z=>{ z.addEventListener('dragover',e=>{ e.preventDefault(); z.classList.add('zone-over'); });
+    host.querySelectorAll('.cam-subzone').forEach(z=>{ z.addEventListener('dragover',e=>{ e.preventDefault(); e.stopPropagation(); z.classList.add('zone-over'); });
       z.addEventListener('dragleave',e=>{ if(!z.contains(e.relatedTarget))z.classList.remove('zone-over'); });
-      z.addEventListener('drop',e=>{ e.preventDefault(); z.classList.remove('zone-over'); const tipo=z.dataset.tipo; const dragged=camDragKey||e.dataTransfer.getData('text/plain'); if(!dragged)return;
+      z.addEventListener('drop',e=>{ e.preventDefault(); e.stopPropagation(); z.classList.remove('zone-over'); const tipo=z.dataset.tipo, est=z.dataset.estado; const dragged=camDragKey||e.dataTransfer.getData('text/plain'); if(!dragged)return;
         const move=(camSelMode&&camSel.has(dragged)&&camSel.size)?Array.from(camSel):[dragged]; const upd={};
-        move.forEach(k=>{ if(mgmtCamiones[k]){ mgmtCamiones[k].tipo=tipo; upd['config/camiones/'+k+'/tipo']=tipo; } });
-        if(fbDb)fbDb.ref().update(upd); camDragKey=null; if(camSelMode){camSel.clear();camSelMode=false;} renderCamGrid(); toast(move.length+' → '+(tipo==='ligero'?'ligeros':'pesados')); }); });
+        move.forEach(k=>{ if(mgmtCamiones[k]){ mgmtCamiones[k].tipo=tipo; mgmtCamiones[k].estado=est; upd['config/camiones/'+k+'/tipo']=tipo; upd['config/camiones/'+k+'/estado']=est; } });
+        if(fbDb)fbDb.ref().update(upd); camDragKey=null; if(camSelMode){camSel.clear();camSelMode=false;} renderCamGrid(); toast(move.length+' → '+est+' ('+(tipo==='ligero'?'ligero':'pesado')+')'); }); });
     updateCamSelUI(); }
   function updateCamSelUI(){ const sb=document.getElementById('acSel'), d=document.getElementById('acDelSel');
     const g=document.getElementById('acGrid'); if(g)g.classList.toggle('selmode',!!camSelMode);
