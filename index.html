@@ -517,6 +517,35 @@
   .acc-err.hide{display:none;}
   /* ===== ADMINISTRACIÓN / DASHBOARD (Entrega 1) ===== */
   .adm-tabs{display:flex;gap:6px;margin:14px 0 12px;}
+  /* ===== Administración: Centro de Gestión de Flota ===== */
+  .af-hero{display:flex;gap:0;background:#23211D;color:#ECEAE3;border-radius:16px;overflow:hidden;margin:14px 0;box-shadow:0 6px 24px rgba(30,28,24,.12);}
+  .af-cell{flex:1;display:flex;flex-direction:column;gap:2px;padding:16px 18px;border-right:1px solid rgba(255,255,255,.07);}
+  .af-cell:last-child{border-right:none;}
+  .af-cell b{font-size:30px;line-height:1;letter-spacing:-1px;}
+  .af-cell span{font-size:10.5px;color:#A8A49B;font-weight:600;letter-spacing:.4px;}
+  .af-disp .af-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:7px;}
+  .af-disp .af-bar i{display:block;height:100%;border-radius:99px;}
+  .af-exc{background:#fff;border:1px solid rgba(176,132,60,.3);border-left:4px solid #B0843C;border-radius:13px;padding:12px 14px;margin-bottom:14px;}
+  body.dark .af-exc{background:#26241F;}
+  .af-exch{font-size:11px;font-weight:800;letter-spacing:.6px;color:#B0843C;margin-bottom:8px;}
+  .af-excrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid rgba(30,28,24,.05);font-size:13px;}
+  .af-excrow:last-child{border-bottom:none;}
+  .af-excrow b{font-size:14px;}
+  .af-excrow>span:first-of-type{color:#8C887E;font-size:12px;}
+  .af-excrow.grave{background:rgba(194,64,47,.06);border-radius:8px;padding:7px 9px;}
+  .af-excruta{font-size:12px;font-weight:600;color:#C2402F;width:100%;}
+  .af-card{cursor:pointer;}
+  .af-top{display:flex;align-items:center;gap:8px;}
+  .af-dot{width:10px;height:10px;border-radius:50%;flex:none;}
+  .af-ficha{font-size:17px;font-weight:800;letter-spacing:-.3px;flex:1;}
+  .af-cap{font-size:11px;font-weight:700;color:#55524B;background:rgba(30,28,24,.06);padding:2px 8px;border-radius:999px;}
+  body.dark .af-cap{color:#C9C6BE;background:rgba(255,255,255,.07);}
+  .af-meta{font-size:11.5px;color:#8C887E;margin-top:3px;min-height:14px;}
+  .af-rutas{font-size:11.5px;color:#2F7DC2;margin:7px 0 8px;display:flex;gap:5px;align-items:flex-start;line-height:1.35;}
+  .af-rutas.off{color:#ABA9A2;}
+  .af-fuera{margin-top:18px;}
+  .af-fuera summary{font-size:12px;font-weight:700;color:#8C887E;cursor:pointer;letter-spacing:.4px;}
+  @media(max-width:768px){.af-hero{flex-wrap:wrap;}.af-cell{flex:1 1 40%;border-bottom:1px solid rgba(255,255,255,.07);}.af-cell b{font-size:24px;}}
   .adm-tab{flex:1;padding:9px;border:none;border-radius:11px;background:rgba(68,65,58,0.06);color:#8C887E;font-size:13px;font-family:inherit;cursor:pointer;}
   .adm-tab.on{background:#7E9B86;color:#fff;}
   .adm-pane{display:none;} .adm-pane.on{display:block;}
@@ -1088,6 +1117,7 @@
     <button class="adm2-tab" data-at="sup">Supervisores</button>
   </div>
   <div class="adm2-pane on" id="adm2Cam">
+    <div id="admHero"></div>
     <div class="adm2-bar">
       <input id="acFicha" class="fld" placeholder="Ficha (ej: F-60)" style="max-width:200px;margin:0">
       <button class="mon-tinybtn" id="acAdd" style="flex:none;width:auto;padding:0 16px">Agregar</button>
@@ -2415,7 +2445,11 @@
         +'<h4>⚖ Pesaje</h4><p>Cuando un camión llega al vertedero se pesa <b>lleno</b>, y al salir <b>vacío</b>. La diferencia son las toneladas recolectadas. Los viajes marcados 🗑 fueron al vertedero. Si la carga es de dos rutas, se reparte por porcentaje. Las toneladas alimentan el KPI de Inicio.</p>'
         +'<h4>⛽ Combustible</h4><p>Se registra <b>durante el viaje</b>: el chofer pulsa "Voy a echar combustible" (pausa la ruta y cuenta los km del desvío a la bomba), y el supervisor registra los galones desde el panel del camión en Monitoreo. Esta pestaña muestra el histórico.</p>'
         +'<h4>📊 Rendimiento</h4><p>Combina km recorridos ÷ galones para dar el rendimiento real (km/galón) por camión. Verde = eficiente, rojo = revisar. Con el precio del combustible se podrá calcular el costo por km y por tonelada.</p>'},
-      admin:{t:'Administración',h:'<p>Aquí registras los recursos: <b>Camiones</b> (ficha, placa, capacidad, estado), <b>Choferes</b> y <b>Supervisores</b>. Estos aparecen luego como opciones al crear o enviar rutas. El estado del camión (en operación / en reparación) alimenta la salud de flota en Inicio.</p>'},
+      admin:{t:'Administración · Centro de Gestión de Flota',h:'<p>Antes de ver camiones individuales, la pantalla responde: ¿cuánta capacidad operativa tengo y qué requiere atención?</p>'
+        +'<h4>Banda superior</h4><p>Total de unidades, operativas, en reparación y <b>disponibilidad %</b> (calculada solo sobre operativas + en reparación; los "fuera de uso" no cuentan porque ese inventario no está actualizado).</p>'
+        +'<h4>Requieren atención</h4><p>Los camiones en reparación aparecen primero. Si uno está <b>asignado a una ruta de hoy</b>, se marca en rojo — hay que reasignar el camión de esa ruta. Si toda la flota está operativa, verás el mensaje verde.</p>'
+        +'<h4>Flota</h4><p>Agrupada por estado: operativos primero. Cada ficha muestra identificación, capacidad y <b>qué rutas tiene asignadas</b>. El selector de estado cambia el estado al instante; clic en la ficha abre el perfil completo (ahí también defines si es pesado o ligero). Los "fuera de uso" quedan colapsados al final.</p>'
+        +'<h4>Choferes y Supervisores</h4><p>En sus pestañas: se registran y luego aparecen como opciones al crear o enviar rutas.</p>'},
       reportes:{t:'Reportes',h:'<p>Historial de todos los recorridos terminados, agrupados por <b>ruta</b>, <b>chofer</b>, <b>supervisor</b> o <b>camión</b>. Cada reporte trae cobertura, calles omitidas, fidelidad al trazado, distancia, calificación y — si se pesó — las toneladas. Filtra por hoy, ayer, semana o un rango de fechas.</p>'
         +'<h4>Pesaje</h4><p>El peso se registra desde el detalle de la ruta → pestaña Viajes → "Registrar pesaje", cuando el camión llega a la báscula. Si traía carga de 2 rutas, se reparte por porcentaje.</p>'}
     };
@@ -3363,25 +3397,56 @@
       +'<select class="estado-mini '+(op?'cam-op':'cam-no')+'" data-k="'+esc(k)+'">'+estadoOpts(v.estado)+'</select>'
       +'</div>'; }); return h; }
   function renderCamGrid(){ const host=document.getElementById('acGrid'); if(!host)return;
+    const hero=document.getElementById('admHero');
     const cam=mgmtCamiones||{}; const keys=Object.keys(cam);
-    if(!keys.length){ host.innerHTML='<div class="ini-empty">Ningún camión. Agrega uno o pulsa "Importar levantamiento".</div>'; updateCamSelUI(); return; }
-    const sortf=(a,b)=>{ const oa=camActivo(cam[a].estado)?0:1, ob=camActivo(cam[b].estado)?0:1; if(oa!==ob)return oa-ob; return (cam[a].ficha||a).localeCompare(cam[b].ficha||b,undefined,{numeric:true}); };
-    const pes=keys.filter(k=>tipoOf(cam[k])!=='ligero').sort(sortf);
-    const lig=keys.filter(k=>tipoOf(cam[k])==='ligero').sort(sortf);
-    const zone=(tipo,title,arr,mt)=>'<div class="cam-zone" data-tipo="'+tipo+'"'+(mt?' style="margin-top:18px"':'')+'><div class="sec-head" style="margin:0 0 9px 2px">'+title+' · '+arr.length+' <span style="color:#ABA9A2;text-transform:none;letter-spacing:0;font-weight:400">· arrastra fichas aquí</span></div><div class="ru-grid">'+camCardHtml(arr)+'</div></div>';
-    host.innerHTML=zone('pesado','CAMIONES PESADOS',pes,false)+zone('ligero','LIGEROS · camionetas / jeepetas',lig,true);
-    host.querySelectorAll('.estado-mini').forEach(sel=>{ sel.addEventListener('click',e=>e.stopPropagation()); sel.addEventListener('mousedown',e=>e.stopPropagation());
+    if(!keys.length){ if(hero)hero.innerHTML=''; host.innerHTML='<div class="ini-empty">Ningún camión. Agrega uno o pulsa "Importar levantamiento".</div>'; updateCamSelUI(); return; }
+    // ---- clasificación por estado
+    const oper=[],rep=[],fuera=[];
+    keys.forEach(k=>{ const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))oper.push(k); else if(e.indexOf('fuera')>=0)fuera.push(k); else rep.push(k); });
+    const nsort=(a,b)=>(cam[a].ficha||a).localeCompare(cam[b].ficha||b,undefined,{numeric:true});
+    oper.sort(nsort); rep.sort(nsort); fuera.sort(nsort);
+    const base=oper.length+rep.length; const dispPct=base?Math.round(oper.length/base*100):null;
+    // ---- rutas asignadas por ficha (dato real)
+    const rutasByFicha={}, hoyByFicha={}; const tl=todayLetter();
+    Object.keys(mgmtRutas||{}).forEach(rid=>{ const r=mgmtRutas[rid]||{}; if(!r.camion)return;
+      (rutasByFicha[r.camion]=rutasByFicha[r.camion]||[]).push(r.nombre||rid);
+      if((r.freq||[]).includes(tl))(hoyByFicha[r.camion]=hoyByFicha[r.camion]||[]).push(r.nombre||rid); });
+    // ---- HERO ejecutivo
+    const dCol=dispPct==null?'#8C887E':(dispPct>=80?'#27A35B':(dispPct>=50?'#B0843C':'#C2402F'));
+    let hh='<div class="af-hero"><div class="af-cell"><b>'+keys.length+'</b><span>Unidades registradas</span></div>'
+      +'<div class="af-cell"><b style="color:#27A35B">'+oper.length+'</b><span>Operativas</span></div>'
+      +'<div class="af-cell"><b style="color:#B0843C">'+rep.length+'</b><span>En reparación</span></div>'
+      +'<div class="af-cell af-disp"><b style="color:'+dCol+'">'+(dispPct!=null?dispPct+'%':'—')+'</b><span>Disponibilidad</span><div class="af-bar"><i style="width:'+(dispPct||0)+'%;background:'+dCol+'"></i></div></div></div>';
+    // ---- EXCEPCIONES: en reparación primero; rojo si asignado a ruta de hoy
+    if(rep.length){
+      hh+='<div class="af-exc"><div class="af-exch">⚠ REQUIEREN ATENCIÓN · '+rep.length+' en reparación</div>';
+      rep.forEach(k=>{ const v=cam[k]||{}; const f=v.ficha||k; const hoy=hoyByFicha[f];
+        hh+='<div class="af-excrow'+(hoy?' grave':'')+'"><b>'+esc(f)+'</b><span>'+esc(v.estado||'en reparación')+'</span>'
+          +(hoy?('<span class="af-excruta">🔴 Asignado a ruta de HOY: '+esc(hoy.join(', '))+' — reasignar camión</span>'):(rutasByFicha[f]?('<span class="af-excruta" style="color:#B0843C">Tiene rutas asignadas: '+esc(rutasByFicha[f].join(', '))+'</span>'):''))+'</div>'; });
+      hh+='</div>';
+    } else hh+='<div class="ini-ok" style="margin:0 0 14px"><i class="ti ti-circle-check"></i> Toda la flota registrada está operativa.</div>';
+    if(hero)hero.innerHTML=hh;
+    // ---- FLOTA agrupada por estado
+    const cardOf=k=>{ const v=cam[k]||{}; const f=v.ficha||k; const e=String(v.estado||'').toLowerCase();
+      const col=camActivo(e)?'#27A35B':(e.indexOf('fuera')>=0?'#8C887E':'#B0843C');
+      const nr=(rutasByFicha[f]||[]).length;
+      return '<div class="ru-card af-card" data-k="'+esc(k)+'" draggable="false">'
+        +'<span class="cam-check"><i class="ti ti-square"></i></span>'
+        +'<div class="af-top"><span class="af-dot" style="background:'+col+'"></span><span class="af-ficha">'+esc(f)+'</span>'
+        +(v.capacidad?('<span class="af-cap">'+esc(v.capacidad)+'</span>'):'')+'</div>'
+        +'<div class="af-meta">'+esc(v.marca||'')+(v.placa?(' · '+esc(v.placa)):'')+'</div>'
+        +(nr?('<div class="af-rutas"><i class="ti ti-route"></i> '+nr+' ruta'+(nr>1?'s':'')+': '+esc((rutasByFicha[f]||[]).join(', '))+'</div>'):'<div class="af-rutas off">Sin rutas asignadas</div>')
+        +'<select class="estado-mini" data-k="'+esc(k)+'">'+estadoOpts(v.estado)+'</select>'
+        +'</div>'; };
+    let h='';
+    h+='<div class="sec-head" style="margin:0 0 9px 2px;color:#27A35B">OPERATIVOS · '+oper.length+'</div><div class="ru-grid">'+oper.map(cardOf).join('')+'</div>';
+    if(rep.length)h+='<div class="sec-head" style="margin:18px 0 9px 2px;color:#B0843C">EN REPARACIÓN · '+rep.length+'</div><div class="ru-grid">'+rep.map(cardOf).join('')+'</div>';
+    if(fuera.length)h+='<details class="af-fuera"><summary>Fuera de uso · '+fuera.length+' (inventario no actualizado)</summary><div class="ru-grid" style="margin-top:10px">'+fuera.map(cardOf).join('')+'</div></details>';
+    host.innerHTML=h;
+    host.querySelectorAll('.estado-mini').forEach(sel=>{ sel.addEventListener('click',e=>e.stopPropagation());
       sel.addEventListener('change',e=>{ e.stopPropagation(); const k=sel.dataset.k,val=sel.value; if(fbDb)fbDb.ref('config/camiones/'+k+'/estado').set(val); if(mgmtCamiones[k])mgmtCamiones[k].estado=val; renderCamGrid(); }); });
     host.querySelectorAll('.ru-card').forEach(c=>{ const k=c.dataset.k;
-      c.addEventListener('click',()=>{ if(c.dataset.moved){c.dataset.moved='';return;} if(camSelMode){ if(camSel.has(k))camSel.delete(k); else camSel.add(k); updateCamSelUI(); } else openCamProfile(k); });
-      c.addEventListener('dragstart',e=>{ camDragKey=k; e.dataTransfer.setData('text/plain',k); e.dataTransfer.effectAllowed='move'; c.style.opacity='.5'; });
-      c.addEventListener('dragend',()=>{ c.style.opacity=''; c.dataset.moved='1'; }); });
-    host.querySelectorAll('.cam-zone').forEach(z=>{ z.addEventListener('dragover',e=>{ e.preventDefault(); z.classList.add('zone-over'); });
-      z.addEventListener('dragleave',e=>{ if(!z.contains(e.relatedTarget))z.classList.remove('zone-over'); });
-      z.addEventListener('drop',e=>{ e.preventDefault(); z.classList.remove('zone-over'); const tipo=z.dataset.tipo; const dragged=camDragKey||e.dataTransfer.getData('text/plain'); if(!dragged)return;
-        const move=(camSelMode&&camSel.has(dragged)&&camSel.size)?Array.from(camSel):[dragged]; const upd={};
-        move.forEach(k=>{ if(mgmtCamiones[k]){ mgmtCamiones[k].tipo=tipo; upd['config/camiones/'+k+'/tipo']=tipo; } });
-        if(fbDb)fbDb.ref().update(upd); camDragKey=null; if(camSelMode){camSel.clear();camSelMode=false;} renderCamGrid(); toast(move.length+' → '+(tipo==='ligero'?'ligeros':'pesados')); }); });
+      c.addEventListener('click',()=>{ if(camSelMode){ if(camSel.has(k))camSel.delete(k); else camSel.add(k); updateCamSelUI(); } else openCamProfile(k); }); });
     updateCamSelUI(); }
   function updateCamSelUI(){ const sb=document.getElementById('acSel'), d=document.getElementById('acDelSel');
     if(sb)sb.textContent=camSelMode?'Cancelar':'Seleccionar';
@@ -3393,6 +3458,7 @@
     const f=(lbl,id,val)=>'<div class="cam-field"><label>'+lbl+'</label><input class="fld" id="'+id+'" value="'+(val||'').toString().replace(/"/g,'&quot;')+'" style="margin:0"></div>';
     let h='<div class="cam-field"><label>Estado operativo</label><select class="fld" id="cf_estado" style="margin:0">'
       +estadoOpts(v.estado)+'</select></div>'
+      +'<div class="cam-field"><label>Tipo</label><select class="fld" id="cf_tipo" style="margin:0"><option value="pesado"'+(tipoOf(v)!=='ligero'?' selected':'')+'>Camión pesado</option><option value="ligero"'+(tipoOf(v)==='ligero'?' selected':'')+'>Ligero (camioneta/jeepeta)</option></select></div>'
       +'<div class="cam-grid2">'+f('Ficha','cf_ficha',v.ficha||key)+f('Marca','cf_marca',v.marca)
       +f('Color','cf_color',v.color)+f('Año','cf_anio',v.anio)
       +f('Capacidad','cf_capacidad',v.capacidad)+f('Tenencia','cf_tenencia',v.tenencia)
@@ -3404,7 +3470,7 @@
     document.getElementById('camBody').innerHTML=h;
     document.getElementById('camOv').classList.add('show');
     document.getElementById('cfSave').addEventListener('click',()=>{ const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
-      const data={ficha:g('cf_ficha')||key,marca:g('cf_marca'),color:g('cf_color'),anio:g('cf_anio'),capacidad:g('cf_capacidad'),tenencia:g('cf_tenencia'),placa:g('cf_placa'),estructura:g('cf_estructura'),chasis:g('cf_chasis'),seguro:g('cf_seguro'),vigencia:g('cf_vigencia'),estado:g('cf_estado'),ts:Date.now()};
+      const data={ficha:g('cf_ficha')||key,marca:g('cf_marca'),color:g('cf_color'),anio:g('cf_anio'),capacidad:g('cf_capacidad'),tenencia:g('cf_tenencia'),placa:g('cf_placa'),estructura:g('cf_estructura'),chasis:g('cf_chasis'),seguro:g('cf_seguro'),vigencia:g('cf_vigencia'),estado:g('cf_estado'),tipo:g('cf_tipo')||'pesado',ts:Date.now()};
       if(fbDb)fbDb.ref('config/camiones/'+key).update(data); mgmtCamiones[key]=Object.assign(mgmtCamiones[key]||{},data);
       document.getElementById('camOv').classList.remove('show'); toast('Camión guardado ✓'); renderCamGrid(); });
     document.getElementById('cfDel').addEventListener('click',()=>{ if(!confirm('¿Eliminar el camión '+(v.ficha||key)+'?'))return; if(fbDb)fbDb.ref('config/camiones/'+key).remove(); delete mgmtCamiones[key]; document.getElementById('camOv').classList.remove('show'); renderCamGrid(); }); }
