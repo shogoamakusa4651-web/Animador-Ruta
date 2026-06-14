@@ -1234,7 +1234,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.46 · 2026-06-14</div>
+    <div class="ver" style="padding-top:4px">v3.47 · 2026-06-14</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1559,7 +1559,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.46 · 2026-06-14</div>
+<div class="ver-badge" id="verBadge">v3.47 · 2026-06-14</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3330,6 +3330,29 @@
       +(rp.distancia!=null?(' · recorrió '+fmtKm(rp.distancia)):'')+(rp.kmFin!=null?(' · odóm. '+fmtKm(rp.kmFin)):'')+'</div>'
       +'<button class="mon-tinybtn rep-word" data-i="'+i+'" style="margin-top:9px;width:auto;flex:none;padding:0 13px"><i class="ti ti-download"></i> Descargar reporte</button>'
       +'</div>'; }
+  function choferComisionPanel(code,list){
+    if(code==='PRUEBAS')return '';
+    let cumplidos=0,omis=0,ton=0,scs=[];
+    list.forEach(r=>{ const s=(r.rating!=null?r.rating:r.routeCompletion); if(s!=null)scs.push(Number(s)||0); const ok=(s!=null&&s>=70&&!r.omitidos); if(ok)cumplidos++; if(r.omitidos)omis++; if(r.toneladas!=null)ton+=Number(r.toneladas)||0; });
+    const avg=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null;
+    const pct=list.length?Math.round(cumplidos/list.length*100):0;
+    const monto=comisionCfg.montoChofer;
+    const comision=monto!=null?cumplidos*monto:null;
+    const money=n=>'RD$ '+Number(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
+    // ayudantes vinculados a este chofer
+    const ayus=Object.keys(mgmtAyudantes||{}).filter(a=>{ const v=mgmtAyudantes[a]||{}; return v.chofer===code||fbKey(v.chofer||'')===fbKey(code); });
+    let h='<div class="gx-block" style="border-left:4px solid #7E9B86"><div class="gx-h">💵 CUMPLIMIENTO Y COMISIONES · período seleccionado</div>'
+      +'<div class="af-hero" style="margin:4px 0 10px"><div class="af-cell"><b style="color:'+(avg==null?'#8C887E':ratingColor(avg))+'">'+(avg!=null?avg:'—')+'</b><span>Calificación prom.</span></div>'
+      +'<div class="af-cell"><b style="color:#27A35B">'+cumplidos+'</b><span>Recorridos cumplidos</span></div>'
+      +'<div class="af-cell"><b style="color:'+(pct>=80?'#27A35B':(pct>=50?'#B0843C':'#C2402F'))+'">'+pct+'%</b><span>Tasa cumplimiento</span></div>'
+      +'<div class="af-cell"><b style="color:'+(omis?'#C2402F':'#27A35B')+'">'+omis+'</b><span>Con omisiones</span></div></div>'
+      +'<div class="gx-row tot"><span>Comisión a pagar <small>('+cumplidos+' cumplidos'+(monto!=null?(' × '+money(monto)):'')+')</small></span><b style="color:#27A35B">'+(comision!=null?money(comision):'<i style="color:#B0843C">define el monto en Recursos → Gastos</i>')+'</b></div>';
+    if(ayus.length){ h+='<div class="gx-h" style="margin:12px 0 7px">👥 AYUDANTES VINCULADOS</div>';
+      ayus.forEach(a=>{ const v=mgmtAyudantes[a]||{}; const cm=comisionCfg.montoAyudante!=null?cumplidos*comisionCfg.montoAyudante:null;
+        h+='<div class="gx-row"><span>'+esc(a)+(v.name?(' · '+esc(v.name)):'')+' <small>(mismos '+cumplidos+' cumplidos)</small></span><b>'+(cm!=null?money(cm):'—')+'</b></div>'; }); }
+    h+='<div class="gx-note">Un recorrido cuenta como "cumplido" si tuvo calificación ≥70 y sin calles omitidas. El monto por recorrido se define una sola vez en Recursos → Gastos y Nómina.</div></div>';
+    return h;
+  }
   function repListHtml(list){ repShown=list;
     if(!list.length)return '<div class="rd-empty">Sin reportes en este período.</div>';
     // ---- hero ejecutivo del período (datos del filtro activo)
@@ -3404,7 +3427,7 @@
         ch+='<div class="ru-grid" style="margin-top:14px">'+ks.map(co=>entCard('ti-user',co,set[co],flist.filter(r=>r.choferCode===co))).join('')
         +(sims.length?entCard('ti-flask','PRUEBAS','recorridos del simulador',sims):'')+'</div>'
         +(!ks.length&&!sims.length?'<div class="rd-empty">No hay choferes con reportes en este rango.</div>':''); }
-      else { const list=(repSel==='PRUEBAS')?flist.filter(r=>(r.choferCode||'').indexOf('SIM-')===0):flist.filter(r=>r.choferCode===repSel); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin:12px 0"><i class="ti ti-arrow-left"></i> Choferes</button><div class="cam-meta" style="margin-bottom:10px">'+(repSel==='PRUEBAS'?'Recorridos del simulador':('Chofer '+esc(repSel)+(set[repSel]?(' · '+esc(set[repSel])):'')))+' · '+list.length+' reportes</div>'+repListHtml(list); }
+      else { const list=(repSel==='PRUEBAS')?flist.filter(r=>(r.choferCode||'').indexOf('SIM-')===0):flist.filter(r=>r.choferCode===repSel); ch+='<button class="mon-tinybtn rep-back2" style="width:auto;flex:none;padding:0 13px;margin:12px 0"><i class="ti ti-arrow-left"></i> Choferes</button><div class="cam-meta" style="margin-bottom:10px">'+(repSel==='PRUEBAS'?'Recorridos del simulador':('Chofer '+esc(repSel)+(set[repSel]?(' · '+esc(set[repSel])):'')))+' · '+list.length+' reportes</div>'+choferComisionPanel(repSel,list)+repListHtml(list); }
     } else if(repView==='supervisores'){
       const set={}; Object.keys(mgmtSup||{}).forEach(co=>set[co]=(mgmtSup[co]||{}).name||''); repCache.forEach(r=>{ if(r.supCode&&!(r.supCode in set))set[r.supCode]=''; });
       if(!repSel){ const ks=Object.keys(set).filter(co=>co.indexOf('SIM-')!==0); ch+='<div class="ru-grid" style="margin-top:14px">'+ks.map(co=>entCard('ti-eye',co,set[co],flist.filter(r=>r.supCode===co))).join('')+'</div>'+(ks.length?'':'<div class="rd-empty">No hay supervisores con reportes.</div>'); }
