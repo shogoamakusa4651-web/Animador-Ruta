@@ -597,6 +597,30 @@
   .rep-day{display:flex;align-items:baseline;gap:10px;margin:18px 0 9px;padding:8px 13px;background:rgba(30,28,24,.05);border-left:4px solid #7E9B86;border-radius:9px;}
   .rep-day span{font-size:13.5px;font-weight:800;letter-spacing:-.2px;}
   .rep-day small{font-size:11px;color:#8C887E;font-weight:600;}
+  /* ===== Mantenimiento ===== */
+  .cam-mant-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.5px;color:#8C887E;margin:18px 0 10px;padding-top:14px;border-top:1px solid rgba(30,28,24,.1);}
+  .cam-mant-h b{color:#C2402F;font-size:14px;}
+  .mant-card{background:rgba(30,28,24,.03);border-radius:11px;padding:10px 12px;margin-bottom:8px;}
+  body.dark .mant-card{background:rgba(255,255,255,.04);}
+  .mant-top{display:flex;align-items:center;gap:8px;}
+  .mant-tipo{font-size:10px;font-weight:800;letter-spacing:.4px;padding:2px 8px;border-radius:999px;text-transform:uppercase;}
+  .mant-tipo.rep{background:rgba(194,64,47,.14);color:#C2402F;}
+  .mant-tipo.man{background:rgba(47,125,194,.14);color:#2F7DC2;}
+  .mant-fecha{font-size:11px;color:#8C887E;flex:1;}
+  .mant-monto{font-size:14px;}
+  .mant-x{border:none;background:rgba(192,112,95,.12);color:#C0705F;width:22px;height:22px;border-radius:6px;cursor:pointer;font-size:15px;line-height:1;flex:none;}
+  .mant-desc{font-size:13px;margin-top:5px;}
+  .mant-meta{font-size:11.5px;color:#8C887E;margin-top:4px;}
+  .mant-gastos{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+  .mant-gastos span{font-size:10.5px;background:rgba(30,28,24,.06);padding:2px 8px;border-radius:999px;color:#55524B;}
+  body.dark .mant-gastos span{background:rgba(255,255,255,.07);color:#C9C6BE;}
+  .mant-form-ov{position:fixed;inset:0;z-index:7000;background:rgba(20,18,15,.5);display:flex;align-items:center;justify-content:center;padding:20px;}
+  .mant-form{background:#FBFAF6;border-radius:16px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;padding:18px 20px;}
+  body.dark .mant-form{background:#26241F;}
+  .mant-fh{font-size:16px;font-weight:700;margin-bottom:14px;}
+  .mant-sec{font-size:11px;font-weight:800;letter-spacing:.4px;color:#8C887E;margin:12px 0 7px;}
+  .mant-or{font-size:11px;color:#ABA9A2;margin:-2px 0 7px;font-style:italic;}
+  .mf-grow{display:flex;gap:7px;margin-bottom:6px;align-items:center;}
   body.dark .rep-day{background:rgba(255,255,255,.05);}
   details.af-exc summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:7px;margin-bottom:0;}
   details.af-exc[open] summary{margin-bottom:8px;}
@@ -1178,7 +1202,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.42 · 2026-06-12</div>
+    <div class="ver" style="padding-top:4px">v3.44 · 2026-06-13</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1203,7 +1227,9 @@
   <div class="adm2-tabs">
     <button class="adm2-tab on" data-at="cam">Camiones</button>
     <button class="adm2-tab" data-at="cho">Choferes</button>
+    <button class="adm2-tab" data-at="ayu">Ayudantes</button>
     <button class="adm2-tab" data-at="sup">Supervisores</button>
+    <button class="adm2-tab" data-at="mec">Mecánicos</button>
   </div>
   <div class="adm2-pane on" id="adm2Cam">
     <div id="admHero"></div>
@@ -1503,7 +1529,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.42 · 2026-06-12</div>
+<div class="ver-badge" id="verBadge">v3.44 · 2026-06-13</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1704,11 +1730,11 @@
 <script>
 (function(){
   const LA_VEGA=[19.2225,-70.5293];
-  const map=L.map('map',{zoomControl:true,attributionControl:true}).setView(LA_VEGA,15);
+  const map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:18}).setView(LA_VEGA,15);
 
-  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
-  const satLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:''});
-  const street=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,maxNativeZoom:17,attribution:'Esri'});
+  const satLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,maxNativeZoom:17,attribution:''});
+  const street=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,maxNativeZoom:18,attribution:'© OpenStreetMap'});
   const satGroup=L.layerGroup([sat,satLabels]).addTo(map);
 
   let waypoints=[], markers=[], baseLine=null, progLine=null, car=null, animId=null, playing=false;
@@ -2331,7 +2357,7 @@
   }
 
   // ===== GESTIÓN ADM: choferes y supervisores con código (Fase 4) =====
-  let mgmtChoferes={}, mgmtSup={}, mgmtCamiones={}, mgmtSub=false;
+  let mgmtChoferes={}, mgmtSup={}, mgmtCamiones={}, mgmtMecanicos={}, mgmtAyudantes={}, mgmtSub=false;
   function fbKey(c){ return c.replace(/[.#$\[\]\/]/g,'_'); }
   function nextCode(prefix,obj){ let max=0; if(obj)Object.keys(obj).forEach(k=>{const m=k.match(/(\d+)$/);if(m){const v=parseInt(m[1],10);if(v>max)max=v;}}); return prefix+String(max+1).padStart(2,'0'); }
   function mgmtList(elId,data,onDel){
@@ -2350,6 +2376,8 @@
     fbDb.ref('config/choferes').on('value',s=>{ mgmtChoferes=s.val()||{}; mgmtList('chList',mgmtChoferes,id=>fbDb.ref('config/choferes/'+id).remove()); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('config/supervisores').on('value',s=>{ mgmtSup=s.val()||{}; mgmtList('spList',mgmtSup,id=>fbDb.ref('config/supervisores/'+id).remove()); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('config/camiones').on('value',s=>{ mgmtCamiones=s.val()||{}; camionList(); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
+    fbDb.ref('config/mecanicos').on('value',s=>{ mgmtMecanicos=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
+    fbDb.ref('config/ayudantes').on('value',s=>{ mgmtAyudantes=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
   }
   function mgmtSetup(){
     const ov=document.getElementById('mgmtOv'); if(!ov)return;
@@ -2519,7 +2547,7 @@
   function shellSetup(){
     const HELP={
       inicio:{t:'Inicio · Centro de Gobierno Municipal',h:'<p>Esta pantalla resume cómo está toda la operación del municipio <b>hoy</b>, en 10 segundos. No se opera desde aquí — se supervisa.</p>'
-        +'<h4>ISOM · Índice de Servicio Municipal</h4><p>Un solo número de 0 a 100 que resume la operación del día. Se calcula combinando: cumplimiento de rutas (35%), cobertura real recorrida (25%), flota disponible (20%) y calificación de los recorridos (20%), restando puntos si hay incidencias críticas. <i>Ejemplo:</i> ISOM 82 = "Bueno". La flechita ▲/▼ compara con el promedio de la semana pasada.</p>'
+        +'<h4>Salud del servicio (0–100)</h4><p>Un solo número que resume qué tan bien va la recolección hoy. Combina: ejecución de rutas (45%), cobertura real recorrida (30%) y calificación de los recorridos (25%), restando puntos si hay incidencias. <i>Ejemplo:</i> 82 = "Bueno". La flechita ▲/▼ compara con el promedio de la semana pasada.</p>'
         +'<h4>Resumen del día</h4><p>Viajes ejecutados, km recorridos, cobertura, calificación promedio y toneladas recolectadas (de los pesajes en báscula).</p>'
         +'<h4>Inteligencia Municipal</h4><p>El sistema revisa los últimos 14 días y avisa patrones: una ruta que repite calles omitidas, un chofer con baja calificación sostenida, etc. <i>Ejemplo:</i> "Ruta Centro acumula omisiones en 3 recorridos → revisar acceso o dividir."</p>'
         +'<h4>Expedientes del día</h4><p>Cada ruta que envías abre un "expediente". Se marca <b>Resuelto</b> si el chofer la completó sin omitir calles, o <b>Escalado</b> si quedaron calles sin recoger o la calificación fue baja. Es la trazabilidad institucional.</p>'
@@ -2647,7 +2675,7 @@
       +'<span class="ini-pulse" style="color:'+EST[0]+';border-color:'+EST[0]+'33;background:'+EST[0]+'14"><span class="ini-pdot" style="background:'+EST[0]+'"></span>Estado operacional municipal: '+EST[1]+'</span></div>';
     // ===== Banda 1: Estado general (números clave del municipio)
     h+='<div class="cc-stateline">'
-      +'<div class="cc-st"><b>'+(idx==null?'—':idx)+'</b><span>ISOM</span></div>'
+      +'<div class="cc-st"><b>'+(idx==null?'—':idx)+'</b><span>Salud del servicio</span></div>'
       +'<div class="cc-st"><b>'+(cob!=null?cob+'%':'—')+'</b><span>Cobertura</span></div>'
       +'<div class="cc-st"><b>'+(fPct!=null?fPct+'%':'—')+'</b><span>Flota disponible</span></div>'
       +'<div class="cc-st"><b>'+nDone+'/'+(todayIds.length||0)+'</b><span>Rutas hoy</span></div>'
@@ -2655,7 +2683,7 @@
     h+='<div class="cc-grid">';
     // ===== ISOM hero ampliado
     h+='<div class="cc-card cc-hero">'
-      +'<div class="cc-h">ÍNDICE DE SERVICIO MUNICIPAL · ISOM</div>'
+      +'<div class="cc-h">SALUD DEL SERVICIO DE RECOLECCIÓN</div>'
       +'<div class="cc-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(30,28,24,.08)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="'+EST[0]+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+ringC+'" stroke-dashoffset="'+(idx==null?ringC:ringC*(1-idx/100))+'" transform="rotate(-90 60 60)"/></svg>'
       +'<div class="cc-ringnum"><b style="color:'+EST[0]+'">'+(idx==null?'—':idx)+'</b><span>de 100</span></div></div>'
       +'<div class="cc-isomlbl" style="color:'+EST[0]+'">'+EST[1].toUpperCase()+'</div>'
@@ -2871,7 +2899,7 @@
     const nActivos=Object.keys(byRuta).length;
     function col(v,g,y){ return v==null?'#8C887E':(v>=g?'#27A35B':(v>=y?'#B0843C':'#C2402F')); }
     const cells=[
-      {l:'ISOM',v:isom==null?'—':isom,c:col(isom,80,60)},
+      {l:'Salud del servicio',v:isom==null?'—':isom,c:col(isom,80,60)},
       {l:'Viajes activos',v:nActivos,c:nActivos?'#2F7DC2':'#8C887E'},
       {l:'Cobertura',v:cob!=null?cob+'%':'—',c:col(cob,80,50)},
       {l:'Completadas',v:nDone+'/'+(todayIds.length||0),c:'#3A3833'},
@@ -3779,6 +3807,8 @@
       +f('Placa','cf_placa',v.placa)+f('Estructura','cf_estructura',v.estructura)+'</div>'
       +f('Chasis','cf_chasis',v.chasis)
       +'<div class="cam-grid2">'+f('Estatus seguro','cf_seguro',v.seguro)+f('Vigencia','cf_vigencia',v.vigencia)+'</div>'
+      +'<div class="cam-field"><label>Sueldo fijo mensual del camión (RD$, opcional)</label><input class="fld" id="cf_sueldo" inputmode="decimal" value="'+(v.sueldo!=null?v.sueldo:'')+'" placeholder="si aplica" style="margin:0"></div>'
+      +(nuevo?'':'<div id="camMant"></div>')
       +'<div style="display:flex;gap:8px;margin-top:14px"><button class="mon-tinybtn" id="cfSave" style="flex:1;background:#2E2C27;color:#fff;border-color:#2E2C27">Guardar</button>'
       +(nuevo?'':'<button class="mon-tinybtn" id="cfDel" style="flex:none;width:auto;padding:0 14px;color:#C0705F;border-color:rgba(192,112,95,.4)">Eliminar</button>')+'</div>';
     document.getElementById('camBody').innerHTML=h;
@@ -3787,10 +3817,82 @@
     document.getElementById('cfSave').addEventListener('click',()=>{ const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
       const fch=g('cf_ficha'); if(!fch){toast('Pon al menos la ficha');return;}
       const kk=key||fbKey(fch);
-      const data={ficha:fch,marca:g('cf_marca'),color:g('cf_color'),anio:g('cf_anio'),capacidad:g('cf_capacidad'),tenencia:g('cf_tenencia'),placa:g('cf_placa'),estructura:g('cf_estructura'),chasis:g('cf_chasis'),seguro:g('cf_seguro'),vigencia:g('cf_vigencia'),estado:g('cf_estado')||'en operación',tipo:g('cf_tipo')||'pesado',ts:Date.now()};
+      const data={ficha:fch,marca:g('cf_marca'),color:g('cf_color'),anio:g('cf_anio'),capacidad:g('cf_capacidad'),tenencia:g('cf_tenencia'),placa:g('cf_placa'),estructura:g('cf_estructura'),chasis:g('cf_chasis'),seguro:g('cf_seguro'),vigencia:g('cf_vigencia'),estado:g('cf_estado')||'en operación',tipo:g('cf_tipo')||'pesado',sueldo:(()=>{const x=parseFloat(String(g('cf_sueldo')).replace(',','.'));return isNaN(x)?null:x;})(),ts:Date.now()};
       if(fbDb)fbDb.ref('config/camiones/'+kk).update(data); mgmtCamiones[kk]=Object.assign(mgmtCamiones[kk]||{},data);
       document.getElementById('camOv').classList.remove('show'); toast(nuevo?(fch+' creado ✓'):'Camión guardado ✓'); renderCamGrid(); });
-    const _del=document.getElementById('cfDel'); if(_del)_del.addEventListener('click',()=>{ if(!confirm('¿Eliminar el camión '+(v.ficha||key)+'?'))return; if(fbDb)fbDb.ref('config/camiones/'+key).remove(); delete mgmtCamiones[key]; document.getElementById('camOv').classList.remove('show'); renderCamGrid(); }); }
+    const _del=document.getElementById('cfDel'); if(_del)_del.addEventListener('click',()=>{ if(!confirm('¿Eliminar el camión '+(v.ficha||key)+'?'))return; if(fbDb)fbDb.ref('config/camiones/'+key).remove(); delete mgmtCamiones[key]; document.getElementById('camOv').classList.remove('show'); renderCamGrid(); });
+    if(!nuevo)renderCamMant(key,v); }
+  function renderCamMant(key,v){ const host=document.getElementById('camMant'); if(!host||!fbDb)return;
+    fbDb.ref('mantenimiento/'+key).once('value').then(s=>{ const o=s.val()||{};
+      const trabajos=Object.keys(o).map(k=>Object.assign({_k:k},o[k])).sort((a,b)=>(b.ts||0)-(a.ts||0));
+      let total=0; trabajos.forEach(t=>total+=Number(t.monto)||0);
+      let h='<div class="cam-mant-h"><span>🔧 MANTENIMIENTO Y REPARACIONES</span>'+(trabajos.length?('<b>RD$ '+total.toLocaleString('en-US',{maximumFractionDigits:2})+'</b>'):'')+'</div>'
+        +'<div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap"><button class="mon-tinybtn" id="mAdd" style="flex:none;width:auto;padding:0 13px;background:#2F7DC2;color:#fff;border-color:#2F7DC2"><i class="ti ti-plus"></i> Registrar trabajo</button>'
+        +(trabajos.length?'<button class="mon-tinybtn" id="mExp" style="flex:none;width:auto;padding:0 13px"><i class="ti ti-printer"></i> Expediente del período</button>':'')+'</div>';
+      if(!trabajos.length)h+='<div class="af-subempty" style="padding:8px 2px">Sin trabajos registrados.</div>';
+      trabajos.forEach(t=>{ const gastos=t.gastos?Object.values(t.gastos):[];
+        h+='<div class="mant-card"><div class="mant-top"><span class="mant-tipo '+(t.tipo==='reparación'?'rep':'man')+'">'+esc(t.tipo||'trabajo')+'</span><span class="mant-fecha">'+esc(fmtFecha(t.fecha||''))+'</span><b class="mant-monto">RD$ '+(Number(t.monto)||0).toLocaleString('en-US',{maximumFractionDigits:2})+'</b><button class="mant-x" data-k="'+esc(t._k)+'" title="Eliminar">×</button></div>'
+          +(t.desc?('<div class="mant-desc">'+esc(t.desc)+'</div>'):'')
+          +'<div class="mant-meta">'+(t.mecanico?('<i class="ti ti-tool"></i> '+esc(t.mecanico)):(t.empresa?('<i class="ti ti-building"></i> '+esc(t.empresa)+(t.rnc?(' · RNC '+esc(t.rnc)):'')):'<i class="ti ti-user"></i> mano de obra propia/no especificada'))+'</div>'
+          +(gastos.length?('<div class="mant-gastos">'+gastos.map(x=>'<span>'+esc(x.concepto||'gasto')+': RD$ '+(Number(x.monto)||0).toLocaleString('en-US')+'</span>').join('')+'</div>'):'')
+          +'</div>'; });
+      host.innerHTML=h;
+      const ma=document.getElementById('mAdd'); if(ma)ma.addEventListener('click',()=>openMantForm(key,v));
+      const me=document.getElementById('mExp'); if(me)me.addEventListener('click',()=>expedienteMant(key,v,trabajos));
+      host.querySelectorAll('.mant-x').forEach(b=>b.addEventListener('click',()=>{ if(!confirm('¿Eliminar este trabajo?'))return; fbDb.ref('mantenimiento/'+key+'/'+b.dataset.k).remove().then(()=>renderCamMant(key,v)); }));
+    }); }
+  function openMantForm(key,v){
+    const mecs=mgmtMecanicos||{};
+    const opts='<option value="">— sin mecánico de la institución —</option>'+Object.keys(mecs).map(c=>'<option value="'+esc(c)+'">'+esc(c)+(mecs[c].name?(' · '+esc(mecs[c].name)):'')+'</option>').join('');
+    const today=new Date().toISOString().slice(0,10);
+    const html='<div class="mant-form-ov" id="mantOv"><div class="mant-form">'
+      +'<div class="mant-fh">Registrar trabajo · '+esc(v.ficha||key)+'</div>'
+      +'<div class="pj-grid" style="margin-bottom:9px"><label class="pj-fld"><span>Tipo</span><select class="fld" id="mf_tipo" style="margin:0;height:36px"><option value="mantenimiento">Mantenimiento</option><option value="reparación">Reparación</option></select></label>'
+      +'<label class="pj-fld"><span>Fecha</span><input type="date" class="fld" id="mf_fecha" value="'+today+'" style="margin:0;height:36px"></label></div>'
+      +'<label class="pj-fld" style="margin-bottom:9px"><span>Descripción del trabajo</span><input class="fld" id="mf_desc" placeholder="ej: cambio de aceite y filtros" style="margin:0"></label>'
+      +'<div class="mant-sec">Mano de obra</div>'
+      +'<label class="pj-fld" style="margin-bottom:7px"><span>Mecánico de la institución</span><select class="fld" id="mf_mec" style="margin:0;height:36px">'+opts+'</select></label>'
+      +'<div class="mant-or">si es externo, deja el mecánico vacío y llena lo de abajo:</div>'
+      +'<div class="pj-grid" style="margin-bottom:9px"><label class="pj-fld"><span>Nombre / empresa externa</span><input class="fld" id="mf_emp" placeholder="opcional" style="margin:0"></label>'
+      +'<label class="pj-fld"><span>RNC (si es empresa)</span><input class="fld" id="mf_rnc" placeholder="opcional" style="margin:0"></label></div>'
+      +'<div class="mant-sec">Gastos <span style="font-weight:400;color:#ABA9A2">— detalla si quieres, o pon solo el monto total</span></div>'
+      +'<div id="mf_gastos"></div><button class="mon-tinybtn" id="mf_addg" style="flex:none;width:auto;padding:0 11px;margin-bottom:9px"><i class="ti ti-plus"></i> Agregar gasto detallado</button>'
+      +'<label class="pj-fld" style="margin-bottom:11px"><span>Monto TOTAL del trabajo (RD$)</span><input class="fld" id="mf_monto" inputmode="decimal" placeholder="se calcula con los gastos, o escríbelo directo" style="margin:0"></label>'
+      +'<div style="display:flex;gap:7px"><button class="mon-tinybtn" id="mf_save" style="flex:1;background:#2E2C27;color:#fff;border-color:#2E2C27">Guardar trabajo</button><button class="mon-tinybtn" id="mf_cancel" style="flex:none;width:auto;padding:0 14px">Cancelar</button></div>'
+      +'</div></div>';
+    document.body.insertAdjacentHTML('beforeend',html);
+    const ov=document.getElementById('mantOv');
+    const gHost=document.getElementById('mf_gastos'); let gi=0;
+    const recalc=()=>{ let t=0,any=false; gHost.querySelectorAll('.mf-grow').forEach(r=>{ const m=parseFloat(String(r.querySelector('.mf-gm').value).replace(',','.')); if(!isNaN(m)){t+=m;any=true;} }); if(any)document.getElementById('mf_monto').value=Math.round(t*100)/100; };
+    document.getElementById('mf_addg').addEventListener('click',()=>{ gi++; const d=document.createElement('div'); d.className='mf-grow'; d.innerHTML='<input class="fld mf-gc" placeholder="concepto" style="margin:0;flex:1"><input class="fld mf-gm" inputmode="decimal" placeholder="RD$" style="margin:0;width:90px"><button class="mant-x mf-gx">×</button>'; gHost.appendChild(d); d.querySelector('.mf-gm').addEventListener('input',recalc); d.querySelector('.mf-gx').addEventListener('click',()=>{d.remove();recalc();}); });
+    document.getElementById('mf_cancel').addEventListener('click',()=>ov.remove());
+    ov.addEventListener('click',e=>{ if(e.target===ov)ov.remove(); });
+    document.getElementById('mf_save').addEventListener('click',()=>{ const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+      const monto=parseFloat(String(g('mf_monto')).replace(',','.')); if(isNaN(monto)){toast('Pon el monto total');return;}
+      const gastos={}; gHost.querySelectorAll('.mf-grow').forEach((r,i)=>{ const c=r.querySelector('.mf-gc').value.trim(); const m=parseFloat(String(r.querySelector('.mf-gm').value).replace(',','.')); if(!isNaN(m))gastos['g'+i]={concepto:c||'gasto',monto:m}; });
+      const mecCode=g('mf_mec'); const mecName=mecCode?(mecCode+((mgmtMecanicos[mecCode]||{}).name?(' · '+mgmtMecanicos[mecCode].name):'')):null;
+      const rec={tipo:g('mf_tipo'),fecha:g('mf_fecha')||today,desc:g('mf_desc')||null,monto:Math.round(monto*100)/100,
+        mecanico:mecName,mecCode:mecCode||null,empresa:(!mecCode&&g('mf_emp'))?g('mf_emp'):null,rnc:(!mecCode&&g('mf_rnc'))?g('mf_rnc'):null,
+        gastos:Object.keys(gastos).length?gastos:null,ts:Date.now()};
+      fbDb.ref('mantenimiento/'+key).push(rec).then(()=>{ ov.remove(); toast('Trabajo registrado ✓'); renderCamMant(key,v); }); });
+  }
+  function expedienteMant(key,v,trabajos){
+    const f1=prompt('Expediente — fecha DESDE (aaaa-mm-dd) o vacío para todo:',''); if(f1===null)return;
+    const f2=f1?(prompt('Fecha HASTA (aaaa-mm-dd):',new Date().toISOString().slice(0,10))||''):'';
+    let list=trabajos.slice(); if(f1)list=list.filter(t=>(t.fecha||'')>=f1&&(t.fecha||'')<=(f2||'9999'));
+    list.sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+    let total=0; list.forEach(t=>total+=Number(t.monto)||0);
+    const rows=list.map(t=>{ const gastos=t.gastos?Object.values(t.gastos):[];
+      return '<tr><td>'+esc(fmtFecha(t.fecha||''))+'</td><td>'+esc(t.tipo||'')+'</td><td>'+esc(t.desc||'')+(gastos.length?('<br><small>'+gastos.map(x=>esc(x.concepto)+': '+(Number(x.monto)||0).toLocaleString('en-US')).join(' · ')+'</small>'):'')+'</td><td>'+esc(t.mecanico||t.empresa||'externo/no esp.')+(t.rnc?(' (RNC '+esc(t.rnc)+')'):'')+'</td><td style="text-align:right">RD$ '+(Number(t.monto)||0).toLocaleString('en-US',{maximumFractionDigits:2})+'</td></tr>'; }).join('');
+    const w=window.open('','_blank'); if(!w){toast('Permite ventanas emergentes');return;}
+    w.document.write('<html><head><title>Expediente '+esc(v.ficha||key)+'</title><style>body{font-family:-apple-system,Segoe UI,sans-serif;padding:30px;color:#23211D}h1{font-size:20px;margin:0}h2{font-size:13px;color:#777;font-weight:600;margin:2px 0 18px}table{width:100%;border-collapse:collapse;font-size:12.5px}th{text-align:left;background:#f3f1ec;padding:8px;border-bottom:2px solid #ddd}td{padding:8px;border-bottom:1px solid #eee;vertical-align:top}small{color:#888}.tot{text-align:right;font-size:16px;font-weight:800;margin-top:16px}.box{border:1px solid #ddd;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13px;line-height:1.7}@media print{button{display:none}}</style></head><body>'
+      +'<h1>Expediente de Mantenimiento</h1><h2>'+(f1?('Período '+fmtFecha(f1)+' → '+fmtFecha(f2||'')):'Histórico completo')+' · emitido '+fmtFecha(new Date().toISOString().slice(0,10))+'</h2>'
+      +'<div class="box"><b>Camión:</b> '+esc(v.ficha||key)+' &nbsp; <b>Marca:</b> '+esc(v.marca||'—')+' &nbsp; <b>Placa:</b> '+esc(v.placa||'—')+'<br><b>Capacidad:</b> '+esc(v.capacidad||'—')+' &nbsp; <b>Chasis:</b> '+esc(v.chasis||'—')+' &nbsp; <b>Estado:</b> '+esc(v.estado||'—')+'</div>'
+      +'<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción / gastos</th><th>Mano de obra</th><th style="text-align:right">Monto</th></tr></thead><tbody>'+(rows||'<tr><td colspan=5>Sin trabajos en el período.</td></tr>')+'</tbody></table>'
+      +'<div class="tot">Total invertido: RD$ '+total.toLocaleString('en-US',{maximumFractionDigits:2})+'</div>'
+      +'<button onclick="window.print()" style="margin-top:20px;padding:10px 20px;font-size:14px;cursor:pointer">🖨 Imprimir</button></body></html>');
+    w.document.close();
+  }
   function importLevantamiento(){ if(!fbDb){toast('Sin conexión a Firebase');return;}
     if(!confirm('¿Importar '+CAMIONES_SEED.length+' camiones del levantamiento? Se agregan/actualizan en el registro.'))return;
     const updates={}; CAMIONES_SEED.forEach(c=>{ const o=Object.assign({},c); delete o._key; o.ts=Date.now(); updates[fbKey(c._key)]=o; });
