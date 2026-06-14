@@ -1234,7 +1234,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.47 · 2026-06-14</div>
+    <div class="ver" style="padding-top:4px">v3.48 · 2026-06-14</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1559,7 +1559,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.47 · 2026-06-14</div>
+<div class="ver-badge" id="verBadge">v3.48 · 2026-06-14</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3678,12 +3678,18 @@
     const nominaTot=sueldoTot+comTot;
     const granTot=fuelMonto+mantTot+nominaTot;
     const money=n=>'RD$ '+Number(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
-    let h='<div class="ini-day" style="font-size:18px;margin-top:6px">Proyección de Gastos</div><div class="ini-date">Estimado del período · combustible + mantenimiento + nómina</div>';
+    let h='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div class="ini-day" style="font-size:18px;margin-top:6px">Proyección de Gastos</div><div class="ini-date">Estimado del período · combustible + mantenimiento + nómina</div></div>'
+      +'<button class="mon-tinybtn" id="gxReport" style="flex:none;width:auto;padding:0 15px;margin-top:8px;background:#2E2C27;color:#fff;border-color:#2E2C27"><i class="ti ti-file-text"></i> Reporte ejecutivo del mes</button></div>';
+    // toneladas del período (para CTR) — del mes actual
+    const ymNow=new Date().toISOString().slice(0,7); let tonMes=0;
+    (repCache||[]).forEach(r=>{ if(String(r.fecha||'').slice(0,7)===ymNow&&r.toneladas!=null)tonMes+=Number(r.toneladas)||0; });
+    const ctr=tonMes>0?granTot/tonMes:null;
     // hero total
     h+='<div class="af-hero" style="margin:12px 0"><div class="af-cell"><b style="color:#C2402F">'+money(granTot)+'</b><span>Gasto estimado total</span></div>'
       +'<div class="af-cell"><b>'+money(fuelMonto)+'</b><span>⛽ Combustible</span></div>'
       +'<div class="af-cell"><b>'+money(mantTot)+'</b><span>🔧 Mantenimiento</span></div>'
-      +'<div class="af-cell"><b>'+money(nominaTot)+'</b><span>👥 Nómina</span></div></div>';
+      +'<div class="af-cell"><b>'+money(nominaTot)+'</b><span>👥 Nómina</span></div>'
+      +'<div class="af-cell" style="background:rgba(126,155,134,.1)"><b style="color:#5B7A66">'+(ctr!=null?money(ctr):'—')+'</b><span>Costo / tonelada</span></div></div>';
     // combustible detalle
     h+='<div class="gx-block"><div class="gx-h">⛽ COMBUSTIBLE</div>'
       +'<div class="gx-row"><span>Galones registrados</span><b>'+galTot.toFixed(1)+' gal</b></div>'
@@ -3719,6 +3725,77 @@
     body.innerHTML=h;
     const sv=document.getElementById('gx_save'); if(sv)sv.addEventListener('click',()=>{ const num=id=>{ const e=document.getElementById(id); if(!e)return null; const x=parseFloat(String(e.value).replace(',','.')); return isNaN(x)?null:x; };
       fbDb.ref('config/comisiones').set({precioGalon:num('gx_gal'),montoChofer:num('gx_cho'),montoAyudante:num('gx_ayu'),ts:Date.now()}).then(()=>toast('Montos guardados ✓')); });
+    const rb=document.getElementById('gxReport'); if(rb)rb.addEventListener('click',()=>reporteEjecutivo());
+  }
+  // ---- métricas de un mes (yyyy-mm). Devuelve cifras para reporte y CTR
+  function metricasMes(ym){
+    const inMes=f=>String(f||'').slice(0,7)===ym;
+    let toneladas=0,recorridos=0,cumplidos=0,omis=0,km=0,scs=[];
+    (repCache||[]).forEach(r=>{ if(!inMes(r.fecha))return; recorridos++; const s=(r.rating!=null?r.rating:r.routeCompletion); if(s!=null)scs.push(Number(s)||0); if(s!=null&&s>=70&&!r.omitidos)cumplidos++; if(r.omitidos)omis++; if(r.toneladas!=null)toneladas+=Number(r.toneladas)||0; if(r.distancia!=null)km+=Number(r.distancia)||0; });
+    let gal=0,fuel=0; const precio=comisionCfg.precioGalon;
+    Object.keys(fuelCache||{}).forEach(k=>{ const c=fuelCache[k]||{}; if(!inMes(c.fecha))return; const g=Number(c.galones)||0; gal+=g; const p=(c.precio!=null?c.precio:precio); if(p!=null)fuel+=g*p; });
+    let mant=0; Object.keys(mantCache||{}).forEach(cam=>{ const o=mantCache[cam]||{}; Object.keys(o).forEach(k=>{ if(inMes(o[k].fecha))mant+=Number(o[k].monto)||0; }); });
+    const sd=o=>Object.keys(o||{}).reduce((a,c)=>a+(Number((o[c]||{}).sueldo)||0),0);
+    const nominaFija=sd(mgmtChoferes)+sd(mgmtAyudantes)+sd(mgmtSup)+sd(mgmtMecanicos)+sd(mgmtCamiones);
+    const comch=comisionCfg.montoChofer!=null?cumplidos*comisionCfg.montoChofer:0;
+    const nomina=nominaFija+comch;
+    const gastoTotal=fuel+mant+nomina;
+    const avg=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null;
+    const cobertura=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null;
+    const ctr=toneladas>0?gastoTotal/toneladas:null;
+    const cumplPct=recorridos?Math.round(cumplidos/recorridos*100):null;
+    return {ym,toneladas,recorridos,cumplidos,cumplPct,omis,km,gal,fuel,mant,nomina,gastoTotal,avg,cobertura,ctr};
+  }
+  function prevYm(ym){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-2,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+  function reporteEjecutivo(ym){
+    ym=ym||new Date().toISOString().slice(0,7);
+    const m=metricasMes(ym), p=metricasMes(prevYm(ym));
+    const money=n=>n==null?'—':'RD$ '+Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+    const num=(n,d)=>n==null?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:d||0});
+    const mesNom=(()=>{ const ms=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']; const [y,mm]=ym.split('-'); return ms[parseInt(mm,10)-1]+' '+y; })();
+    // delta vs mes anterior
+    const delta=(cur,prev,inv)=>{ if(cur==null||prev==null||prev===0)return ''; const d=Math.round((cur-prev)/Math.abs(prev)*100); if(d===0)return '<span class="d0">→ igual</span>'; const up=d>0; const good=inv?!up:up; return '<span class="'+(good?'dup':'ddn')+'">'+(up?'▲':'▼')+' '+Math.abs(d)+'% vs mes ant.</span>'; };
+    const w=window.open('','_blank'); if(!w){toast('Permite ventanas emergentes');return;}
+    w.document.write('<html><head><title>Reporte Ejecutivo · '+mesNom+'</title><meta charset="utf-8"><style>'
+      +'body{font-family:-apple-system,Segoe UI,Helvetica,sans-serif;color:#1f1d1a;max-width:780px;margin:0 auto;padding:34px 38px;}'
+      +'.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1f1d1a;padding-bottom:12px;margin-bottom:4px;}'
+      +'h1{font-size:21px;margin:0;letter-spacing:-.3px;} .sub{font-size:12px;color:#777;margin-top:3px;}'
+      +'.org{font-size:12px;text-align:right;color:#555;line-height:1.5;}'
+      +'.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0;}'
+      +'.kpi{border:1px solid #e6e3dc;border-radius:12px;padding:13px 14px;}'
+      +'.kpi b{font-size:23px;display:block;letter-spacing:-1px;} .kpi span{font-size:10.5px;color:#888;font-weight:600;} .kpi .d{font-size:10px;margin-top:5px;}'
+      +'.dup{color:#1f8f4e;font-weight:700;} .ddn{color:#c2402f;font-weight:700;} .d0{color:#999;}'
+      +'h2{font-size:12px;letter-spacing:.5px;color:#999;margin:24px 0 9px;border-bottom:1px solid #eee;padding-bottom:5px;}'
+      +'table{width:100%;border-collapse:collapse;font-size:13px;} td{padding:7px 4px;border-bottom:1px solid #f0eee9;} td.r{text-align:right;font-weight:600;} tr.big td{font-size:15px;font-weight:800;border-top:2px solid #ddd;}'
+      +'.foot{margin-top:30px;font-size:10.5px;color:#aaa;border-top:1px solid #eee;padding-top:10px;}'
+      +'.star{background:#1f1d1a;color:#fff;border-radius:12px;padding:16px 18px;margin:18px 0;display:flex;justify-content:space-between;align-items:center;}'
+      +'.star b{font-size:30px;letter-spacing:-1px;} .star span{font-size:11px;color:#bbb;}'
+      +'@media print{button{display:none;} body{padding:0;}}</style></head><body>'
+      +'<div class="hd"><div><h1>Reporte Ejecutivo de Recolección</h1><div class="sub">'+mesNom+' · servicio de aseo urbano</div></div>'
+      +'<div class="org">Ayuntamiento Municipal<br>La Vega, R.D.<br>Emitido '+fmtFecha(new Date().toISOString().slice(0,10))+'</div></div>'
+      +'<div class="kpis">'
+      +'<div class="kpi"><b>'+num(m.toneladas,1)+' t</b><span>RECOLECTADAS</span><div class="d">'+delta(m.toneladas,p.toneladas)+'</div></div>'
+      +'<div class="kpi"><b>'+(m.cobertura!=null?m.cobertura:'—')+'</b><span>SALUD DEL SERVICIO</span><div class="d">'+delta(m.cobertura,p.cobertura)+'</div></div>'
+      +'<div class="kpi"><b>'+(m.cumplPct!=null?m.cumplPct+'%':'—')+'</b><span>CUMPLIMIENTO</span><div class="d">'+delta(m.cumplPct,p.cumplPct)+'</div></div>'
+      +'<div class="kpi"><b>'+m.recorridos+'</b><span>RECORRIDOS</span><div class="d">'+delta(m.recorridos,p.recorridos)+'</div></div>'
+      +'</div>'
+      +'<div class="star"><div><b>'+money(m.ctr)+'</b><span> &nbsp;COSTO POR TONELADA RECOLECTADA</span></div><div style="text-align:right">'+delta(m.ctr,p.ctr,true)+'</div></div>'
+      +'<h2>RESUMEN OPERATIVO</h2><table>'
+      +'<tr><td>Toneladas recolectadas</td><td class="r">'+num(m.toneladas,1)+' t</td></tr>'
+      +'<tr><td>Recorridos ejecutados</td><td class="r">'+m.recorridos+'</td></tr>'
+      +'<tr><td>Recorridos cumplidos (sin omisiones, calif. ≥70)</td><td class="r">'+m.cumplidos+'</td></tr>'
+      +'<tr><td>Recorridos con calles omitidas</td><td class="r">'+m.omis+'</td></tr>'
+      +'<tr><td>Distancia total recorrida</td><td class="r">'+num(m.km,0)+' km</td></tr>'
+      +'<tr><td>Combustible consumido</td><td class="r">'+num(m.gal,1)+' gal</td></tr></table>'
+      +'<h2>RESUMEN DE GASTOS</h2><table>'
+      +'<tr><td>Combustible</td><td class="r">'+money(m.fuel)+'</td></tr>'
+      +'<tr><td>Mantenimiento y reparaciones</td><td class="r">'+money(m.mant)+'</td></tr>'
+      +'<tr><td>Nómina (sueldos + comisiones)</td><td class="r">'+money(m.nomina)+'</td></tr>'
+      +'<tr class="big"><td>GASTO TOTAL DEL MES</td><td class="r">'+money(m.gastoTotal)+'</td></tr></table>'
+      +'<div class="foot">Generado por Animador de Ruta · sistema de monitoreo de recolección. Las cifras provienen de los recorridos registrados, pesajes en báscula, cargas de combustible y expedientes de mantenimiento del período. El costo por tonelada y los gastos dependen de los precios y montos configurados en el sistema.</div>'
+      +'<button onclick="window.print()" style="margin-top:22px;padding:11px 22px;font-size:14px;border:none;background:#1f1d1a;color:#fff;border-radius:8px;cursor:pointer">🖨 Imprimir / Guardar PDF</button>'
+      +'</body></html>');
+    w.document.close();
   }
   function recCard(v,estado){
     const vert=v.viajesVertedero?(' <span class="rec-vchip">🗑 '+v.viajesVertedero+' ida'+(v.viajesVertedero>1?'s':'')+'</span>'):'';
