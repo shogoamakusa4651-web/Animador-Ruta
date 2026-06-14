@@ -717,9 +717,11 @@
   :root{--rail:204px;--topbar:54px;}
   .shell-nav{position:fixed;top:0;left:0;bottom:0;width:var(--rail);z-index:3000;background:#2E2C27;color:#fff;display:none;flex-direction:column;padding:14px 11px;font-family:-apple-system,'Segoe UI',sans-serif;}
   body.adm-shell .shell-nav{display:flex;}
-  .shell-logo{display:flex;align-items:center;gap:9px;padding:2px 6px 16px;}
-  .shell-logo .ic{width:26px;height:26px;border-radius:8px;background:#7E9B86;display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
-  .shell-logo .tx{font-size:13.5px;font-weight:500;line-height:1.15;}
+  .shell-logo{display:flex;align-items:center;gap:10px;padding:4px 6px 18px;}
+  .shell-logo .ic{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#7E9B86,#5B7A66);display:inline-flex;align-items:center;justify-content:center;font-size:16px;color:#fff;flex:none;box-shadow:0 2px 8px rgba(91,122,102,.4);}
+  .shell-logo .tx{display:flex;flex-direction:column;line-height:1.2;}
+  .shell-logo .tx b{font-size:13.5px;font-weight:700;letter-spacing:-.2px;color:#fff;}
+  .shell-logo .tx small{font-size:9.5px;color:#9B988F;font-weight:500;letter-spacing:.2px;}
   .nav-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:10px;color:#C9C6BE;font-size:13px;cursor:pointer;border-left:3px solid transparent;margin-bottom:3px;}
   .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
   .nav-item.on{background:rgba(126,155,134,.22);color:#fff;border-left-color:#7E9B86;}
@@ -879,6 +881,12 @@
   .ini-wrap{max-width:780px;margin:0 auto;padding:24px 22px 60px;}
   .ini-daterow{display:flex;align-items:baseline;gap:11px;margin-bottom:2px;}
   .ini-day{font-size:23px;font-weight:500;text-transform:capitalize;}
+  /* ===== Encabezado de sección unificado (firma visual) ===== */
+  .sec-header{margin:2px 0 18px;}
+  .sec-header h2{font-size:21px;font-weight:700;letter-spacing:-.4px;color:var(--tx0);margin:0;display:inline-flex;align-items:center;gap:0;}
+  .sec-header .sub{font-size:12.5px;color:#8C887E;margin-top:3px;font-weight:500;}
+  .sec-header .accent{display:block;width:34px;height:3px;border-radius:99px;background:linear-gradient(90deg,#7E9B86,#C7A765);margin-top:9px;}
+  body.dark .sec-header h2{color:#ECEAE3;}
   .ini-date{font-size:13px;color:#807E77;}
   .ini-sub{font-size:13px;color:#807E77;margin-bottom:18px;}
   .ini-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:24px;}
@@ -899,7 +907,9 @@
   .ini-rtmeta{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#807E77;margin-top:5px;}
   .ini-grip{color:#C2BFB7;font-size:16px;cursor:grab;}
   .ini-mini{font-size:11px;color:#1f6e3d;background:rgba(39,163,91,.16);padding:2px 8px;border-radius:8px;}
-  .ini-empty{color:#ABA9A2;font-size:13px;padding:14px 2px;}
+  .ini-empty{color:#8C887E;font-size:13px;padding:28px 20px;text-align:center;background:rgba(126,155,134,.05);border:1px dashed rgba(126,155,134,.3);border-radius:14px;line-height:1.55;}
+  .ini-empty::before{content:"";display:block;width:44px;height:44px;margin:0 auto 12px;border-radius:13px;background:rgba(126,155,134,.14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' fill='none' stroke='%237E9B86' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='M9 11l3 3L22 4'/%3E%3Cpath d='M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'/%3E%3C/svg%3E") center/22px no-repeat;}
+  body.dark .ini-empty{background:rgba(126,155,134,.08);}
   .sec-head{font-size:11px;color:#ABA9A2;letter-spacing:.4px;margin:18px 0 9px 2px;}
   .mon-iconbtn{border:none;background:rgba(30,28,24,.05);color:#807E77;cursor:pointer;width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;}
   .mon-iconbtn:hover{background:rgba(30,28,24,.10);}
@@ -1219,7 +1229,7 @@
 <div id="map"></div>
 <div class="mon-strip" id="monStrip"></div>
 <nav class="shell-nav" id="shellNav">
-  <div class="shell-logo"><span class="ic"><i class="ti ti-truck" aria-hidden="true"></i></span><span class="tx">Animador<br>de Ruta</span></div>
+  <div class="shell-logo"><span class="ic"><i class="ti ti-recycle" aria-hidden="true"></i></span><span class="tx"><b>Animador de Ruta</b><small>Ayuntamiento de La Vega</small></span></div>
   <div class="nav-item" data-sec="inicio"><i class="ti ti-home" aria-hidden="true"></i>Inicio</div>
   <div class="nav-item" data-sec="monitoreo"><i class="ti ti-broadcast" aria-hidden="true"></i>Monitoreo</div>
   <div class="nav-item" data-sec="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
@@ -1234,7 +1244,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.48 · 2026-06-14</div>
+    <div class="ver" style="padding-top:4px">v3.49 · 2026-06-14</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1511,8 +1521,7 @@
 
 <div id="secRecursos"><div class="ini-wrap" id="recursosBody"></div></div>
 <div id="secReportes"><div class="ini-wrap">
-  <div class="ini-daterow" style="margin-bottom:4px"><span class="ini-day" style="font-size:20px">Reportes</span></div>
-  <div class="ini-sub">Filtra por ruta, chofer o supervisor.</div>
+  <div class="sec-header"><h2>Reportes</h2><div class="sub">Evaluación de recorridos, choferes, supervisores y recursos</div><span class="accent"></span></div>
   <div class="rd-fchip-wrap" id="repFilt" style="margin-bottom:16px"></div>
   <div id="repBody"></div>
 </div></div>
@@ -1559,7 +1568,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.48 · 2026-06-14</div>
+<div class="ver-badge" id="verBadge">v3.49 · 2026-06-14</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3521,7 +3530,7 @@
       if(falta.length)pend.push({id:id,falta:falta}); else completas.push(id);
       if((r.freq||[]).includes(tl))hoyIds.push(id); });
     // ---- HERO
-    let h='<div class="ru-top"><div><div class="ini-day" style="font-size:20px">Rutas</div><div class="ini-date">Centro de planificación</div></div>'
+    let h='<div class="ru-top"><div class="sec-header" style="margin-bottom:0"><h2>Rutas</h2><div class="sub">Centro de planificación operativa</div><span class="accent"></span></div>'
       +'<button class="ru-new" id="ruNew"><i class="ti ti-plus" aria-hidden="true"></i> Nueva ruta</button></div>';
     const pCol=pend.length?'#C2402F':'#27A35B';
     h+='<div class="af-hero"><div class="af-cell"><b>'+ids.length+'</b><span>Rutas registradas</span></div>'
@@ -3582,7 +3591,7 @@
     const host=document.getElementById('recursosBody'); if(!host)return;
     if(!fbDb){ host.innerHTML='<div class="rd-empty">Sin conexión.</div>'; return; }
     host.innerHTML=repTabsHtml('recursos')
-      +'<div class="ini-day" style="font-size:20px">Recursos</div><div class="ini-date">Centro de validación · pesaje · combustible · rendimiento</div>'
+      +'<div class="sec-header"><h2>Recursos</h2><div class="sub">Validación de pesaje, combustible, rendimiento y gastos</div><span class="accent"></span></div>'
       +'<div id="recHero" style="margin-top:12px"></div>'
       +'<div class="rec-tabs"><button class="rec-tab'+(recTab==='pesaje'?' on':'')+'" data-rt="pesaje">⚖ Pesaje</button><button class="rec-tab'+(recTab==='combustible'?' on':'')+'" data-rt="combustible">⛽ Combustible</button><button class="rec-tab'+(recTab==='rendimiento'?' on':'')+'" data-rt="rendimiento">📊 Rendimiento</button><button class="rec-tab'+(recTab==='gastos'?' on':'')+'" data-rt="gastos">💰 Gastos y Nómina</button></div>'
       +'<div id="recBody"><div class="rd-empty">Cargando…</div></div>';
