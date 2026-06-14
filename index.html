@@ -631,6 +631,28 @@
   .pp-stats{display:flex;gap:12px;font-size:11.5px;color:#8C887E;margin-top:8px;font-weight:600;}
   .pp-sueldo{font-size:11.5px;color:#5B7A66;margin-top:5px;font-weight:600;}
   .pp-acts{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap;}
+  /* ===== Gastos y Nómina ===== */
+  .gx-block{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:13px;padding:14px 16px;margin-bottom:12px;}
+  body.dark .gx-block{background:#26241F;border-color:rgba(255,255,255,.08);}
+  .gx-h{font-size:11px;font-weight:800;letter-spacing:.5px;color:#8C887E;margin-bottom:10px;}
+  .gx-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(30,28,24,.05);font-size:13px;}
+  .gx-row:last-child{border-bottom:none;}
+  .gx-row small{color:#ABA9A2;font-weight:400;}
+  .gx-row b{font-size:14px;white-space:nowrap;}
+  .gx-row.tot{margin-top:3px;border-top:2px solid rgba(30,28,24,.1);border-bottom:none;padding-top:9px;font-weight:700;}
+  .gx-row.tot b{font-size:16px;}
+  .gx-note{font-size:11px;color:#ABA9A2;margin-top:8px;line-height:1.45;}
+  .gx-cfg{border:1px dashed rgba(176,132,60,.5);background:rgba(176,132,60,.04);}
+  body.dark .gx-cfg{background:rgba(176,132,60,.08);}
+  .gx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:6px;}
+  .gx-i{height:36px;}
+  .cc-click{cursor:pointer;transition:transform .12s,box-shadow .12s;}
+  .cc-click:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(30,28,24,.12);}
+  .cc-arrow{float:right;color:#C2402F;font-weight:700;}
+  .cc-mini3{display:flex;gap:8px;}
+  .cc-mini3>div{flex:1;display:flex;flex-direction:column;}
+  .cc-mini3 b{font-size:13px;}
+  .cc-mini3 span{font-size:9.5px;color:#8C887E;}
   body.dark .rep-day{background:rgba(255,255,255,.05);}
   details.af-exc summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:7px;margin-bottom:0;}
   details.af-exc[open] summary{margin-bottom:8px;}
@@ -1212,7 +1234,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.45 · 2026-06-14</div>
+    <div class="ver" style="padding-top:4px">v3.46 · 2026-06-14</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1537,7 +1559,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.45 · 2026-06-14</div>
+<div class="ver-badge" id="verBadge">v3.46 · 2026-06-14</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2366,6 +2388,7 @@
 
   // ===== GESTIÓN ADM: choferes y supervisores con código (Fase 4) =====
   let mgmtChoferes={}, mgmtSup={}, mgmtCamiones={}, mgmtMecanicos={}, mgmtAyudantes={}, mgmtSub=false;
+  let fuelCache={}, mantCache={}, comisionCfg={precioGalon:null, montoChofer:null, montoAyudante:null};
   function fbKey(c){ return c.replace(/[.#$\[\]\/]/g,'_'); }
   function nextCode(prefix,obj){ let max=0; if(obj)Object.keys(obj).forEach(k=>{const m=k.match(/(\d+)$/);if(m){const v=parseInt(m[1],10);if(v>max)max=v;}}); return prefix+String(max+1).padStart(2,'0'); }
   function mgmtList(elId,data,onDel){
@@ -2386,6 +2409,9 @@
     fbDb.ref('config/camiones').on('value',s=>{ mgmtCamiones=s.val()||{}; camionList(); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('config/mecanicos').on('value',s=>{ mgmtMecanicos=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('config/ayudantes').on('value',s=>{ mgmtAyudantes=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
+    fbDb.ref('combustible').on('value',s=>{ fuelCache=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='recursos'&&typeof renderGastos==='function'&&recTab==='gastos')renderRecursos(); });
+    fbDb.ref('mantenimiento').on('value',s=>{ mantCache=s.val()||{}; });
+    fbDb.ref('config/comisiones').on('value',s=>{ comisionCfg=Object.assign({precioGalon:null,montoChofer:null,montoAyudante:null},s.val()||{}); if(typeof curSec!=='undefined'&&curSec==='recursos'&&recTab==='gastos')renderRecursos(); });
   }
   function mgmtSetup(){
     const ov=document.getElementById('mgmtOv'); if(!ov)return;
@@ -2577,7 +2603,8 @@
       recursos:{t:'Recursos · Pesaje, combustible y rendimiento',h:'<p>Aquí se registran los insumos físicos de la operación, separados de la gestión de rutas.</p>'
         +'<h4>⚖ Pesaje</h4><p>Cuando un camión llega al vertedero se pesa <b>lleno</b>, y al salir <b>vacío</b>. La diferencia son las toneladas recolectadas. Los viajes marcados 🗑 fueron al vertedero. Si la carga es de dos rutas, se reparte por porcentaje. Las toneladas alimentan el KPI de Inicio.</p>'
         +'<h4>⛽ Combustible</h4><p>Se registra <b>durante el viaje</b>: el chofer pulsa "Voy a echar combustible" (pausa la ruta y cuenta los km del desvío a la bomba), y el supervisor registra los galones desde el panel del camión en Monitoreo. Esta pestaña muestra el histórico.</p>'
-        +'<h4>📊 Rendimiento</h4><p>Combina km recorridos ÷ galones para dar el rendimiento real (km/galón) por camión. Verde = eficiente, rojo = revisar. Con el precio del combustible se podrá calcular el costo por km y por tonelada.</p>'},
+        +'<h4>📊 Rendimiento</h4><p>Combina km recorridos ÷ galones para dar el rendimiento real (km/galón) por camión. Verde = eficiente, rojo = revisar.</p>'
+        +'<h4>💰 Gastos y Nómina</h4><p>La <b>Proyección de Gastos</b>: combustible (galones × precio) + mantenimiento (de los expedientes de camiones) + nómina (sueldos fijos + comisiones por cumplimiento). En "Definir montos" pones el precio del galón y cuánto comisionas por recorrido cumplido; el cálculo se actualiza solo. Abajo ves la comisión que le toca a cada chofer según sus recorridos cumplidos.</p>'},
       admin:{t:'Administración · Centro de Gestión de Flota',h:'<p>Antes de ver camiones individuales, la pantalla responde: ¿cuánta capacidad operativa tengo y qué requiere atención?</p>'
         +'<h4>Banda superior</h4><p>Total de unidades, operativas, en reparación y <b>disponibilidad %</b> (calculada solo sobre operativas + en reparación; los "fuera de uso" no cuentan porque ese inventario no está actualizado).</p>'
         +'<h4>Requieren atención</h4><p>Los camiones en reparación aparecen primero. Si uno está <b>asignado a una ruta de hoy</b>, se marca en rojo — hay que reasignar el camión de esa ruta. Si toda la flota está operativa, verás el mensaje verde.</p>'
@@ -2776,16 +2803,23 @@
       h+='</div>'; }
     h+='</div>';
     // ===== Finanzas (único Próximamente)
-    h+='<div class="cc-card cc-soon"><div class="cc-h">PROYECCIÓN FINANCIERA <span class="cc-soontag">Próximamente</span></div>'
-      +'<div class="cc-soonbody">Costo operativo del mes vs presupuesto y margen disponible. Costo por tonelada (CTR) derivado de combustible, mantenimiento y nómina — ahora que hay pesaje, falta el módulo de costos.</div>'
-      +'<div class="cc-soonreq">Requiere: módulo de combustible y costos operativos</div></div>';
+    (function(){ const precio=comisionCfg.precioGalon; let gal=0,fuel=0; Object.keys(fuelCache||{}).forEach(k=>{ const c=fuelCache[k]||{}; const g=Number(c.galones)||0; gal+=g; const p=(c.precio!=null?c.precio:precio); if(p!=null)fuel+=g*p; });
+      let mant=0; Object.keys(mantCache||{}).forEach(cam=>{ const o=mantCache[cam]||{}; Object.keys(o).forEach(k=>mant+=Number(o[k].monto)||0); });
+      const sd=o=>Object.keys(o||{}).reduce((a,c)=>a+(Number((o[c]||{}).sueldo)||0),0);
+      const nom=sd(mgmtChoferes)+sd(mgmtAyudantes)+sd(mgmtSup)+sd(mgmtMecanicos)+sd(mgmtCamiones);
+      const tot=fuel+mant+nom; const money=n=>'RD$ '+Number(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
+      const falta=(precio==null||comisionCfg.montoChofer==null);
+      h+='<div class="cc-card cc-click" data-go="recursos-gastos"><div class="cc-h">PROYECCIÓN DE GASTOS <span class="cc-arrow">→</span></div>'
+        +'<div class="cc-st" style="margin:4px 0 10px"><b style="color:#C2402F;font-size:26px">'+money(tot)+'</b><span>gasto estimado del período</span></div>'
+        +'<div class="cc-mini3"><div><b>'+money(fuel)+'</b><span>⛽ combustible</span></div><div><b>'+money(mant)+'</b><span>🔧 mant.</span></div><div><b>'+money(nom)+'</b><span>👥 nómina</span></div></div>'
+        +(falta?'<div class="cc-soonreq" style="margin-top:9px;color:#B0843C">Define precio del galón y comisiones en Recursos → Gastos para afinar el cálculo</div>':'')+'</div>'; })();
     h+='<div class="cc-card cc-tr"><div class="cc-h">CUMPLIMIENTO · ÚLTIMOS 7 DÍAS</div><div class="cc-bars">';
     trend.forEach(t=>{ const v=t.pct; const col=v==null?'rgba(30,28,24,.1)':(v>=80?'#27A35B':(v>=50?'#B0843C':'#C2402F'));
       h+='<div class="cc-bcol'+(t.today?' today':'')+'" title="'+t.done+' de '+t.prog+' rutas"><i style="height:'+(v==null?4:Math.max(4,Math.round(v*0.6)))+'px;background:'+col+'"></i><b>'+(v==null?'—':v+'%')+'</b><span>'+t.L+'</span></div>'; });
     h+='</div></div>';
     h+='</div></div>';
     host.innerHTML=h;
-    host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='admin')setSection('admin'); else if(g==='reportes')setSection('reportes'); }));
+    host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='admin')setSection('admin'); else if(g==='reportes')setSection('reportes'); else if(g==='recursos-gastos'){ recTab='gastos'; setSection('recursos'); } }));
     host.querySelectorAll('.ia-btn').forEach(b=>b.addEventListener('click',()=>{ const a=alerts[Number(b.dataset.i)]; if(!a)return; if(a.go==='mon')setSection('monitoreo'); else openRouteDetail(a.id); }));
     host.querySelectorAll('.ini-q').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
     host.querySelectorAll('.q-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
@@ -3527,7 +3561,7 @@
     host.innerHTML=repTabsHtml('recursos')
       +'<div class="ini-day" style="font-size:20px">Recursos</div><div class="ini-date">Centro de validación · pesaje · combustible · rendimiento</div>'
       +'<div id="recHero" style="margin-top:12px"></div>'
-      +'<div class="rec-tabs"><button class="rec-tab'+(recTab==='pesaje'?' on':'')+'" data-rt="pesaje">⚖ Pesaje</button><button class="rec-tab'+(recTab==='combustible'?' on':'')+'" data-rt="combustible">⛽ Combustible</button><button class="rec-tab'+(recTab==='rendimiento'?' on':'')+'" data-rt="rendimiento">📊 Rendimiento</button></div>'
+      +'<div class="rec-tabs"><button class="rec-tab'+(recTab==='pesaje'?' on':'')+'" data-rt="pesaje">⚖ Pesaje</button><button class="rec-tab'+(recTab==='combustible'?' on':'')+'" data-rt="combustible">⛽ Combustible</button><button class="rec-tab'+(recTab==='rendimiento'?' on':'')+'" data-rt="rendimiento">📊 Rendimiento</button><button class="rec-tab'+(recTab==='gastos'?' on':'')+'" data-rt="gastos">💰 Gastos y Nómina</button></div>'
       +'<div id="recBody"><div class="rd-empty">Cargando…</div></div>';
     host.querySelectorAll('.rec-tab').forEach(b=>b.addEventListener('click',()=>{ recTab=b.dataset.rt; renderRecursos(); }));
     wireRepTabs(host);
@@ -3576,7 +3610,7 @@
         body.innerHTML=hh;
         const af=document.getElementById('recAddFuel'); if(af)af.addEventListener('click',addFuel);
       }).catch(()=>{ body.innerHTML=h+'<div class="rd-empty">Error al cargar.</div>'; });
-    } else {
+    } else if(recTab==='rendimiento'){
       // rendimiento km/galón por camión
       fbDb.ref('combustible').once('value').then(s=>{ const fuel=s.val()||{};
         const galByFicha={}; Object.keys(fuel).forEach(k=>{ const c=fuel[k]||{}; if(c.ficha)galByFicha[c.ficha]=(galByFicha[c.ficha]||0)+(Number(c.galones)||0); });
@@ -3596,7 +3630,72 @@
         h+='</div>';
         body.innerHTML=h;
       }).catch(()=>{ body.innerHTML='<div class="rd-empty">Error.</div>'; });
-    }
+    } else if(recTab==='gastos'){ renderGastos(body); }
+  }
+  function rangeDays(){ return 30; } // período de proyección: mes
+  function renderGastos(body){
+    // ---- combustible del período (galones × precio)
+    const precio=comisionCfg.precioGalon;
+    let galTot=0, fuelMonto=0, fuelConPrecio=0;
+    Object.keys(fuelCache||{}).forEach(k=>{ const c=fuelCache[k]||{}; const g=Number(c.galones)||0; galTot+=g; const p=(c.precio!=null?c.precio:precio); if(p!=null){ fuelMonto+=g*p; fuelConPrecio+=g; } });
+    // ---- mantenimiento del período (de expedientes)
+    let mantTot=0,mantN=0; Object.keys(mantCache||{}).forEach(cam=>{ const o=mantCache[cam]||{}; Object.keys(o).forEach(k=>{ mantTot+=Number(o[k].monto)||0; mantN++; }); });
+    // ---- nómina: sueldos fijos + comisiones por cumplimiento
+    const sueldoDe=o=>Object.keys(o||{}).reduce((a,c)=>a+(Number((o[c]||{}).sueldo)||0),0);
+    const sueldoCho=sueldoDe(mgmtChoferes), sueldoAyu=sueldoDe(mgmtAyudantes), sueldoSup=sueldoDe(mgmtSup), sueldoMec=sueldoDe(mgmtMecanicos);
+    const sueldoCam=Object.keys(mgmtCamiones||{}).reduce((a,k)=>a+(Number((mgmtCamiones[k]||{}).sueldo)||0),0);
+    const sueldoTot=sueldoCho+sueldoAyu+sueldoSup+sueldoMec+sueldoCam;
+    // comisiones: recorridos cumplidos × monto definido
+    const cumplCho={}, cumplAyu={};
+    (repCache||[]).forEach(r=>{ const ok=(r.rating!=null?r.rating:r.routeCompletion); const cumplido=(ok!=null&&ok>=70&&!r.omitidos); if(cumplido&&r.choferCode)cumplCho[r.choferCode]=(cumplCho[r.choferCode]||0)+1; });
+    const totalCumplCho=Object.values(cumplCho).reduce((a,b)=>a+b,0);
+    const comCho=(comisionCfg.montoChofer!=null)?totalCumplCho*comisionCfg.montoChofer:null;
+    const comAyu=(comisionCfg.montoAyudante!=null)?0:null; // ayudantes: cumplimiento se atará cuando se registren en viajes
+    const comTot=(comCho||0)+(comAyu||0);
+    const nominaTot=sueldoTot+comTot;
+    const granTot=fuelMonto+mantTot+nominaTot;
+    const money=n=>'RD$ '+Number(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
+    let h='<div class="ini-day" style="font-size:18px;margin-top:6px">Proyección de Gastos</div><div class="ini-date">Estimado del período · combustible + mantenimiento + nómina</div>';
+    // hero total
+    h+='<div class="af-hero" style="margin:12px 0"><div class="af-cell"><b style="color:#C2402F">'+money(granTot)+'</b><span>Gasto estimado total</span></div>'
+      +'<div class="af-cell"><b>'+money(fuelMonto)+'</b><span>⛽ Combustible</span></div>'
+      +'<div class="af-cell"><b>'+money(mantTot)+'</b><span>🔧 Mantenimiento</span></div>'
+      +'<div class="af-cell"><b>'+money(nominaTot)+'</b><span>👥 Nómina</span></div></div>';
+    // combustible detalle
+    h+='<div class="gx-block"><div class="gx-h">⛽ COMBUSTIBLE</div>'
+      +'<div class="gx-row"><span>Galones registrados</span><b>'+galTot.toFixed(1)+' gal</b></div>'
+      +'<div class="gx-row"><span>Precio por galón</span><b>'+(precio!=null?money(precio):'<i style="color:#C2402F">definir abajo</i>')+'</b></div>'
+      +'<div class="gx-row tot"><span>Subtotal combustible</span><b>'+money(fuelMonto)+'</b></div>'
+      +(precio==null?'<div class="gx-note">Define el precio del galón para calcular el costo.</div>':(fuelConPrecio<galTot?'<div class="gx-note">Algunas cargas no tienen precio propio; se usó el precio general.</div>':''))+'</div>';
+    // mantenimiento
+    h+='<div class="gx-block"><div class="gx-h">🔧 MANTENIMIENTO Y REPARACIONES</div>'
+      +'<div class="gx-row"><span>Trabajos registrados</span><b>'+mantN+'</b></div>'
+      +'<div class="gx-row tot"><span>Subtotal mantenimiento</span><b>'+money(mantTot)+'</b></div>'
+      +'<div class="gx-note">Sale de los expedientes de cada camión (Administración → camión → Mantenimiento).</div></div>';
+    // nómina
+    h+='<div class="gx-block"><div class="gx-h">👥 NÓMINA</div>'
+      +'<div class="gx-row"><span>Sueldos fijos · choferes</span><b>'+money(sueldoCho)+'</b></div>'
+      +'<div class="gx-row"><span>Sueldos fijos · ayudantes</span><b>'+money(sueldoAyu)+'</b></div>'
+      +'<div class="gx-row"><span>Sueldos fijos · supervisores</span><b>'+money(sueldoSup)+'</b></div>'
+      +'<div class="gx-row"><span>Sueldos fijos · mecánicos</span><b>'+money(sueldoMec)+'</b></div>'
+      +(sueldoCam?'<div class="gx-row"><span>Sueldos fijos · camiones</span><b>'+money(sueldoCam)+'</b></div>':'')
+      +'<div class="gx-row"><span>Comisiones choferes <small>('+totalCumplCho+' recorridos cumplidos'+(comisionCfg.montoChofer!=null?(' × '+money(comisionCfg.montoChofer)):'')+')</small></span><b>'+(comCho!=null?money(comCho):'<i style="color:#C2402F">definir abajo</i>')+'</b></div>'
+      +'<div class="gx-row tot"><span>Subtotal nómina</span><b>'+money(nominaTot)+'</b></div></div>';
+    // panel de configuración (definir montos)
+    h+='<div class="gx-block gx-cfg"><div class="gx-h">⚙ DEFINIR MONTOS</div><div class="gx-note" style="margin-top:0">Las comisiones están por definir. Pon los montos y la proyección se calcula sola.</div>'
+      +'<div class="gx-grid">'
+      +'<label class="pj-fld"><span>Precio por galón (RD$)</span><input class="fld gx-i" id="gx_gal" inputmode="decimal" value="'+(comisionCfg.precioGalon!=null?comisionCfg.precioGalon:'')+'" placeholder="ej: 290"></label>'
+      +'<label class="pj-fld"><span>Comisión por recorrido cumplido · chofer (RD$)</span><input class="fld gx-i" id="gx_cho" inputmode="decimal" value="'+(comisionCfg.montoChofer!=null?comisionCfg.montoChofer:'')+'" placeholder="ej: 200"></label>'
+      +'<label class="pj-fld"><span>Comisión por recorrido cumplido · ayudante (RD$)</span><input class="fld gx-i" id="gx_ayu" inputmode="decimal" value="'+(comisionCfg.montoAyudante!=null?comisionCfg.montoAyudante:'')+'" placeholder="ej: 150"></label>'
+      +'</div><button class="mon-tinybtn" id="gx_save" style="margin-top:10px;width:auto;flex:none;padding:0 16px;background:#2E2C27;color:#fff;border-color:#2E2C27">Guardar montos</button></div>';
+    // comisiones por chofer (vista de control)
+    if(totalCumplCho){ h+='<div class="gx-block"><div class="gx-h">💵 COMISIONES POR CHOFER · recorridos cumplidos</div>';
+      Object.keys(cumplCho).sort((a,b)=>cumplCho[b]-cumplCho[a]).forEach(c=>{ const nm=(mgmtChoferes[fbKey(c)]||mgmtChoferes[c]||{}).name||''; const m=comisionCfg.montoChofer!=null?cumplCho[c]*comisionCfg.montoChofer:null;
+        h+='<div class="gx-row"><span>'+esc(c)+(nm?(' · '+esc(nm)):'')+' <small>('+cumplCho[c]+' cumplidos)</small></span><b>'+(m!=null?money(m):'—')+'</b></div>'; });
+      h+='</div>'; }
+    body.innerHTML=h;
+    const sv=document.getElementById('gx_save'); if(sv)sv.addEventListener('click',()=>{ const num=id=>{ const e=document.getElementById(id); if(!e)return null; const x=parseFloat(String(e.value).replace(',','.')); return isNaN(x)?null:x; };
+      fbDb.ref('config/comisiones').set({precioGalon:num('gx_gal'),montoChofer:num('gx_cho'),montoAyudante:num('gx_ayu'),ts:Date.now()}).then(()=>toast('Montos guardados ✓')); });
   }
   function recCard(v,estado){
     const vert=v.viajesVertedero?(' <span class="rec-vchip">🗑 '+v.viajesVertedero+' ida'+(v.viajesVertedero>1?'s':'')+'</span>'):'';
