@@ -621,6 +621,16 @@
   .mant-sec{font-size:11px;font-weight:800;letter-spacing:.4px;color:#8C887E;margin:12px 0 7px;}
   .mant-or{font-size:11px;color:#ABA9A2;margin:-2px 0 7px;font-style:italic;}
   .mf-grow{display:flex;gap:7px;margin-bottom:6px;align-items:center;}
+  /* ===== Colaboradores ===== */
+  .pp-card.off{opacity:.55;}
+  .pp-top{display:flex;align-items:center;gap:10px;}
+  .pp-av{width:38px;height:38px;border-radius:11px;background:rgba(126,155,134,.16);color:#5B7A66;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;}
+  .pp-name{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pp-code{font-size:10.5px;color:#ABA9A2;font-weight:600;letter-spacing:.5px;font-family:ui-monospace,monospace;}
+  .pp-link{font-size:11.5px;color:#2F7DC2;margin-top:8px;display:flex;align-items:center;gap:4px;}
+  .pp-stats{display:flex;gap:12px;font-size:11.5px;color:#8C887E;margin-top:8px;font-weight:600;}
+  .pp-sueldo{font-size:11.5px;color:#5B7A66;margin-top:5px;font-weight:600;}
+  .pp-acts{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap;}
   body.dark .rep-day{background:rgba(255,255,255,.05);}
   details.af-exc summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:7px;margin-bottom:0;}
   details.af-exc[open] summary{margin-bottom:8px;}
@@ -1202,7 +1212,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.44 · 2026-06-13</div>
+    <div class="ver" style="padding-top:4px">v3.45 · 2026-06-14</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1242,13 +1252,11 @@
     </div>
     <div id="acGrid" style="margin-top:16px"></div>
   </div>
-  <div class="adm2-pane" id="adm2Cho">
-    <div class="adm2-bar"><input id="acoName" class="fld" placeholder="Nombre del chofer" style="max-width:280px;margin:0"><button class="mon-tinybtn" id="acoAdd" style="flex:none;width:auto;padding:0 16px">Agregar</button></div>
-    <div id="acoList" style="margin-top:14px"></div>
-  </div>
-  <div class="adm2-pane" id="adm2Sup">
-    <div class="adm2-bar"><input id="asuName" class="fld" placeholder="Nombre del supervisor" style="max-width:280px;margin:0"><button class="mon-tinybtn" id="asuAdd" style="flex:none;width:auto;padding:0 16px">Agregar</button></div>
-    <div id="asuList" style="margin-top:14px"></div>
+  <div class="adm2-pane" id="adm2People">
+    <div id="peopleHero"></div>
+    <div class="adm2-bar"><input id="pName" class="fld" placeholder="Nombre" style="max-width:240px;margin:0"><input id="pSueldo" class="fld" inputmode="decimal" placeholder="Sueldo mensual RD$ (opcional)" style="max-width:200px;margin:0"><button class="mon-tinybtn" id="pAdd" style="flex:none;width:auto;padding:0 16px;background:#2E2C27;color:#fff;border-color:#2E2C27"><i class="ti ti-plus"></i> Agregar</button></div>
+    <div id="pLink" style="margin:10px 0 0"></div>
+    <div id="pList" style="margin-top:14px"></div>
   </div>
 </div></div>
 <div class="rd-ov" id="camOv">
@@ -1529,7 +1537,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.44 · 2026-06-13</div>
+<div class="ver-badge" id="verBadge">v3.45 · 2026-06-14</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3706,7 +3714,7 @@
     fbDb.ref('combustible').push({ ficha:ficha.trim(), galones:g, precio:(precio&&!isNaN(parseFloat(precio)))?parseFloat(precio):null, sup:(sup||'').trim()||null, fecha:fecha, ts:Date.now() });
     toast('Carga registrada: '+g+' gal'); renderRecursos();
   }
-  function renderAdmin(){ if(admTab==='cam')renderCamGrid(); else renderActorList(admTab); }
+  function renderAdmin(){ if(admTab==='cam')renderCamGrid(); else renderPeople(admTab); }
   let camSelMode=false, camSel=new Set(), camDragKey=null;
   function tipoOf(v){ if(v&&v.tipo)return v.tipo; const s=((v&&v.estructura)||'').toLowerCase(),m=((v&&v.marca)||'').toLowerCase(); if(s.indexOf('cabina')>=0||s.indexOf('yipeta')>=0||m.indexOf('land cruiser')>=0||m.indexOf('hilux')>=0||m.indexOf('navara')>=0)return 'ligero'; return 'pesado'; }
   function estadoOpts(cur){ const list=CAM_ESTADOS.slice(); if(cur&&list.indexOf(cur)<0)list.push(cur); return list.map(e=>'<option value="'+e+'"'+((cur||'en operación')===e?' selected':'')+'>'+e+'</option>').join(''); }
@@ -3897,27 +3905,61 @@
     if(!confirm('¿Importar '+CAMIONES_SEED.length+' camiones del levantamiento? Se agregan/actualizan en el registro.'))return;
     const updates={}; CAMIONES_SEED.forEach(c=>{ const o=Object.assign({},c); delete o._key; o.ts=Date.now(); updates[fbKey(c._key)]=o; });
     fbDb.ref('config/camiones').update(updates).then(()=>toast(CAMIONES_SEED.length+' camiones importados ✓')).catch(e=>toast('Error importando: '+e.message)); }
-  function renderActorList(kind){ const host=document.getElementById(kind==='cho'?'acoList':'asuList'); if(!host)return;
-    const data=kind==='cho'?mgmtChoferes:mgmtSup; const path=kind==='cho'?'config/choferes/':'config/supervisores/'; const keys=data?Object.keys(data).sort():[];
-    if(!keys.length){ host.innerHTML='<div class="ini-empty">Ninguno todavía.</div>'; return; }
-    let h=''; keys.forEach(code=>{ const v=data[code]||{}; const act=v.active!==false;
-      h+='<div class="adm2-row"><span class="code">'+code+'</span><span class="nm">'+((v.name||'').replace(/</g,'&lt;'))+'</span>'
-        +'<button class="st" data-code="'+code+'" data-a="edit" title="Renombrar"><i class="ti ti-edit"></i></button>'
-        +'<button class="st" data-code="'+code+'" data-a="toggle">'+(act?'activo':'inactivo')+'</button>'
-        +'<button class="x" data-code="'+code+'" data-a="del">×</button></div>'; });
-    host.innerHTML=h;
-    host.querySelectorAll('[data-a="edit"]').forEach(b=>b.addEventListener('click',()=>{ const code=b.dataset.code; const cur=(data[code]||{}).name||''; const nn=(prompt('Nuevo nombre:',cur)||'').trim(); if(!nn)return; if(fbDb)fbDb.ref(path+code+'/name').set(nn); }));
-    host.querySelectorAll('[data-a="toggle"]').forEach(b=>b.addEventListener('click',()=>{ const code=b.dataset.code; const cur=(data[code]||{}).active!==false; if(fbDb)fbDb.ref(path+code+'/active').set(!cur); }));
-    host.querySelectorAll('[data-a="del"]').forEach(b=>b.addEventListener('click',()=>{ const code=b.dataset.code; if(!confirm('¿Eliminar '+code+'?'))return; if(fbDb)fbDb.ref(path+code).remove(); })); }
+  // ===== Colaboradores: choferes, ayudantes, supervisores, mecánicos =====
+  const PEOPLE={
+    cho:{path:'config/choferes',data:()=>mgmtChoferes,pre:'CH',label:'chofer',icon:'ti-steering-wheel',hint:'Conduce el camión. De aquí salen sus reportes de cumplimiento para comisiones.'},
+    ayu:{path:'config/ayudantes',data:()=>mgmtAyudantes,pre:'AY',label:'ayudante',icon:'ti-users',hint:'Recolecta junto al camión. Se vincula a un chofer/camión; de su cumplimiento salen sus comisiones.',link:true},
+    sup:{path:'config/supervisores',data:()=>mgmtSup,pre:'SP',label:'supervisor',icon:'ti-eye',hint:'Verifica los recorridos en campo.'},
+    mec:{path:'config/mecanicos',data:()=>mgmtMecanicos,pre:'MEC',label:'mecánico',icon:'ti-tool',hint:'Realiza mantenimientos y reparaciones. Se selecciona al registrar un trabajo en un camión.'}
+  };
+  function genCode(pre){ // código no secuencial: PRE-XX## (2 letras + 2 dígitos aleatorios)
+    const L='ABCDEFGHJKLMNPQRTUVWXY'; const n=()=>L[Math.floor(Math.random()*L.length)]+L[Math.floor(Math.random()*L.length)]+Math.floor(10+Math.random()*89);
+    let c; const all=Object.assign({},mgmtChoferes,mgmtAyudantes,mgmtSup,mgmtMecanicos);
+    do{ c=pre+'-'+n(); }while(all[fbKey(c)]); return c; }
+  function recsByCode(code,field){ let n=0,scs=[],last=''; (repCache||[]).forEach(r=>{ if(r[field]===code){ n++; const s=(r.rating!=null?r.rating:r.routeCompletion); if(s!=null)scs.push(Number(s)||0); if((r.fecha||'')>last)last=r.fecha; } }); const avg=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null; return {n,avg,last}; }
+  function renderPeople(kind){ const cfg=PEOPLE[kind]; const data=cfg.data()||{}; const keys=Object.keys(data).sort();
+    const hero=document.getElementById('peopleHero'); const lst=document.getElementById('pList'); const lnk=document.getElementById('pLink');
+    document.getElementById('pName').placeholder='Nombre del '+cfg.label;
+    // hero
+    const activos=keys.filter(c=>data[c].active!==false).length;
+    if(hero)hero.innerHTML='<div class="af-hero" style="margin:6px 0 14px"><div class="af-cell"><b>'+keys.length+'</b><span>'+cfg.label.charAt(0).toUpperCase()+cfg.label.slice(1)+'s registrados</span></div>'
+      +'<div class="af-cell"><b style="color:#27A35B">'+activos+'</b><span>Activos</span></div>'
+      +'<div class="af-cell"><b style="color:#8C887E">'+(keys.length-activos)+'</b><span>Inactivos</span></div></div>'
+      +'<div class="ini-ok" style="margin:0 0 10px;background:rgba(126,155,134,.1);color:#5B7A66"><i class="ti '+cfg.icon+'"></i> '+cfg.hint+'</div>';
+    if(lnk)lnk.innerHTML='';
+    // lista de tarjetas ricas
+    const field=kind==='cho'?'choferCode':(kind==='sup'?'supCode':null);
+    if(!keys.length){ lst.innerHTML='<div class="ini-empty">Ningún '+cfg.label+' todavía. Agrega el primero arriba.</div>'; return; }
+    let h='<div class="ru-grid">';
+    keys.forEach(code=>{ const v=data[code]||{}; const act=v.active!==false;
+      const rec=field?recsByCode(code,field):{n:null,avg:null,last:''};
+      const col=rec.avg==null?'#8C887E':ratingColor(rec.avg);
+      let vinc=''; if(kind==='ayu'&&v.chofer){ const ch=mgmtChoferes[fbKey(v.chofer)]||mgmtChoferes[v.chofer]; vinc='<div class="pp-link"><i class="ti ti-link"></i> '+esc(v.chofer)+(ch&&ch.name?(' · '+esc(ch.name)):'')+'</div>'; }
+      h+='<div class="ru-card pp-card'+(act?'':' off')+'">'
+        +'<div class="pp-top"><span class="pp-av"><i class="ti '+cfg.icon+'"></i></span><div style="flex:1;min-width:0"><div class="pp-name">'+esc(v.name||'(sin nombre)')+'</div><div class="pp-code">'+esc(code)+'</div></div>'
+        +(field?('<span class="rpx-score" style="font-size:22px;color:'+col+'">'+(rec.avg!=null?rec.avg:'—')+'</span>'):'')+'</div>'
+        +vinc
+        +(field?('<div class="pp-stats"><span>'+(rec.n||0)+' recorridos</span>'+(rec.last?('<span>últ. '+esc(fmtFecha(rec.last))+'</span>'):'')+'</div>'):'')
+        +(v.sueldo!=null?('<div class="pp-sueldo">Sueldo: RD$ '+Number(v.sueldo).toLocaleString('en-US')+'/mes</div>'):'')
+        +'<div class="pp-acts"><button class="mon-tinybtn" data-a="edit" data-c="'+esc(code)+'" style="width:auto;flex:none;padding:0 10px"><i class="ti ti-edit"></i></button>'
+        +(cfg.link?('<button class="mon-tinybtn" data-a="link" data-c="'+esc(code)+'" style="width:auto;flex:none;padding:0 10px"><i class="ti ti-link"></i> Vincular</button>'):'')
+        +'<button class="mon-tinybtn" data-a="toggle" data-c="'+esc(code)+'" style="width:auto;flex:none;padding:0 11px">'+(act?'activo':'inactivo')+'</button>'
+        +'<button class="mon-tinybtn" data-a="del" data-c="'+esc(code)+'" style="width:auto;flex:none;padding:0 10px;color:#C0705F;border-color:rgba(192,112,95,.4)">×</button></div>'
+        +'</div>'; });
+    h+='</div>'; lst.innerHTML=h;
+    const path=cfg.path+'/';
+    lst.querySelectorAll('[data-a="edit"]').forEach(b=>b.addEventListener('click',()=>{ const c=b.dataset.c; const v=data[c]||{}; const nn=(prompt('Nombre:',v.name||'')||'').trim(); if(!nn)return; const su=prompt('Sueldo mensual RD$ (vacío = sin sueldo):',v.sueldo!=null?v.sueldo:''); const upd={name:nn}; if(su!==null){ const x=parseFloat(String(su).replace(',','.')); upd.sueldo=isNaN(x)?null:x; } fbDb.ref(path+c).update(upd); }));
+    lst.querySelectorAll('[data-a="toggle"]').forEach(b=>b.addEventListener('click',()=>{ const c=b.dataset.c; fbDb.ref(path+c+'/active').set((data[c]||{}).active===false); }));
+    lst.querySelectorAll('[data-a="del"]').forEach(b=>b.addEventListener('click',()=>{ const c=b.dataset.c; if(!confirm('¿Eliminar '+c+'?'))return; fbDb.ref(path+c).remove(); }));
+    lst.querySelectorAll('[data-a="link"]').forEach(b=>b.addEventListener('click',()=>{ const c=b.dataset.c; const chs=Object.keys(mgmtChoferes); if(!chs.length){toast('Primero registra choferes');return;} const opts=chs.map(k=>k+' · '+(mgmtChoferes[k].name||'')).join('\n'); const pick=prompt('Vincular '+c+' a qué chofer/camión?\nEscribe el código del chofer:\n\n'+opts, (data[c]||{}).chofer||''); if(pick===null)return; fbDb.ref(path+c+'/chofer').set((pick||'').trim()||null); })); }
   function admSetup2(){
-    document.querySelectorAll('#secAdmin .adm2-tab').forEach(t=>t.addEventListener('click',()=>{ admTab=t.dataset.at; document.querySelectorAll('#secAdmin .adm2-tab').forEach(x=>x.classList.toggle('on',x===t)); document.querySelectorAll('#secAdmin .adm2-pane').forEach(p=>p.classList.remove('on')); document.getElementById(admTab==='cam'?'adm2Cam':(admTab==='cho'?'adm2Cho':'adm2Sup')).classList.add('on'); renderAdmin(); }));
+    document.querySelectorAll('#secAdmin .adm2-tab').forEach(t=>t.addEventListener('click',()=>{ admTab=t.dataset.at; document.querySelectorAll('#secAdmin .adm2-tab').forEach(x=>x.classList.toggle('on',x===t)); document.querySelectorAll('#secAdmin .adm2-pane').forEach(p=>p.classList.remove('on')); document.getElementById(admTab==='cam'?'adm2Cam':'adm2People').classList.add('on'); renderAdmin(); }));
     const acAdd=document.getElementById('acAdd'); if(acAdd)acAdd.addEventListener('click',()=>openCamProfile(null));
     const acF=document.getElementById('acFicha'); if(acF)acF.addEventListener('input',()=>{ camFilter=acF.value; renderCamGrid(); });
     const acImp=document.getElementById('acImport'); if(acImp)acImp.addEventListener('click',importLevantamiento);
     const acSel=document.getElementById('acSel'); if(acSel)acSel.addEventListener('click',()=>{ camSelMode=!camSelMode; if(!camSelMode)camSel.clear(); renderCamGrid(); });
     const acDel=document.getElementById('acDelSel'); if(acDel)acDel.addEventListener('click',()=>{ if(!camSel.size)return; if(!confirm('¿Eliminar '+camSel.size+' camión(es)?'))return; const upd={}; camSel.forEach(k=>{ upd[k]=null; delete mgmtCamiones[k]; }); if(fbDb)fbDb.ref('config/camiones').update(upd); camSel.clear(); camSelMode=false; renderCamGrid(); toast('Eliminados ✓'); });
-    const acoAdd=document.getElementById('acoAdd'); if(acoAdd)acoAdd.addEventListener('click',()=>{ const i=document.getElementById('acoName'); const n=(i.value||'').trim(); if(!n||!fbDb)return; const code=nextCode('CH-',mgmtChoferes); fbDb.ref('config/choferes/'+fbKey(code)).set({name:n,active:true,ts:Date.now()}); i.value=''; toast(code+' agregado ✓'); });
-    const asuAdd=document.getElementById('asuAdd'); if(asuAdd)asuAdd.addEventListener('click',()=>{ const i=document.getElementById('asuName'); const n=(i.value||'').trim(); if(!n||!fbDb)return; const code=nextCode('Sup-',mgmtSup); fbDb.ref('config/supervisores/'+fbKey(code)).set({name:n,active:true,ts:Date.now()}); i.value=''; toast(code+' agregado ✓'); });
+    const pAdd=document.getElementById('pAdd'); if(pAdd)pAdd.addEventListener('click',()=>{ if(admTab==='cam')return; const cfg=PEOPLE[admTab]; const i=document.getElementById('pName'); const n=(i.value||'').trim(); if(!n||!fbDb){toast('Escribe el nombre');return;} const su=document.getElementById('pSueldo').value; const x=parseFloat(String(su).replace(',','.')); const code=genCode(cfg.pre); fbDb.ref(cfg.path+'/'+fbKey(code)).set({name:n,active:true,sueldo:isNaN(x)?null:x,ts:Date.now()}); i.value=''; document.getElementById('pSueldo').value=''; toast(code+' · '+n+' agregado ✓'); });
     const cb=document.getElementById('camBack'); if(cb)cb.addEventListener('click',()=>document.getElementById('camOv').classList.remove('show'));
   }
 
