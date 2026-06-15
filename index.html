@@ -783,7 +783,7 @@
   .rep-num{font-size:30px;font-weight:600;line-height:1;}
   .rep-scope{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
   .rep-range{display:inline-flex;align-items:center;gap:6px;margin-left:6px;}
-  .rep-range label{font-size:12px;color:#807E77;}
+  .rep-range label{font-size:13px;font-weight:600;color:#55524B;}
   .rep-range input[type="date"]{width:auto;margin:0;height:32px;}
   body.dark input[type="date"]{color-scheme:dark;color:#ECEAE3;}
   body.dark input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.8);}
@@ -991,8 +991,11 @@
   .rd-dchip.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
   .rd-item{background:#fff;border:1px solid rgba(30,28,24,0.07);border-radius:13px;padding:12px;margin-bottom:9px;}
   .rd-empty{font-size:12.5px;color:#ABA9A2;padding:22px 4px;text-align:center;}
-  .rd-fchip{padding:6px 11px;border-radius:20px;border:1px solid rgba(30,28,24,0.14);background:#fff;color:var(--tx0);font-size:12px;font-family:inherit;cursor:pointer;margin:0 7px 7px 0;}
-  .rd-fchip.on{border-color:#CF9A4A;background:rgba(207,154,74,0.12);}
+  .rd-fchip{padding:7px 13px;border-radius:20px;border:1px solid rgba(30,28,24,0.16);background:#fff;color:#44413A;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;margin:0 7px 7px 0;transition:all .15s;}
+  .rd-fchip:hover{border-color:#CF9A4A;}
+  .rd-fchip.on{border-color:#CF9A4A;background:#CF9A4A;color:#fff;font-weight:700;}
+  body.dark .rd-fchip{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#ECEAE3;}
+  body.dark .rd-fchip.on{background:#CF9A4A;border-color:#CF9A4A;color:#231F18;}
   .fld-lbl{display:block;font-size:11px;color:var(--txt-dim);margin:9px 0 4px;}
   .fld{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;border:1px solid var(--brd);background:var(--glass-2);color:var(--txt);font-size:13px;font-family:inherit;}
   .cm-estado{font-size:11px;border:1px solid var(--brd);border-radius:8px;padding:4px 7px;background:transparent;color:inherit;font-family:inherit;margin-left:auto;margin-right:8px;}
@@ -1155,6 +1158,30 @@
   body.sec-anim .cc-grid>.cc-card:nth-child(5){animation-delay:.28s;}
   body.sec-anim .cc-grid>.cc-card:nth-child(n+6){animation-delay:.33s;}
   .cc-hero{grid-column:span 4;display:flex;flex-direction:column;}
+  /* ===== Banner de bienvenida institucional ===== */
+  .ini-banner{position:relative;border-radius:22px;overflow:hidden;margin-bottom:16px;box-shadow:0 16px 40px -14px rgba(20,18,15,.4),0 2px 8px rgba(20,18,15,.08);}
+  .ini-banner-bg{position:absolute;inset:0;background:linear-gradient(120deg,#1F2D24 0%,#26241F 45%,#1A1814 100%);}
+  .ini-banner-bg::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px,rgba(126,155,134,.18) 1px,transparent 0);background-size:22px 22px;opacity:.5;}
+  .ini-banner-bg::after{content:"";position:absolute;right:-80px;top:-100px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(199,167,101,.18),transparent 65%);}
+  .ini-banner-content{position:relative;display:flex;align-items:center;gap:18px;padding:26px 30px;}
+  .ini-banner-crest{width:58px;height:58px;border-radius:16px;background:linear-gradient(135deg,#7E9B86,#5B7A66);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;flex:none;box-shadow:0 6px 18px -4px rgba(91,122,102,.7);}
+  .ini-banner-text{flex:1;min-width:0;}
+  .ini-banner-org{font-size:11px;font-weight:800;letter-spacing:1.5px;color:#C7A765;margin-bottom:5px;}
+  .ini-banner-title{font-size:26px;font-weight:600;color:#fff;letter-spacing:-.5px;line-height:1.1;}
+  .ini-banner-title b{font-weight:800;}
+  .ini-banner-sub{font-size:12.5px;color:rgba(255,255,255,.6);margin-top:5px;text-transform:capitalize;}
+  .ini-banner-status{display:flex;align-items:center;gap:13px;flex:none;padding-left:24px;border-left:1px solid rgba(255,255,255,.12);}
+  .ibs-ring{position:relative;width:76px;height:76px;flex:none;filter:drop-shadow(0 3px 10px rgba(126,155,134,.3));}
+  .ibs-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;letter-spacing:-1px;}
+  .ibs-lbl{display:flex;flex-direction:column;}
+  .ibs-lbl b{font-size:17px;font-weight:800;letter-spacing:-.3px;}
+  .ibs-lbl span{font-size:10.5px;color:rgba(255,255,255,.55);font-weight:600;}
+  body.sec-anim .ini-banner{animation:secRise .6s cubic-bezier(.2,.8,.2,1) both;}
+  body.sec-anim .ibs-ring circle:last-child{animation:ringDraw 1.1s cubic-bezier(.4,0,.2,1) .3s both;}
+  .cc-health{grid-column:span 12;}
+  .cc-health-meta{font-size:11.5px;color:#8C887E;margin:-4px 0 12px;}
+  .cc-health-meta span{font-weight:700;}
+  @media(max-width:768px){.ini-banner-content{flex-wrap:wrap;gap:14px;}.ini-banner-status{padding-left:0;border-left:none;border-top:1px solid rgba(255,255,255,.12);padding-top:14px;width:100%;}.ini-banner-title{font-size:22px;}}
   /* ===== Hero de Salud ancho (banda oscura protagonista) ===== */
   .cc-hero2{grid-column:span 12;display:flex;align-items:center;gap:30px;background:linear-gradient(135deg,#26241F 0%,#1A1814 100%);border:none;padding:24px 30px;position:relative;overflow:hidden;}
   .cc-hero2::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#7E9B86,#C7A765,transparent);opacity:.85;}
@@ -1309,7 +1336,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.53 · 2026-06-15</div>
+    <div class="ver" style="padding-top:4px">v3.54 · 2026-06-15</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1492,9 +1519,9 @@
 <!-- ===== ACCESOS (Fase 1) ===== -->
 <div class="acc hide" id="admGate">
   <div class="acc-card">
-    <div class="acc-brand"><span class="acc-dot"></span> Animador de Ruta</div>
+    <div class="acc-brand"><span class="acc-dot"></span> <div style="display:flex;flex-direction:column;line-height:1.2"><b style="font-size:14px">Animador de Ruta</b><small style="font-size:10px;color:#8C887E;font-weight:500">Ayuntamiento de La Vega</small></div></div>
     <h2>Centro de control</h2>
-    <p class="acc-sub">Acceso de administrador</p>
+    <p class="acc-sub">Sistema municipal de monitoreo de recolección</p>
     <input class="acc-in" id="admKeyIn" type="password" placeholder="Clave de acceso" autocomplete="off">
     <button class="acc-btn" id="admEnter">Entrar</button>
   </div>
@@ -1633,7 +1660,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.53 · 2026-06-15</div>
+<div class="ver-badge" id="verBadge">v3.54 · 2026-06-15</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2785,9 +2812,20 @@
     const kmHoy=kmDone;
     let h='<div class="ini-wrap cc-wrap">';
     const _hh=now.getHours(); const _saludo=_hh<12?'Buenos días':(_hh<19?'Buenas tardes':'Buenas noches');
-    h+='<div class="ini-welcome">'+_saludo+', <b>Administración</b></div>';
-    h+='<div class="ini-daterow"><span class="ini-day">'+(DAY_FULL[today]||'')+'</span><span class="ini-date">'+fecha+'</span>'
-      +'<span class="ini-pulse" style="color:'+EST[0]+';border-color:'+EST[0]+'33;background:'+EST[0]+'14"><span class="ini-pdot" style="background:'+EST[0]+'"></span>Estado operacional municipal: '+EST[1]+'</span></div>';
+    h+='<div class="ini-banner">'
+      +'<div class="ini-banner-bg"></div>'
+      +'<div class="ini-banner-content">'
+      +'<div class="ini-banner-crest"><i class="ti ti-recycle"></i></div>'
+      +'<div class="ini-banner-text">'
+      +'<div class="ini-banner-org">AYUNTAMIENTO MUNICIPAL DE LA VEGA</div>'
+      +'<div class="ini-banner-title">'+_saludo+', <b>Administración</b></div>'
+      +'<div class="ini-banner-sub">Dirección de Aseo Urbano · '+(DAY_FULL[today]||'')+' '+fecha+'</div>'
+      +'</div>'
+      +'<div class="ini-banner-status" style="--est:'+EST[0]+'">'
+      +'<div class="ibs-ring"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="32" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="6"/><circle cx="38" cy="38" r="32" fill="none" stroke="'+EST[0]+'" stroke-width="6" stroke-linecap="round" stroke-dasharray="'+(2*Math.PI*32)+'" stroke-dashoffset="'+(idx==null?2*Math.PI*32:2*Math.PI*32*(1-idx/100))+'" transform="rotate(-90 38 38)"/></svg><div class="ibs-num">'+(idx==null?'—':idx)+'</div></div>'
+      +'<div class="ibs-lbl"><b style="color:'+EST[0]+'">'+EST[1]+'</b><span>Salud del servicio</span></div>'
+      +'</div>'
+      +'</div></div>';
     // ===== Banda 1: Estado general (números clave del municipio)
     h+='<div class="cc-stateline">'
       +'<div class="cc-st"><b>'+(idx==null?'—':idx)+'</b><span>Salud del servicio</span></div>'
@@ -2796,18 +2834,13 @@
       +'<div class="cc-st"><b>'+nDone+'/'+(todayIds.length||0)+'</b><span>Rutas hoy</span></div>'
       +'<div class="cc-st"><b style="color:'+(alerts.some(a=>a.sev===2)?'#C2402F':'#27A35B')+'">'+alerts.filter(a=>a.sev===2).length+'</b><span>Incidencias críticas</span></div></div>';
     h+='<div class="cc-grid">';
-    // ===== Hero de Salud: banda oscura ancha, protagonista
-    h+='<div class="cc-card cc-hero2">'
-      +'<div class="cc-hero2-ring"><div class="cc-ring" style="--ringC:'+ringC+'"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="9"/><circle cx="60" cy="60" r="52" fill="none" stroke="'+EST[0]+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+ringC+'" stroke-dashoffset="'+(idx==null?ringC:ringC*(1-idx/100))+'" transform="rotate(-90 60 60)"/></svg>'
-      +'<div class="cc-ringnum"><b style="color:#fff">'+(idx==null?'—':idx)+'</b><span style="color:rgba(255,255,255,.6)">de 100</span></div></div></div>'
-      +'<div class="cc-hero2-body">'
-      +'<div class="cc-hero2-lbl">SALUD DEL SERVICIO DE RECOLECCIÓN</div>'
-      +'<div class="cc-hero2-est" style="color:'+EST[0]+'">'+EST[1].toUpperCase()+'</div>'
-      +'<div class="cc-hero2-meta">'+(trendDelta!=null?('<span style="color:'+(trendDelta>=0?'#6FD89A':'#E08070')+'">'+(trendDelta>=0?'▲ +':'▼ ')+trendDelta+' pts</span> vs semana previa'):'Sin histórico suficiente')+' · actualizado '+hora+'</div>'
-      +'<div class="cc-hero2-comp">';
-    parts.forEach(p=>{ h+='<div class="cc-h2row"><span>'+p.lab+'</span><div class="cc-h2bar"><i style="width:'+p.v+'%;background:'+p.c+'"></i></div><b>'+p.v+'</b></div>'; });
-    if(!parts.length)h+='<div style="color:rgba(255,255,255,.5);font-size:12px">Sin datos del día todavía.</div>';
-    h+='</div></div></div>';
+    // ===== Componentes de salud como tarjeta de detalle
+    h+='<div class="cc-card cc-health"><div class="cc-h">DESGLOSE · SALUD DEL SERVICIO</div>'
+      +'<div class="cc-health-meta">'+(trendDelta!=null?('<span style="color:'+(trendDelta>=0?'#27A35B':'#C2402F')+'">'+(trendDelta>=0?'▲ +':'▼ ')+trendDelta+' pts</span> vs semana previa'):'Sin histórico suficiente')+' · actualizado '+hora+'</div>'
+      +'<div class="cc-comp">';
+    parts.forEach(p=>{ h+='<div class="cc-crow"><span>'+p.lab+'</span><div class="cc-cbar"><i style="width:'+p.v+'%;background:'+p.c+'"></i></div><b>'+p.v+'</b></div>'; });
+    if(!parts.length)h+='<div class="ini-empty" style="margin:0">Sin datos del día todavía.</div>';
+    h+='</div></div>';
     let tonHoy=0,tonHubo=false; ids.forEach(id=>{ const vj=(rutas[id]||{}).viajes||{}; const dd=vj[hoy]||{}; Object.keys(dd).forEach(k=>{ if(dd[k]&&dd[k].toneladas!=null){tonHoy+=Number(dd[k].toneladas)||0;tonHubo=true;} }); });
     h+='<div class="cc-card cc-mun"><div class="cc-h">RESUMEN DEL DÍA</div>'
       +'<div class="cc-kpis">'
@@ -3662,9 +3695,9 @@
   function renderRecursos(){
     const host=document.getElementById('recursosBody'); if(!host)return;
     if(!fbDb){ host.innerHTML='<div class="rd-empty">Sin conexión.</div>'; return; }
-    host.innerHTML=repTabsHtml('recursos')
-      +'<div class="sec-header"><h2>Recursos</h2><div class="sub">Validación de pesaje, combustible, rendimiento y gastos</div><span class="accent"></span></div>'
-      +'<div id="recHero" style="margin-top:12px"></div>'
+    host.innerHTML='<div class="sec-header"><h2>Reportes</h2><div class="sub">Evaluación de recorridos, choferes, supervisores y recursos</div><span class="accent"></span></div>'
+      +repTabsHtml('recursos')
+      +'<div id="recHero" style="margin-top:4px"></div>'
       +'<div class="rec-tabs"><button class="rec-tab'+(recTab==='pesaje'?' on':'')+'" data-rt="pesaje">⚖ Pesaje</button><button class="rec-tab'+(recTab==='combustible'?' on':'')+'" data-rt="combustible">⛽ Combustible</button><button class="rec-tab'+(recTab==='rendimiento'?' on':'')+'" data-rt="rendimiento">📊 Rendimiento</button><button class="rec-tab'+(recTab==='gastos'?' on':'')+'" data-rt="gastos">💰 Gastos y Nómina</button></div>'
       +'<div id="recBody"><div class="rd-empty">Cargando…</div></div>';
     host.querySelectorAll('.rec-tab').forEach(b=>b.addEventListener('click',()=>{ recTab=b.dataset.rt; renderRecursos(); }));
