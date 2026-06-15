@@ -785,6 +785,10 @@
   .rep-range{display:inline-flex;align-items:center;gap:6px;margin-left:6px;}
   .rep-range label{font-size:12px;color:#807E77;}
   .rep-range input[type="date"]{width:auto;margin:0;height:32px;}
+  body.dark input[type="date"]{color-scheme:dark;color:#ECEAE3;}
+  body.dark input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.8);}
+  body.dark .fld{color:#ECEAE3;}
+  body.dark .fld::placeholder{color:#8C887E;}
   .rep-inds{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
   .rep-ind{background:rgba(30,28,24,.04);border:1px solid rgba(30,28,24,.07);border-radius:10px;padding:7px 11px;min-width:78px;}
   .rep-ind b{display:block;font-size:17px;font-weight:600;}
@@ -1151,10 +1155,28 @@
   body.sec-anim .cc-grid>.cc-card:nth-child(5){animation-delay:.28s;}
   body.sec-anim .cc-grid>.cc-card:nth-child(n+6){animation-delay:.33s;}
   .cc-hero{grid-column:span 4;display:flex;flex-direction:column;}
-  .cc-mun{grid-column:span 8;}
-  .cc-op{grid-column:span 5;}
-  .cc-al{grid-column:span 3;}
-  .cc-side{grid-column:span 4;display:flex;flex-direction:column;gap:12px;}
+  /* ===== Hero de Salud ancho (banda oscura protagonista) ===== */
+  .cc-hero2{grid-column:span 12;display:flex;align-items:center;gap:30px;background:linear-gradient(135deg,#26241F 0%,#1A1814 100%);border:none;padding:24px 30px;position:relative;overflow:hidden;}
+  .cc-hero2::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#7E9B86,#C7A765,transparent);opacity:.85;}
+  .cc-hero2::after{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(126,155,134,.14),transparent 70%);pointer-events:none;}
+  .cc-hero2-ring{flex:none;}
+  .cc-hero2-ring .cc-ring{margin:0;width:140px;}
+  .cc-hero2-body{flex:1;min-width:0;}
+  .cc-hero2-lbl{font-size:11px;font-weight:800;letter-spacing:1.2px;color:rgba(255,255,255,.55);text-transform:uppercase;}
+  .cc-hero2-est{font-size:28px;font-weight:800;letter-spacing:-.6px;margin:3px 0 2px;}
+  .cc-hero2-meta{font-size:12px;color:rgba(255,255,255,.55);margin-bottom:14px;}
+  .cc-hero2-meta span{font-weight:700;}
+  .cc-hero2-comp{display:flex;flex-direction:column;gap:8px;max-width:520px;}
+  .cc-h2row{display:flex;align-items:center;gap:12px;font-size:12px;color:rgba(255,255,255,.8);}
+  .cc-h2row>span{width:130px;flex:none;font-weight:600;}
+  .cc-h2row b{width:30px;text-align:right;font-size:13px;color:#fff;}
+  .cc-h2bar{flex:1;height:7px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;}
+  .cc-h2bar i{display:block;height:100%;border-radius:99px;transition:width .8s cubic-bezier(.2,.8,.2,1);}
+  @media(max-width:768px){.cc-hero2{flex-direction:column;text-align:center;gap:16px;}.cc-hero2-comp{max-width:none;}.cc-h2row>span{width:auto;flex:1;text-align:left;}}
+  .cc-mun{grid-column:span 7;}
+  .cc-op{grid-column:span 7;}
+  .cc-al{grid-column:span 5;}
+  .cc-side{grid-column:span 5;display:flex;flex-direction:column;gap:12px;}
   .cc-tr{grid-column:span 12;}
   .cc-stateline{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;background:#fff;border:1px solid rgba(30,28,24,.06);border-radius:16px;padding:14px 18px;box-shadow:0 1px 3px rgba(30,28,24,.04),0 6px 18px -10px rgba(30,28,24,.1);}
   body.dark .cc-stateline{background:#26241F;border-color:rgba(255,255,255,.08);}
@@ -1287,7 +1309,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.52 · 2026-06-14</div>
+    <div class="ver" style="padding-top:4px">v3.53 · 2026-06-15</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1611,7 +1633,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.52 · 2026-06-14</div>
+<div class="ver-badge" id="verBadge">v3.53 · 2026-06-15</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2615,8 +2637,10 @@
     const _cam=document.getElementById('camOv'); if(_cam)_cam.classList.remove('show');
     document.querySelectorAll('#shellNav .nav-item').forEach(n=>n.classList.toggle('on',n.dataset.sec===name));
     const nrep=document.getElementById('navReportes'), nrsub=document.getElementById('navRepSub');
-    if(nrep)nrep.classList.toggle('on',name==='reportes');
-    if(nrsub){ nrsub.classList.toggle('open',name==='reportes'); if(nrep)nrep.classList.toggle('open',name==='reportes'); if(name==='reportes')document.querySelectorAll('#navRepSub .nav-subitem').forEach(x=>x.classList.toggle('on',x.dataset.rv===repView)); }
+    const enGrupoReportes=(name==='reportes'||name==='recursos');
+    if(nrep)nrep.classList.toggle('on',enGrupoReportes);
+    if(nrsub){ nrsub.classList.toggle('open',enGrupoReportes); if(nrep)nrep.classList.toggle('open',enGrupoReportes);
+      if(enGrupoReportes)document.querySelectorAll('#navRepSub .nav-subitem').forEach(x=>{ if(name==='recursos')x.classList.toggle('on',x.id==='navSubRecursos'); else x.classList.toggle('on',x.dataset.rv===repView); }); }
     const t=document.getElementById('shellTitle'); if(t)t.textContent=SEC_TITLE[name]||name;
     const monP=document.getElementById('monPanel'), editor=document.getElementById('panel');
     if(monP)monP.classList.toggle('show',name==='monitoreo');
@@ -2772,17 +2796,18 @@
       +'<div class="cc-st"><b>'+nDone+'/'+(todayIds.length||0)+'</b><span>Rutas hoy</span></div>'
       +'<div class="cc-st"><b style="color:'+(alerts.some(a=>a.sev===2)?'#C2402F':'#27A35B')+'">'+alerts.filter(a=>a.sev===2).length+'</b><span>Incidencias críticas</span></div></div>';
     h+='<div class="cc-grid">';
-    // ===== ISOM hero ampliado
-    h+='<div class="cc-card cc-hero">'
-      +'<div class="cc-h">SALUD DEL SERVICIO DE RECOLECCIÓN</div>'
-      +'<div class="cc-ring" style="--ringC:'+ringC+'"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(30,28,24,.08)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="'+EST[0]+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+ringC+'" stroke-dashoffset="'+(idx==null?ringC:ringC*(1-idx/100))+'" transform="rotate(-90 60 60)"/></svg>'
-      +'<div class="cc-ringnum"><b style="color:'+EST[0]+'">'+(idx==null?'—':idx)+'</b><span>de 100</span></div></div>'
-      +'<div class="cc-isomlbl" style="color:'+EST[0]+'">'+EST[1].toUpperCase()+'</div>'
-      +'<div class="cc-isommeta">'+(trendDelta!=null?('<span style="color:'+(trendDelta>=0?'#27A35B':'#C2402F')+'">'+(trendDelta>=0?'▲ +':'▼ ')+trendDelta+' pts</span> vs semana previa'):'Sin histórico suficiente')+' · act. '+hora+'</div>'
-      +'<div class="cc-comp">';
-    parts.forEach(p=>{ h+='<div class="cc-crow"><span>'+p.lab+'</span><div class="cc-cbar"><i style="width:'+p.v+'%;background:'+p.c+'"></i></div><b>'+p.v+'</b></div>'; });
-    if(!parts.length)h+='<div class="ini-empty" style="margin:0">Sin datos del día todavía.</div>';
-    h+='</div></div>';
+    // ===== Hero de Salud: banda oscura ancha, protagonista
+    h+='<div class="cc-card cc-hero2">'
+      +'<div class="cc-hero2-ring"><div class="cc-ring" style="--ringC:'+ringC+'"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="9"/><circle cx="60" cy="60" r="52" fill="none" stroke="'+EST[0]+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+ringC+'" stroke-dashoffset="'+(idx==null?ringC:ringC*(1-idx/100))+'" transform="rotate(-90 60 60)"/></svg>'
+      +'<div class="cc-ringnum"><b style="color:#fff">'+(idx==null?'—':idx)+'</b><span style="color:rgba(255,255,255,.6)">de 100</span></div></div></div>'
+      +'<div class="cc-hero2-body">'
+      +'<div class="cc-hero2-lbl">SALUD DEL SERVICIO DE RECOLECCIÓN</div>'
+      +'<div class="cc-hero2-est" style="color:'+EST[0]+'">'+EST[1].toUpperCase()+'</div>'
+      +'<div class="cc-hero2-meta">'+(trendDelta!=null?('<span style="color:'+(trendDelta>=0?'#6FD89A':'#E08070')+'">'+(trendDelta>=0?'▲ +':'▼ ')+trendDelta+' pts</span> vs semana previa'):'Sin histórico suficiente')+' · actualizado '+hora+'</div>'
+      +'<div class="cc-hero2-comp">';
+    parts.forEach(p=>{ h+='<div class="cc-h2row"><span>'+p.lab+'</span><div class="cc-h2bar"><i style="width:'+p.v+'%;background:'+p.c+'"></i></div><b>'+p.v+'</b></div>'; });
+    if(!parts.length)h+='<div style="color:rgba(255,255,255,.5);font-size:12px">Sin datos del día todavía.</div>';
+    h+='</div></div></div>';
     let tonHoy=0,tonHubo=false; ids.forEach(id=>{ const vj=(rutas[id]||{}).viajes||{}; const dd=vj[hoy]||{}; Object.keys(dd).forEach(k=>{ if(dd[k]&&dd[k].toneladas!=null){tonHoy+=Number(dd[k].toneladas)||0;tonHubo=true;} }); });
     h+='<div class="cc-card cc-mun"><div class="cc-h">RESUMEN DEL DÍA</div>'
       +'<div class="cc-kpis">'
