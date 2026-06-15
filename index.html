@@ -1137,14 +1137,26 @@
   .cc-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-top:14px;}
   .cc-card{background:#fff;border:1px solid rgba(30,28,24,.07);border-radius:17px;padding:16px 17px;box-shadow:0 1px 3px rgba(30,28,24,.04),0 6px 18px -10px rgba(30,28,24,.1);}
   body.dark .cc-card{background:#26241F;border-color:rgba(255,255,255,.08);}
-  .cc-h{font-size:10.5px;font-weight:700;letter-spacing:1px;color:#8C887E;margin-bottom:10px;}
+  .cc-h{font-size:10.5px;font-weight:800;letter-spacing:1px;color:#9B978E;margin-bottom:10px;text-transform:uppercase;}
+  .ini-welcome{font-size:14px;color:#8C887E;margin-bottom:2px;font-weight:500;}
+  .ini-welcome b{color:var(--tx0);font-weight:700;}
+  body.dark .ini-welcome b{color:#F4F2EC;}
+  /* stagger de las tarjetas del dashboard de Inicio */
+  body.sec-anim .cc-stateline{animation:secRise .5s cubic-bezier(.2,.8,.2,1) .04s both;}
+  body.sec-anim .cc-grid>.cc-card{animation:secRise .55s cubic-bezier(.2,.8,.2,1) both;}
+  body.sec-anim .cc-grid>.cc-card:nth-child(1){animation-delay:.08s;}
+  body.sec-anim .cc-grid>.cc-card:nth-child(2){animation-delay:.13s;}
+  body.sec-anim .cc-grid>.cc-card:nth-child(3){animation-delay:.18s;}
+  body.sec-anim .cc-grid>.cc-card:nth-child(4){animation-delay:.23s;}
+  body.sec-anim .cc-grid>.cc-card:nth-child(5){animation-delay:.28s;}
+  body.sec-anim .cc-grid>.cc-card:nth-child(n+6){animation-delay:.33s;}
   .cc-hero{grid-column:span 4;display:flex;flex-direction:column;}
   .cc-mun{grid-column:span 8;}
   .cc-op{grid-column:span 5;}
   .cc-al{grid-column:span 3;}
   .cc-side{grid-column:span 4;display:flex;flex-direction:column;gap:12px;}
   .cc-tr{grid-column:span 12;}
-  .cc-stateline{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:14px;padding:13px 16px;}
+  .cc-stateline{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;background:#fff;border:1px solid rgba(30,28,24,.06);border-radius:16px;padding:14px 18px;box-shadow:0 1px 3px rgba(30,28,24,.04),0 6px 18px -10px rgba(30,28,24,.1);}
   body.dark .cc-stateline{background:#26241F;border-color:rgba(255,255,255,.08);}
   .cc-st{flex:1;min-width:90px;display:flex;flex-direction:column;gap:1px;border-left:1px solid rgba(30,28,24,.08);padding-left:13px;}
   .cc-st:first-child{border-left:none;padding-left:0;}
@@ -1181,10 +1193,12 @@
   .cc-sec b{font-size:14px;}
   .cc-sec small{font-size:10px;color:#8C887E;width:100%;}
   body.dark .cc-sec{background:rgba(255,255,255,.03);}
-  .cc-ring{position:relative;width:150px;margin:4px auto 12px;}
+  .cc-ring{position:relative;width:150px;margin:4px auto 12px;filter:drop-shadow(0 4px 12px rgba(126,155,134,.25));}
   .cc-ring svg{width:150px;height:150px;display:block;}
   .cc-ringnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
   .cc-ringnum b{font-size:40px;line-height:1;letter-spacing:-1px;}
+  body.sec-anim .cc-ring circle:last-child{animation:ringDraw 1.1s cubic-bezier(.4,0,.2,1) .25s both;}
+  @keyframes ringDraw{from{stroke-dashoffset:var(--ringC,327);}}
   .cc-ringnum span{font-size:10.5px;color:#8C887E;margin-top:2px;}
   .cc-comp{display:flex;flex-direction:column;gap:7px;margin-top:auto;}
   .cc-crow{display:flex;align-items:center;gap:9px;font-size:11.5px;color:#55524B;}
@@ -1273,7 +1287,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.51 · 2026-06-14</div>
+    <div class="ver" style="padding-top:4px">v3.52 · 2026-06-14</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1597,7 +1611,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.51 · 2026-06-14</div>
+<div class="ver-badge" id="verBadge">v3.52 · 2026-06-14</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2746,6 +2760,8 @@
     const hora=now.toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
     const kmHoy=kmDone;
     let h='<div class="ini-wrap cc-wrap">';
+    const _hh=now.getHours(); const _saludo=_hh<12?'Buenos días':(_hh<19?'Buenas tardes':'Buenas noches');
+    h+='<div class="ini-welcome">'+_saludo+', <b>Administración</b></div>';
     h+='<div class="ini-daterow"><span class="ini-day">'+(DAY_FULL[today]||'')+'</span><span class="ini-date">'+fecha+'</span>'
       +'<span class="ini-pulse" style="color:'+EST[0]+';border-color:'+EST[0]+'33;background:'+EST[0]+'14"><span class="ini-pdot" style="background:'+EST[0]+'"></span>Estado operacional municipal: '+EST[1]+'</span></div>';
     // ===== Banda 1: Estado general (números clave del municipio)
@@ -2759,7 +2775,7 @@
     // ===== ISOM hero ampliado
     h+='<div class="cc-card cc-hero">'
       +'<div class="cc-h">SALUD DEL SERVICIO DE RECOLECCIÓN</div>'
-      +'<div class="cc-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(30,28,24,.08)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="'+EST[0]+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+ringC+'" stroke-dashoffset="'+(idx==null?ringC:ringC*(1-idx/100))+'" transform="rotate(-90 60 60)"/></svg>'
+      +'<div class="cc-ring" style="--ringC:'+ringC+'"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(30,28,24,.08)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="'+EST[0]+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+ringC+'" stroke-dashoffset="'+(idx==null?ringC:ringC*(1-idx/100))+'" transform="rotate(-90 60 60)"/></svg>'
       +'<div class="cc-ringnum"><b style="color:'+EST[0]+'">'+(idx==null?'—':idx)+'</b><span>de 100</span></div></div>'
       +'<div class="cc-isomlbl" style="color:'+EST[0]+'">'+EST[1].toUpperCase()+'</div>'
       +'<div class="cc-isommeta">'+(trendDelta!=null?('<span style="color:'+(trendDelta>=0?'#27A35B':'#C2402F')+'">'+(trendDelta>=0?'▲ +':'▼ ')+trendDelta+' pts</span> vs semana previa'):'Sin histórico suficiente')+' · act. '+hora+'</div>'
