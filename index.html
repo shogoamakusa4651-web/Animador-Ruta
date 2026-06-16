@@ -476,6 +476,38 @@
   /* supGate / choferGate: caja propia centrada */
   #supGate,#choferGate{background:radial-gradient(120% 90% at 50% 0%,#F4F2EC,#E0DCD2);padding:24px;}
   #supGate .acc-card,#choferGate .acc-card{max-width:360px;background:#fff;border-radius:22px;padding:32px 30px;box-shadow:0 20px 50px -16px rgba(30,28,24,.22);}
+  /* ===== Portal ciudadano de quejas ===== */
+  .qj{position:fixed;inset:0;z-index:3200;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0F0E0C;color:#44413A;overflow-y:auto;}
+  .qj.hide{display:none;}
+  .qj-split{display:flex;min-height:100%;}
+  .qj-left{position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:56px 60px;overflow:hidden;}
+  .qj-left-bg{position:absolute;inset:0;background:linear-gradient(150deg,#1F2D24 0%,#23211D 50%,#16140F 100%);}
+  .qj-left-bg::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px,rgba(126,155,134,.14) 1.2px,transparent 0);background-size:28px 28px;opacity:.6;}
+  .qj-left-bg::after{content:"";position:absolute;right:-120px;top:-120px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle,rgba(199,167,101,.16),transparent 65%);}
+  .qj-left-content{position:relative;max-width:430px;}
+  .qj-title{font-size:46px;font-weight:800;line-height:1.04;letter-spacing:-1.3px;color:#fff;margin:14px 0 16px;}
+  .qj-tagline{font-size:15px;line-height:1.6;color:rgba(255,255,255,.6);margin:0 0 30px;max-width:380px;}
+  .qj-right{flex:1.05;display:flex;align-items:center;justify-content:center;background:#F4F2EC;padding:44px 40px;position:relative;}
+  .qj-right::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(126,155,134,.08) 1px,transparent 1px);background-size:24px 24px;opacity:.6;}
+  .qj-form,.qj-ok{width:100%;max-width:440px;position:relative;animation:secRise .55s cubic-bezier(.2,.8,.2,1) both;}
+  .qj h2{font-size:27px;font-weight:800;letter-spacing:-.6px;margin:0 0 7px;color:#23211D;}
+  .qj-lbl{display:block;font-size:12.5px;font-weight:700;color:#55524B;margin:16px 0 6px;letter-spacing:.2px;}
+  .qj-count{font-weight:600;color:#9B978E;float:right;font-size:11.5px;}
+  .qj-in{width:100%;padding:12px 14px;font-size:15px;color:#23211D;background:#fff;border:1.5px solid rgba(68,65,58,0.16);border-radius:12px;outline:none;font-family:inherit;transition:border-color .15s,box-shadow .15s;}
+  .qj-in:focus{border-color:#7E9B86;box-shadow:0 0 0 4px rgba(126,155,134,.15);}
+  .qj-in::placeholder{color:#BBB6AB;}
+  select.qj-in{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%238C887E' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer;}
+  .qj-ta{resize:none;line-height:1.5;}
+  .qj-row{display:flex;gap:12px;}
+  .qj-btn{width:100%;margin-top:24px;height:52px;border:none;border-radius:13px;background:linear-gradient(135deg,#7E9B86,#5B7A66);color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 8px 22px -6px rgba(91,122,102,.65);transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .qj-btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px -8px rgba(91,122,102,.8);}
+  .qj-btn i{font-size:18px;}
+  .qj-note{display:flex;align-items:center;gap:8px;margin-top:18px;font-size:12px;color:#9B978E;font-weight:500;}
+  .qj-err{background:rgba(194,64,47,.1);border:1px solid rgba(194,64,47,.3);color:#A33124;font-size:13px;font-weight:600;padding:11px 14px;border-radius:11px;margin-top:18px;}
+  .qj-ok{text-align:center;}
+  .qj-ok-icon{width:72px;height:72px;border-radius:50%;background:rgba(126,155,134,.18);color:#3E5C49;display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 18px;}
+  @media(max-width:860px){.qj-left{display:none;}.qj-right{flex:1;}}
+  @media(max-width:520px){.qj-right{padding:24px;}.qj-row{flex-direction:column;gap:0;}}
   .acc-brand{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;color:#44413A;margin-bottom:26px;letter-spacing:-.2px;}
   .acc-dot{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#7E9B86,#5B7A66);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:15px;box-shadow:0 3px 10px rgba(91,122,102,.4);flex:none;}
   .acc-dot::before{content:"♻";}
@@ -1285,13 +1317,43 @@
   .cc-ia{grid-column:span 5;}
   .cc-estrat{grid-column:span 6;}
   .cc-exped{grid-column:span 6;}
+  .cc-quejas{grid-column:span 6;}
+  /* detalle de queja en cajón */
+  .qv-verif{border:1px solid;border-radius:13px;padding:14px 16px;margin-bottom:14px;}
+  .qv-vh{font-size:13px;font-weight:800;display:flex;align-items:center;gap:7px;margin-bottom:6px;}
+  .qv-vb{font-size:13px;color:var(--tx0);line-height:1.5;}
+  body.dark .qv-vb{color:#ECEAE3;}
+  .qv-vn{font-size:12px;color:#8C887E;margin-top:6px;line-height:1.45;}
+  .qv-card{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:13px;padding:6px 16px;margin-bottom:14px;}
+  body.dark .qv-card{background:#26241F;border-color:rgba(255,255,255,.08);}
+  .qv-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid rgba(30,28,24,.06);font-size:13px;}
+  .qv-row:last-child{border-bottom:none;}
+  .qv-row>span{color:#8C887E;flex:none;}
+  .qv-row>b{text-align:right;color:var(--tx0);}
+  body.dark .qv-row>b{color:#ECEAE3;}
+  .qv-desc{padding:10px 0;}
+  .qv-desc>span{color:#8C887E;font-size:12px;}
+  .qv-desc p{margin:5px 0 0;font-size:13.5px;line-height:1.5;color:var(--tx0);}
+  body.dark .qv-desc p{color:#ECEAE3;}
+  .qv-acts{display:flex;gap:9px;flex-wrap:wrap;}
+  .qv-btn{flex:1;min-width:140px;height:44px;border-radius:11px;border:1px solid rgba(30,28,24,.14);background:#fff;color:var(--tx0);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;transition:all .15s;}
+  .qv-btn:hover{border-color:#7E9B86;}
+  .qv-btn.ok{background:linear-gradient(135deg,#7E9B86,#5B7A66);color:#fff;border:none;}
+  .qv-btn.wa{background:#25D366;color:#fff;border:none;}
+  body.dark .qv-btn{background:#26241F;color:#ECEAE3;}
+  .cc-qrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(30,28,24,.06);cursor:pointer;}
+  .cc-qrow:hover{opacity:.7;}
+  .cc-qdot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .cc-qmain{flex:1;min-width:0;}
+  .cc-qmot{font-size:13px;font-weight:600;color:var(--tx0);}
+  body.dark .cc-qmot{color:#ECEAE3;}
   .cc-gastos{grid-column:span 6;}
   .cc-soontag{font-size:9px;font-weight:800;letter-spacing:.5px;color:#fff;background:#B0843C;padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
   .cc-soonbody{font-size:12px;line-height:1.5;color:#6C6960;}
   .cc-soonreq{font-size:10.5px;color:#A8A49B;margin-top:9px;padding-top:8px;border-top:1px dashed rgba(30,28,24,.12);font-style:italic;}
   body.dark .cc-soonbody{color:#B7B4AC;}
-  @media(max-width:1020px){.cc-soon{grid-column:span 6;} .cc-ia,.cc-estrat,.cc-exped,.cc-gastos,.cc-side{grid-column:span 12;}}
-  @media(max-width:768px){.cc-kpis{grid-template-columns:repeat(2,1fr);} .cc-soon,.cc-ia,.cc-estrat,.cc-exped,.cc-gastos{grid-column:span 12;} .cc-st{min-width:70px;} .cc-side{grid-template-columns:1fr;}}
+  @media(max-width:1020px){.cc-soon{grid-column:span 6;} .cc-ia,.cc-estrat,.cc-exped,.cc-gastos,.cc-quejas,.cc-side{grid-column:span 12;}}
+  @media(max-width:768px){.cc-kpis{grid-template-columns:repeat(2,1fr);} .cc-soon,.cc-ia,.cc-estrat,.cc-exped,.cc-gastos,.cc-quejas{grid-column:span 12;} .cc-st{min-width:70px;} .cc-side{grid-template-columns:1fr;}}
   .cc-exrow{display:flex;gap:8px;}
   .cc-ex{flex:1;display:flex;flex-direction:column;gap:1px;background:rgba(30,28,24,.025);border-radius:10px;padding:9px 10px;}
   .cc-ex b{font-size:20px;}
@@ -1398,7 +1460,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.59 · 2026-06-16</div>
+    <div class="ver" style="padding-top:4px">v3.60 · 2026-06-16</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1652,8 +1714,62 @@
   </div>
 </div>
 
-<button class="mgmt-btn" id="mgmtBtn">⚙ Administración</button>
-<button class="units-btn" id="unitsBtn">🛰 Unidades en vivo</button>
+<!-- ===== PORTAL CIUDADANO DE QUEJAS (público) ===== -->
+<div class="qj hide" id="qjPortal">
+  <div class="qj-split">
+    <div class="qj-left">
+      <div class="qj-left-bg"></div>
+      <div class="qj-left-content">
+        <div class="acc-crest"><i class="ti ti-recycle"></i></div>
+        <div class="acc-org">AYUNTAMIENTO MUNICIPAL DE LA VEGA</div>
+        <h1 class="qj-title">Reporta un<br>problema</h1>
+        <p class="qj-tagline">Tu reporte llega directo a la Dirección de Aseo Urbano. Nos ayuda a mejorar el servicio de recolección en tu sector.</p>
+        <div class="acc-feats">
+          <div class="acc-feat"><i class="ti ti-clock"></i> Atendemos cada reporte</div>
+          <div class="acc-feat"><i class="ti ti-map-pin"></i> Verificamos con el recorrido real</div>
+          <div class="acc-feat"><i class="ti ti-shield-check"></i> Tus datos se manejan con reserva</div>
+        </div>
+      </div>
+      <div class="acc-left-foot" style="padding-left:0">Servicio al ciudadano · La Vega, R.D.</div>
+    </div>
+    <div class="qj-right">
+      <div class="qj-form" id="qjForm">
+        <h2>Formulario de quejas</h2>
+        <p class="acc-sub">Completa los datos. Los campos con * son obligatorios.</p>
+        <label class="qj-lbl">Nombre completo *</label>
+        <input class="qj-in" id="qjNombre" type="text" maxlength="60" placeholder="Ej: Juan Pérez">
+        <label class="qj-lbl">Cédula *</label>
+        <input class="qj-in" id="qjCedula" type="text" inputmode="numeric" maxlength="13" placeholder="000-0000000-0">
+        <div class="qj-row">
+          <div style="flex:1"><label class="qj-lbl">Sector / barrio *</label>
+          <select class="qj-in" id="qjSector"></select></div>
+          <div style="flex:1"><label class="qj-lbl">Teléfono *</label>
+          <input class="qj-in" id="qjTel" type="tel" inputmode="numeric" maxlength="14" placeholder="809-000-0000"></div>
+        </div>
+        <label class="qj-lbl">Motivo *</label>
+        <select class="qj-in" id="qjMotivo">
+          <option value="">Selecciona…</option>
+          <option value="No pasó el camión">No pasó el camión</option>
+          <option value="Basura acumulada">Basura acumulada</option>
+          <option value="Camión causó un daño">Camión causó un daño</option>
+          <option value="Horario irregular">Horario irregular</option>
+          <option value="Otro">Otro</option>
+        </select>
+        <label class="qj-lbl">Descripción <span id="qjCount" class="qj-count">0/200</span></label>
+        <textarea class="qj-in qj-ta" id="qjDesc" maxlength="200" rows="3" placeholder="Describe brevemente el problema…"></textarea>
+        <div class="qj-err hide" id="qjErr"></div>
+        <button class="qj-btn" id="qjEnviar">Enviar reporte <i class="ti ti-send"></i></button>
+        <div class="qj-note"><span class="acc-note-dot"></span> El ayuntamiento podría contactarte para dar seguimiento</div>
+      </div>
+      <div class="qj-ok hide" id="qjOk">
+        <div class="qj-ok-icon"><i class="ti ti-check"></i></div>
+        <h2>Reporte enviado</h2>
+        <p class="acc-sub">Gracias. Tu queja fue registrada con el folio <b id="qjFolio">—</b>. La Dirección de Aseo Urbano la revisará.</p>
+        <button class="qj-btn" id="qjOtro">Enviar otro reporte</button>
+      </div>
+    </div>
+  </div>
+</div>
 <button class="maplayer-btn" id="mapLayerBtn" title="Satélite / Calles">🗺 Calles</button>
 <div class="adm-bar" id="admBar">
   <div class="adm-seg">
@@ -1742,7 +1858,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.59 · 2026-06-16</div>
+<div class="ver-badge" id="verBadge">v3.60 · 2026-06-16</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2571,7 +2687,7 @@
 
   // ===== GESTIÓN ADM: choferes y supervisores con código (Fase 4) =====
   let mgmtChoferes={}, mgmtSup={}, mgmtCamiones={}, mgmtMecanicos={}, mgmtAyudantes={}, mgmtSub=false;
-  let fuelCache={}, mantCache={}, comisionCfg={precioGalon:null, montoChofer:null, montoAyudante:null};
+  let fuelCache={}, mantCache={}, quejasCache={}, comisionCfg={precioGalon:null, montoChofer:null, montoAyudante:null};
   function fbKey(c){ return c.replace(/[.#$\[\]\/]/g,'_'); }
   function nextCode(prefix,obj){ let max=0; if(obj)Object.keys(obj).forEach(k=>{const m=k.match(/(\d+)$/);if(m){const v=parseInt(m[1],10);if(v>max)max=v;}}); return prefix+String(max+1).padStart(2,'0'); }
   function mgmtList(elId,data,onDel){
@@ -2594,6 +2710,7 @@
     fbDb.ref('config/ayudantes').on('value',s=>{ mgmtAyudantes=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('combustible').on('value',s=>{ fuelCache=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='recursos'&&typeof renderGastos==='function'&&recTab==='gastos')renderRecursos(); });
     fbDb.ref('mantenimiento').on('value',s=>{ mantCache=s.val()||{}; });
+    fbDb.ref('quejas').on('value',s=>{ quejasCache=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); });
     fbDb.ref('config/comisiones').on('value',s=>{ comisionCfg=Object.assign({precioGalon:null,montoChofer:null,montoAyudante:null},s.val()||{}); if(typeof curSec!=='undefined'&&curSec==='recursos'&&recTab==='gastos')renderRecursos(); });
   }
   function mgmtSetup(){
@@ -2824,6 +2941,50 @@
   const DAY_FULL={L:'lunes',M:'martes',X:'miércoles',J:'jueves',V:'viernes',S:'sábado',D:'domingo'};
   function todayLetter(){ return DAYS[(new Date().getDay()+6)%7]; }
   let iniShowAll=false, iniDaysSel=null;
+  function verQueja(qk){
+    const q=(quejasCache||{})[qk]; if(!q)return;
+    const ov=document.getElementById('rdOv'); if(!ov)return;
+    document.getElementById('rdName').textContent='Queja '+(q.folio||'');
+    document.getElementById('rdCamion').textContent=q.estado==='nuevo'?'Sin atender':'Atendida';
+    document.getElementById('rdMeta').textContent=(q.motivo||'')+' · '+(q.sector||'');
+    const tabs=ov.querySelector('.rd-tabs'); if(tabs)tabs.style.display='none';
+    const dates=document.getElementById('rdDates'); if(dates)dates.innerHTML='';
+    const fecha=q.ts?new Date(q.ts).toLocaleString('es-DO',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    // verificación: ¿una ruta de ese sector se completó el día de la queja?
+    let verif='';
+    if(q.ts){
+      const d=new Date(q.ts); const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      const rutasSec=Object.keys(mgmtRutas||{}).filter(id=>((mgmtRutas[id]||{}).sector||'')===q.sector);
+      if(rutasSec.length){
+        let comp=0,prog=0;
+        rutasSec.forEach(id=>{ const r=mgmtRutas[id]||{}; prog++; if(r.viajes&&r.viajes[iso]&&Object.keys(r.viajes[iso]).length)comp++; });
+        const col=comp>0?'#27A35B':'#C2402F';
+        verif='<div class="qv-verif" style="border-color:'+col+'44;background:'+col+'10"><div class="qv-vh" style="color:'+col+'"><i class="ti ti-'+(comp>0?'circle-check':'alert-triangle')+'"></i> Verificación con el recorrido real</div>'
+          +'<div class="qv-vb">El '+fecha.split(',')[0]+', en el sector <b>'+esc(q.sector)+'</b> se '+(comp>0?('registró recorrido en <b>'+comp+'</b> de '+prog+' ruta'+(prog>1?'s':'')+'.'):('<b>no</b> se registró ningún recorrido completado.'))+'</div>'
+          +'<div class="qv-vn">'+(comp>0?'Hay evidencia de paso. Puedes mostrar el trazado al ciudadano.':'La queja coincide con falta de recorrido. Conviene priorizar este sector.')+'</div></div>';
+      } else {
+        verif='<div class="qv-verif" style="border-color:rgba(140,136,126,.3);background:rgba(140,136,126,.08)"><div class="qv-vh" style="color:#8C887E"><i class="ti ti-help-circle"></i> Sin ruta asociada</div><div class="qv-vb">No hay rutas registradas con el sector "<b>'+esc(q.sector)+'</b>". Asigna ese sector a una ruta para verificar automáticamente.</div></div>';
+      }
+    }
+    document.getElementById('rdBody').innerHTML=
+      verif
+      +'<div class="qv-card"><div class="qv-row"><span>Ciudadano</span><b>'+esc(q.nombre||'—')+'</b></div>'
+      +'<div class="qv-row"><span>Cédula</span><b>'+esc(q.cedula||'—')+'</b></div>'
+      +'<div class="qv-row"><span>Teléfono</span><b><a href="tel:'+esc((q.tel||'').replace(/[^0-9+]/g,''))+'" style="color:#5B7A66">'+esc(q.tel||'—')+'</a></b></div>'
+      +'<div class="qv-row"><span>Sector</span><b>'+esc(q.sector||'—')+'</b></div>'
+      +'<div class="qv-row"><span>Motivo</span><b>'+esc(q.motivo||'—')+'</b></div>'
+      +'<div class="qv-row"><span>Recibida</span><b>'+fecha+'</b></div>'
+      +(q.desc?'<div class="qv-desc"><span>Descripción</span><p>'+esc(q.desc)+'</p></div>':'')+'</div>'
+      +'<div class="qv-acts">'
+      +(q.estado==='nuevo'?'<button class="qv-btn ok" data-qact="atender" data-qk="'+esc(qk)+'"><i class="ti ti-check"></i> Marcar como atendida</button>':'<button class="qv-btn" data-qact="reabrir" data-qk="'+esc(qk)+'"><i class="ti ti-rotate"></i> Reabrir</button>')
+      +'<a class="qv-btn wa" href="https://wa.me/1'+esc((q.tel||'').replace(/[^0-9]/g,''))+'?text='+encodeURIComponent('Saludos desde el Ayuntamiento de La Vega sobre su reporte '+(q.folio||'')+'.')+'" target="_blank"><i class="ti ti-brand-whatsapp"></i> Contactar</a>'
+      +'</div>';
+    ov.classList.add('show');
+    document.querySelectorAll('[data-qact]').forEach(b=>b.addEventListener('click',()=>{
+      const k=b.dataset.qk; const act=b.dataset.qact;
+      fbDb.ref('quejas/'+k+'/estado').set(act==='atender'?'atendida':'nuevo').then(()=>{ ov.classList.remove('show'); toast(act==='atender'?'Queja atendida ✓':'Queja reabierta'); });
+    }));
+  }
   function buildInicio(){
     const host=document.getElementById('iniBody'); if(!host)return;
     const today=todayLetter();
@@ -2980,6 +3141,26 @@
       +'<div class="cc-ex"><b style="color:#27A35B">'+exResuelto+'</b><span>Resueltos</span></div>'
       +'<div class="cc-ex"><b style="color:#C2402F">'+exEscalado+'</b><span>Escalados</span></div></div>'
       +'<div class="q-meta" style="margin-top:8px">Cada ruta enviada abre un expediente; se resuelve al completar sin omisiones, se escala si hay calles omitidas o calificación baja.</div></div>';
+    // ===== Quejas ciudadanas (portal público)
+    (function(){
+      const qs=quejasCache||{}; const keys=Object.keys(qs);
+      const nuevas=keys.filter(k=>(qs[k]||{}).estado==='nuevo');
+      const hoyQ=keys.filter(k=>{ const t=(qs[k]||{}).ts; if(!t)return false; const d=new Date(t); return d.toDateString()===new Date().toDateString(); });
+      h+='<div class="cc-card cc-quejas"><div class="cc-h">QUEJAS CIUDADANAS <span class="cc-arrow">→</span></div>';
+      if(!keys.length){ h+='<div class="ini-empty" style="margin:0">Aún no hay quejas. Comparte el enlace público <b>?quejas</b> con un código QR para que los vecinos reporten.</div></div>'; return; }
+      h+='<div class="cc-exrow"><div class="cc-ex"><b>'+keys.length+'</b><span>Totales</span></div>'
+        +'<div class="cc-ex"><b style="color:#C2402F">'+nuevas.length+'</b><span>Sin atender</span></div>'
+        +'<div class="cc-ex"><b style="color:#2F7DC2">'+hoyQ.length+'</b><span>Hoy</span></div></div>';
+      // últimas 3
+      const recientes=keys.map(k=>Object.assign({k:k},qs[k])).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,3);
+      recientes.forEach(q=>{
+        const fecha=q.ts?new Date(q.ts).toLocaleDateString('es-DO',{day:'numeric',month:'short'}):'';
+        h+='<div class="cc-qrow" data-qk="'+esc(q.k)+'"><span class="cc-qdot" style="background:'+(q.estado==='nuevo'?'#C2402F':'#27A35B')+'"></span>'
+          +'<div class="cc-qmain"><div class="cc-qmot">'+esc(q.motivo||'Queja')+'</div>'
+          +'<div class="q-meta">'+esc(q.sector||'—')+' · '+esc(q.nombre||'')+' · '+fecha+'</div></div></div>';
+      });
+      h+='<div class="q-meta" style="margin-top:8px">Reportes del portal público. Toca una para ver el detalle y verificar contra el recorrido real.</div></div>';
+    })();
     // ===== Mapa estratégico por sectores (real, agrupa rutas por campo sector)
     const secMap={};
     todayIds.forEach(id=>{ const r=rutas[id]||{}; const sec=r.sector||'Sin sector'; (secMap[sec]=secMap[sec]||[]).push(id); });
@@ -3011,6 +3192,7 @@
     host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='admin')setSection('admin'); else if(g==='reportes')setSection('reportes'); else if(g==='recursos-gastos'){ recTab='gastos'; setSection('recursos'); } }));
     host.querySelectorAll('.ia-btn').forEach(b=>b.addEventListener('click',()=>{ const a=alerts[Number(b.dataset.i)]; if(!a)return; if(a.go==='mon')setSection('monitoreo'); else openRouteDetail(a.id); }));
     host.querySelectorAll('.ini-q').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
+    host.querySelectorAll('.cc-qrow').forEach(row=>row.addEventListener('click',()=>verQueja(row.dataset.qk)));
     host.querySelectorAll('.q-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
     const ex=document.getElementById('iniExtra'); if(ex)ex.addEventListener('change',()=>{ if(ex.value)openRouteDetail(ex.value); ex.value=''; });
   }
@@ -3299,6 +3481,7 @@
   function fmtTime(ts){ if(!ts)return '—'; const d=new Date(ts); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
   function fmtFecha(f){ if(!f)return '—'; const p=String(f).split('-'); if(p.length!==3)return f; const ms=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return parseInt(p[2],10)+' '+ms[parseInt(p[1],10)-1]+' '+p[0]; }
   function openRouteDetail(id){ rdId=id; rdDate=null; rdViajes={}; rdReportes={};
+    const _tbs=document.querySelector('#rdOv .rd-tabs'); if(_tbs)_tbs.style.display='';
     const liveNow=(typeof liveByRuta==='function')?liveByRuta():{};
     const _n=new Date(); const _hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const tuvoHoy=(mgmtRutas[id]||{}).viajes&&(mgmtRutas[id]||{}).viajes[_hoy];
@@ -4427,7 +4610,57 @@
     if(rParam){ const pts=decode(rParam); if(pts){loadRoute(pts); setSection('rutas');} }
     hideWelcome();
   }
+  // ===== PORTAL CIUDADANO DE QUEJAS =====
+  function abrirPortalQuejas(){
+    const p=document.getElementById('qjPortal'); if(!p)return;
+    p.classList.remove('hide');
+    // poblar sectores desde las rutas (campo sector) + opciones base
+    const sel=document.getElementById('qjSector'); if(sel){
+      const secs=new Set();
+      try{ Object.keys(mgmtRutas||{}).forEach(id=>{ const s=(mgmtRutas[id]||{}).sector; if(s)secs.add(s); }); }catch(_){}
+      // si aún no cargaron rutas, suscribirse una vez
+      if(fbDb){ fbDb.ref('rutas').once('value',snap=>{ const v=snap.val()||{}; Object.keys(v).forEach(id=>{ if(v[id]&&v[id].sector)secs.add(v[id].sector); }); pintarSectores(sel,secs); }); }
+      pintarSectores(sel,secs);
+    }
+    const desc=document.getElementById('qjDesc'), cnt=document.getElementById('qjCount');
+    if(desc&&cnt)desc.addEventListener('input',()=>{ cnt.textContent=desc.value.length+'/200'; });
+    const ced=document.getElementById('qjCedula');
+    if(ced)ced.addEventListener('input',()=>{ let v=ced.value.replace(/\D/g,'').slice(0,11); if(v.length>3&&v.length<=10)v=v.slice(0,3)+'-'+v.slice(3); else if(v.length>10)v=v.slice(0,3)+'-'+v.slice(3,10)+'-'+v.slice(10); ced.value=v; });
+    const bt=document.getElementById('qjEnviar'); if(bt)bt.addEventListener('click',enviarQueja);
+    const ot=document.getElementById('qjOtro'); if(ot)ot.addEventListener('click',()=>{ document.getElementById('qjOk').classList.add('hide'); document.getElementById('qjForm').classList.remove('hide'); ['qjNombre','qjCedula','qjTel','qjDesc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';}); document.getElementById('qjMotivo').value=''; if(cnt)cnt.textContent='0/200'; });
+  }
+  function pintarSectores(sel,secs){
+    const cur=sel.value;
+    sel.innerHTML='<option value="">Selecciona tu sector…</option>'+[...secs].sort().map(s=>'<option>'+s.replace(/</g,'&lt;')+'</option>').join('')+'<option value="Otro">Otro / no aparece</option>';
+    if(cur)sel.value=cur;
+  }
+  function enviarQueja(){
+    const g=id=>{ const e=document.getElementById(id); return e?e.value.trim():''; };
+    const err=document.getElementById('qjErr');
+    const show=m=>{ if(err){err.textContent=m;err.classList.remove('hide');} };
+    const nombre=g('qjNombre'), cedula=g('qjCedula'), sector=g('qjSector'), tel=g('qjTel'), motivo=g('qjMotivo'), desc=g('qjDesc');
+    if(nombre.length<3)return show('Escribe tu nombre completo.');
+    if(cedula.replace(/\D/g,'').length!==11)return show('La cédula debe tener 11 dígitos.');
+    if(!sector)return show('Selecciona tu sector.');
+    if(tel.replace(/\D/g,'').length<10)return show('Escribe un teléfono válido (10 dígitos).');
+    if(!motivo)return show('Selecciona el motivo.');
+    if(err)err.classList.add('hide');
+    const bt=document.getElementById('qjEnviar'); if(bt){bt.disabled=true;bt.textContent='Enviando…';}
+    const folio='Q'+Date.now().toString(36).toUpperCase().slice(-6);
+    const queja={folio:folio,nombre:nombre,cedula:cedula,sector:sector,tel:tel,motivo:motivo,desc:desc,estado:'nuevo',ts:Date.now()};
+    if(!fbDb){ if(bt){bt.disabled=false;bt.innerHTML='Enviar reporte <i class="ti ti-send"></i>';} return show('Sin conexión. Intenta de nuevo.'); }
+    fbDb.ref('quejas').push(queja).then(()=>{
+      document.getElementById('qjFolio').textContent=folio;
+      document.getElementById('qjForm').classList.add('hide');
+      document.getElementById('qjOk').classList.remove('hide');
+      if(bt){bt.disabled=false;bt.innerHTML='Enviar reporte <i class="ti ti-send"></i>';}
+    }).catch(e=>{ if(bt){bt.disabled=false;bt.innerHTML='Enviar reporte <i class="ti ti-send"></i>';} show('No se pudo enviar. Verifica tu conexión.'); console.warn('queja:',e&&e.code); });
+  }
+
   function routeAccess(){
+    // Portal ciudadano de quejas (público, sin login): ?quejas o #quejas
+    if(/(^|[?&#])quejas(=|&|$)/.test(location.search+location.hash)){ userRole='quejas'; hideWelcome(); abrirPortalQuejas(); return true; }
+    if(/(^|[?&#])quejas(=|&|$)/.test(location.search+location.hash)){ userRole='quejas'; hideWelcome(); abrirPortalQuejas(); return true; }
     const raw=(location.hash||'').replace(/^#/,'');
     const parts=raw.split('&');
     const mode=parts[0];
