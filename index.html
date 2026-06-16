@@ -756,9 +756,10 @@
   .mon-live-dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;background:rgba(39,163,91,.4);animation:livePulse 1.8s ease-out infinite;}
   @keyframes livePulse{0%{transform:scale(.6);opacity:.8;}100%{transform:scale(1.8);opacity:0;}}
   .mon-dock-toggle{margin-left:auto;border:none;background:rgba(30,28,24,0.05);color:#807E77;cursor:pointer;font-size:15px;width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;}
-  .mon-crear{width:100%;height:37px;border:none;border-radius:11px;background:#2E2C27;color:#fff;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:12px;}
-  .mon-crear:hover{background:#44413A;}
-  .mon-divider{height:1px;background:rgba(30,28,24,0.08);margin:14px 0 4px;}
+  .mon-crear{width:100%;height:40px;border:none;border-radius:12px;background:linear-gradient(135deg,#2E2C27,#1C1A16);color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:6px;box-shadow:0 4px 12px -4px rgba(20,18,15,.4);transition:transform .15s,box-shadow .15s;}
+  .mon-crear:hover{transform:translateY(-1px);box-shadow:0 8px 18px -6px rgba(20,18,15,.5);}
+  .mon-divider{height:1px;background:rgba(30,28,24,0.06);margin:16px 0 14px;}
+  body.dark .mon-divider{background:rgba(255,255,255,.07);}
   /* ===== APP SHELL (ADM) ===== */
   :root{--rail:204px;--topbar:54px;}
   .shell-nav{position:fixed;top:0;left:0;bottom:0;width:var(--rail);z-index:3000;background:#2E2C27;color:#fff;display:none;flex-direction:column;padding:14px 11px;font-family:-apple-system,'Segoe UI',sans-serif;}
@@ -981,9 +982,12 @@
   .mon-iconbtn.on{color:#7E9B86;background:rgba(126,155,134,.16);}
   .mon-cardacts{display:flex;gap:6px;margin-top:9px;}
   .mon-days{display:flex;gap:5px;margin-bottom:13px;}
-  .mon-day{flex:1;height:30px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:#fff;color:#3A3833;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;}
-  .mon-day.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
-  .mon-sec{font-size:11px;color:#ABA9A2;letter-spacing:.4px;margin:2px 0 9px 2px;}
+  .mon-day{flex:1;height:32px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:rgba(255,255,255,.7);color:#3A3833;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .14s;}
+  .mon-day:hover{border-color:#7E9B86;color:#5B7A66;}
+  .mon-day.on{background:linear-gradient(135deg,#2E2C27,#1C1A16);color:#fff;border-color:#2E2C27;}
+  .mon-sec{font-size:10px;font-weight:800;color:#9B978E;letter-spacing:1px;text-transform:uppercase;margin:0 0 9px 1px;display:flex;align-items:center;gap:7px;}
+  .mon-sec::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(126,155,134,.3),transparent);}
+  body.dark .mon-sec{color:#A8A49B;}
   .mon-card{background:#fff;border:1px solid rgba(30,28,24,0.07);border-radius:14px;padding:11px 12px;margin-bottom:8px;cursor:pointer;}
   .mon-card:hover{border-color:rgba(30,28,24,0.18);}
   .mon-line{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#807E77;margin-top:4px;}
@@ -1001,7 +1005,8 @@
   .ver-badge{position:fixed;right:8px;left:auto;bottom:8px;z-index:5000;font:500 9px/1 -apple-system,'Segoe UI',sans-serif;letter-spacing:.3px;color:#8E8B82;background:rgba(244,243,240,.75);border:1px solid rgba(30,28,24,.08);padding:2px 6px;border-radius:6px;pointer-events:none;opacity:.85;}
   .route-label{pointer-events:none;}
   .route-label span{display:inline-block;transform:translate(9px,-9px);color:#fff;font:700 10.5px/1 -apple-system,'Segoe UI',sans-serif;padding:4px 9px;border-radius:99px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.4);border:1.5px solid rgba(255,255,255,.85);letter-spacing:.2px;}
-  .mon-tinybtn{flex:1;height:30px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:#fff;color:var(--tx0);font-size:12px;font-family:inherit;cursor:pointer;}
+  .mon-tinybtn{flex:1;height:34px;border-radius:10px;border:1px solid rgba(30,28,24,0.12);background:rgba(255,255,255,.7);color:var(--tx0);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .14s;}
+  .mon-tinybtn:hover{border-color:#7E9B86;}
   .mon-tinybtn.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
   .mon-row{background:rgba(255,255,255,.7);border:1px solid rgba(30,28,24,0.06);border-radius:12px;padding:9px 11px;margin-bottom:7px;display:flex;align-items:center;gap:9px;transition:background .15s,box-shadow .15s;}
   .mon-row:hover{background:#fff;box-shadow:0 3px 12px -6px rgba(30,28,24,.2);}
@@ -1159,9 +1164,10 @@
   .lv-logt{color:#8C887E;font-variant-numeric:tabular-nums;flex:none;font-weight:600;}
   .lv-soon{border-style:dashed;opacity:.9;}
   /* ===== Monitoreo: panel inteligente ===== */
-  .mon-pulse{margin:2px 0 8px;}
-  .mp-row{display:flex;align-items:center;gap:7px;font-size:12px;color:#55524B;flex-wrap:wrap;}
-  .mp-row b{font-size:13px;}
+  .mon-pulse{margin:0 0 14px;background:rgba(126,155,134,.1);border:1px solid rgba(126,155,134,.2);border-radius:12px;padding:10px 12px;}
+  body.dark .mon-pulse{background:rgba(126,155,134,.12);border-color:rgba(126,155,134,.22);}
+  .mp-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#55524B;flex-wrap:wrap;line-height:1.4;}
+  .mp-row b{font-size:13px;color:var(--tx0);}
   .mp-dot{width:9px;height:9px;border-radius:50%;flex:none;animation:mpulse 2s infinite;}
   @keyframes mpulse{0%,100%{opacity:1}50%{opacity:.45}}
   .mon-inc{display:flex;align-items:center;gap:8px;font-size:11.5px;background:#fff;border:1px solid rgba(30,28,24,.08);border-left:3px solid #B0843C;border-radius:10px;padding:7px 9px;margin-bottom:5px;cursor:pointer;line-height:1.3;}
@@ -1392,7 +1398,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.58 · 2026-06-16</div>
+    <div class="ver" style="padding-top:4px">v3.59 · 2026-06-16</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1736,7 +1742,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.58 · 2026-06-16</div>
+<div class="ver-badge" id="verBadge">v3.59 · 2026-06-16</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
