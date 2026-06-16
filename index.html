@@ -1000,7 +1000,7 @@
   .mon-simstop.show{display:inline-flex;}
   .ver-badge{position:fixed;right:8px;left:auto;bottom:8px;z-index:5000;font:500 9px/1 -apple-system,'Segoe UI',sans-serif;letter-spacing:.3px;color:#8E8B82;background:rgba(244,243,240,.75);border:1px solid rgba(30,28,24,.08);padding:2px 6px;border-radius:6px;pointer-events:none;opacity:.85;}
   .route-label{pointer-events:none;}
-  .route-label span{display:inline-block;transform:translate(9px,-9px);color:#fff;font:600 11px/1 -apple-system,'Segoe UI',sans-serif;padding:3px 8px;border-radius:9px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.28);}
+  .route-label span{display:inline-block;transform:translate(9px,-9px);color:#fff;font:700 10.5px/1 -apple-system,'Segoe UI',sans-serif;padding:4px 9px;border-radius:99px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.4);border:1.5px solid rgba(255,255,255,.85);letter-spacing:.2px;}
   .mon-tinybtn{flex:1;height:30px;border-radius:9px;border:1px solid rgba(30,28,24,0.12);background:#fff;color:var(--tx0);font-size:12px;font-family:inherit;cursor:pointer;}
   .mon-tinybtn.on{background:#2E2C27;color:#fff;border-color:#2E2C27;}
   .mon-row{background:rgba(255,255,255,.7);border:1px solid rgba(30,28,24,0.06);border-radius:12px;padding:9px 11px;margin-bottom:7px;display:flex;align-items:center;gap:9px;transition:background .15s,box-shadow .15s;}
@@ -1392,7 +1392,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.57 · 2026-06-16</div>
+    <div class="ver" style="padding-top:4px">v3.58 · 2026-06-16</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1736,7 +1736,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.57 · 2026-06-16</div>
+<div class="ver-badge" id="verBadge">v3.58 · 2026-06-16</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3031,18 +3031,18 @@
   let routeLayers={}, monDaysSel=new Set(), simTimer=null;
   const ROUTE_COLORS=['#CF9A4A','#C56B4E','#5E8B7E','#7A6FA8','#B0843C','#4E7FA8','#A85C7A','#6E8B3D'];
   function routeColor(id){ const ids=Object.keys(mgmtRutas||{}).sort(); const i=ids.indexOf(id); return ROUTE_COLORS[(i<0?0:i)%ROUTE_COLORS.length]; }
-  function routeWeights(){ const z=map.getZoom?map.getZoom():15; const f=Math.max(0.34,Math.min(1,(z-9)/6)); return {out:Math.max(3,9*f), main:Math.max(1.6,5*f)}; }
+  function routeWeights(){ const z=map.getZoom?map.getZoom():15; const f=Math.max(0.4,Math.min(1,(z-9)/6)); return {out:Math.max(2.5,5.5*f), main:Math.max(1.4,3*f)}; }
   function showRouteLayer(id){ const r=mgmtRutas[id]; if(!r||routeLayers[id])return;
     const pts=decode(r.wp||''); if(!pts||pts.length<2)return;
     // semáforo del día: completada=verde sólido · programada hoy sin transitar=rojo · otras=color propio
     const _n=new Date(); const _hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const done=r.viajes&&r.viajes[_hoy]&&Object.keys(r.viajes[_hoy]).length;
     const esHoy=(r.freq||[]).includes(todayLetter());
-    const col=done?'#27A35B':(esHoy?'#C2402F':routeColor(id));
-    const dash=done?null:'11,9';
+    const col=done?'#27A35B':(esHoy?'#E05A4F':routeColor(id));
+    const dash=done?null:'2,7';
     const g=L.layerGroup(); const w=routeWeights();
-    const outl=L.polyline(pts,{color:'#FFFFFF',weight:w.out,opacity:.75,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
-    const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,dashArray:dash,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
+    const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.35,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
+    const main=L.polyline(pts,{color:col,weight:w.main,opacity:.95,dashArray:dash,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
     L.circleMarker(pts[0],{radius:6,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(g);
     L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
     g.addTo(map); routeLayers[id]=g; }
@@ -3282,9 +3282,9 @@
     fbDb.ref('rutas/'+id+'/viajes/'+fecha).push({ inicio:simStartTs||Date.now(), fin:Date.now(), choferCode:(r.choferCode||code), supCode:r.supCode||null, ficha:r.camion||null, progress:prog, kmInicio:kmIni, kmFin:Math.round(kmFin*100)/100, distancia:Math.round(dist*100)/100, paradas:(decode(r.wp||'')||[]).length, sim:true });
     fbDb.ref('rutas/'+id+'/reportes').push({ tipo:'chofer', choferCode:(r.choferCode||code), supCode:r.supCode||null, ficha:r.camion||null, fecha:fecha, inicio:simStartTs||Date.now(), fin:Date.now(), rating:prog, routeCompletion:prog, ratingLevel:lvl, kmInicio:kmIni, kmFin:Math.round(kmFin*100)/100, distancia:Math.round(dist*100)/100, texto:'Recorrido simulado completado ('+prog+'%).', sim:true, ts:Date.now() }); }
   function fmtKm(n){ n=Number(n)||0; return n.toLocaleString('en-US',{maximumFractionDigits:2})+' km'; }
-  function fitRoute(id){ const g=routeLayers[id]; if(!g)return; let b=null; g.eachLayer(l=>{ if(l.getBounds){ b=b?b.extend(l.getBounds()):l.getBounds(); } }); if(b&&b.isValid())map.fitBounds(b,{padding:[60,60],maxZoom:16}); }
+  function fitRoute(id){ const g=routeLayers[id]; if(!g)return; let b=null; g.eachLayer(l=>{ if(l.getBounds){ b=b?b.extend(l.getBounds()):l.getBounds(); } }); if(b&&b.isValid()){ const panelOpen=!document.getElementById('monPanel').classList.contains('collapsed'); map.fitBounds(b,{paddingTopLeft:[panelOpen?345:60,80],paddingBottomRight:[60,60],maxZoom:16}); } }
   function routeBoundsAll(){ let b=null; Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l.getBounds){ b=b?b.extend(l.getBounds()):l.getBounds(); } }); }); return (b&&b.isValid())?b:null; }
-  function showAllRoutes(){ monAllOn=true; syncMonLayers(); const b=routeBoundsAll(); if(b)map.fitBounds(b,{padding:[50,50]}); const btn=document.getElementById('monAllBtn'); if(btn){btn.classList.add('on');btn.textContent='Ocultar todas';} renderMonitor(); }
+  function showAllRoutes(){ monAllOn=true; syncMonLayers(); const b=routeBoundsAll(); if(b){ const panelOpen=!document.getElementById('monPanel').classList.contains('collapsed'); map.fitBounds(b,{paddingTopLeft:[panelOpen?345:60,80],paddingBottomRight:[60,60]}); } const btn=document.getElementById('monAllBtn'); if(btn){btn.classList.add('on');btn.textContent='Ocultar todas';} renderMonitor(); }
   function hideAllRoutes(){ monAllOn=false; monDaysSel.clear(); syncMonLayers(); const btn=document.getElementById('monAllBtn'); if(btn){btn.classList.remove('on');btn.textContent='Ver todas';} renderMonitor(); }
   function toggleAllRoutes(){ if(monAllOn)hideAllRoutes(); else showAllRoutes(); }
 
