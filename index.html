@@ -479,6 +479,7 @@
   /* ===== Portal ciudadano de quejas ===== */
   .qj{position:fixed;inset:0;z-index:3200;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0F0E0C;color:#44413A;overflow-y:auto;}
   .qj.hide{display:none;}
+  .qj-form.hide,.qj-ok.hide{display:none !important;}
   .qj-split{display:flex;min-height:100%;}
   .qj-left{position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:56px 60px;overflow:hidden;}
   .qj-left-bg{position:absolute;inset:0;background:linear-gradient(150deg,#1F2D24 0%,#23211D 50%,#16140F 100%);}
@@ -506,6 +507,8 @@
   .qj-err{background:rgba(194,64,47,.1);border:1px solid rgba(194,64,47,.3);color:#A33124;font-size:13px;font-weight:600;padding:11px 14px;border-radius:11px;margin-top:18px;}
   .qj-ok{text-align:center;}
   .qj-ok-icon{width:72px;height:72px;border-radius:50%;background:rgba(126,155,134,.18);color:#3E5C49;display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 18px;}
+  .qj-btn.qj-btn2{background:#fff;color:#5B7A66;border:1.5px solid rgba(126,155,134,.5);box-shadow:none;}
+  .qj-btn.qj-btn2:hover{background:rgba(126,155,134,.08);transform:none;box-shadow:none;}
   @media(max-width:860px){.qj-left{display:none;}.qj-right{flex:1;}}
   @media(max-width:520px){.qj-right{padding:24px;}.qj-row{flex-direction:column;gap:0;}}
   .acc-brand{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;color:#44413A;margin-bottom:26px;letter-spacing:-.2px;}
@@ -805,7 +808,9 @@
   .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
   .nav-item.on{background:linear-gradient(90deg,rgba(126,155,134,.28),rgba(126,155,134,.1));color:#fff;border-left-color:#7E9B86;}
   .nav-item i{font-size:17px;width:18px;text-align:center;}
-  .nav-chev{margin-left:auto;font-size:14px !important;transition:transform .15s;}
+  .nav-chev{margin-left:6px;font-size:14px !important;transition:transform .15s;}
+  .nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#C2402F;color:#fff;font-size:10.5px;font-weight:800;margin-left:auto;}
+  .nav-badge.hide{display:none;}
   #navReportes.open .nav-chev{transform:rotate(180deg);}
   .nav-sub{display:none;flex-direction:column;margin:2px 0 4px;}
   .nav-sub.open{display:flex;}
@@ -1336,6 +1341,18 @@
   .qv-desc p{margin:5px 0 0;font-size:13.5px;line-height:1.5;color:var(--tx0);}
   body.dark .qv-desc p{color:#ECEAE3;}
   .qv-acts{display:flex;gap:9px;flex-wrap:wrap;}
+  /* bandeja de quejas en Reportes */
+  .qjr-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid rgba(30,28,24,.07);border-radius:13px;padding:13px 15px;margin-bottom:9px;cursor:pointer;transition:all .15s;box-shadow:0 1px 3px rgba(30,28,24,.04);}
+  .qjr-row:hover{transform:translateY(-1px);box-shadow:0 6px 16px -8px rgba(30,28,24,.2);}
+  body.dark .qjr-row{background:#26241F;border-color:rgba(255,255,255,.08);}
+  .qjr-dot{width:10px;height:10px;border-radius:50%;flex:none;}
+  .qjr-main{flex:1;min-width:0;}
+  .qjr-top{display:flex;align-items:center;gap:9px;}
+  .qjr-top b{font-size:14px;color:var(--tx0);}
+  body.dark .qjr-top b{color:#ECEAE3;}
+  .qjr-folio{font-size:10.5px;font-weight:700;color:#9B978E;font-family:ui-monospace,monospace;letter-spacing:.5px;}
+  .qjr-badge{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px;flex:none;}
+  .qjr-ar{color:#C2BDB2;font-size:17px;flex:none;}
   .qv-btn{flex:1;min-width:140px;height:44px;border-radius:11px;border:1px solid rgba(30,28,24,.14);background:#fff;color:var(--tx0);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;transition:all .15s;}
   .qv-btn:hover{border-color:#7E9B86;}
   .qv-btn.ok{background:linear-gradient(135deg,#7E9B86,#5B7A66);color:#fff;border:none;}
@@ -1450,7 +1467,7 @@
   <div class="nav-item" data-sec="monitoreo"><i class="ti ti-broadcast" aria-hidden="true"></i>Monitoreo</div>
   <div class="nav-item" data-sec="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
   <div class="nav-item" data-sec="admin"><i class="ti ti-settings" aria-hidden="true"></i>Administración</div>
-  <div class="nav-item" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <i class="ti ti-chevron-down nav-chev" aria-hidden="true"></i></div>
+  <div class="nav-item" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span><i class="ti ti-chevron-down nav-chev" aria-hidden="true"></i></div>
   <div class="nav-sub" id="navRepSub">
     <div class="nav-subitem" data-rv="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
     <div class="nav-subitem" data-rv="choferes"><i class="ti ti-user" aria-hidden="true"></i>Choferes</div>
@@ -1460,7 +1477,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.60 · 2026-06-16</div>
+    <div class="ver" style="padding-top:4px">v3.61 · 2026-06-16</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1765,7 +1782,8 @@
         <div class="qj-ok-icon"><i class="ti ti-check"></i></div>
         <h2>Reporte enviado</h2>
         <p class="acc-sub">Gracias. Tu queja fue registrada con el folio <b id="qjFolio">—</b>. La Dirección de Aseo Urbano la revisará.</p>
-        <button class="qj-btn" id="qjOtro">Enviar otro reporte</button>
+        <button class="qj-btn qj-btn2" id="qjOtro"><i class="ti ti-plus"></i> Reportar otro problema</button>
+        <div class="qj-note" style="justify-content:center;margin-top:14px"><span class="acc-note-dot"></span> Tu reporte ya quedó registrado</div>
       </div>
     </div>
   </div>
@@ -1858,7 +1876,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.60 · 2026-06-16</div>
+<div class="ver-badge" id="verBadge">v3.61 · 2026-06-16</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2710,7 +2728,7 @@
     fbDb.ref('config/ayudantes').on('value',s=>{ mgmtAyudantes=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('combustible').on('value',s=>{ fuelCache=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='recursos'&&typeof renderGastos==='function'&&recTab==='gastos')renderRecursos(); });
     fbDb.ref('mantenimiento').on('value',s=>{ mantCache=s.val()||{}; });
-    fbDb.ref('quejas').on('value',s=>{ quejasCache=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); });
+    fbDb.ref('quejas').on('value',s=>{ quejasCache=s.val()||{}; actualizarBadgeQuejas(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); if(typeof curSec!=='undefined'&&curSec==='reportes'&&repView==='quejas'&&typeof renderReportes==='function')renderReportes(); });
     fbDb.ref('config/comisiones').on('value',s=>{ comisionCfg=Object.assign({precioGalon:null,montoChofer:null,montoAyudante:null},s.val()||{}); if(typeof curSec!=='undefined'&&curSec==='recursos'&&recTab==='gastos')renderRecursos(); });
   }
   function mgmtSetup(){
@@ -2982,7 +3000,7 @@
     ov.classList.add('show');
     document.querySelectorAll('[data-qact]').forEach(b=>b.addEventListener('click',()=>{
       const k=b.dataset.qk; const act=b.dataset.qact;
-      fbDb.ref('quejas/'+k+'/estado').set(act==='atender'?'atendida':'nuevo').then(()=>{ ov.classList.remove('show'); toast(act==='atender'?'Queja atendida ✓':'Queja reabierta'); });
+      fbDb.ref('quejas/'+k+'/estado').set(act==='atender'?'atendida':'nuevo').then(()=>{ ov.classList.remove('show'); toast(act==='atender'?'Queja atendida ✓':'Queja reabierta'); if(typeof curSec!=='undefined'&&curSec==='reportes'&&repView==='quejas'&&typeof renderReportes==='function')renderReportes(); });
     }));
   }
   function buildInicio(){
@@ -3775,10 +3793,50 @@
       line(rp.message||''), line(rp.texto||'')
     ]}]});
     docx.Packer.toBlob(doc).then(blob=>{ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='reporte_'+String(rp._rutaName||'ruta').replace(/\s+/g,'_')+'_'+(rp.fecha||'')+'.docx'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); toast('Reporte descargado ✓'); }).catch(()=>toast('No se pudo generar el Word')); }
+  let quejaFilt='nuevo', quejaSearch='';
+  function actualizarBadgeQuejas(){ const b=document.getElementById('navQuejasBadge'); if(!b)return; const n=Object.keys(quejasCache||{}).filter(k=>(quejasCache[k]||{}).estado==='nuevo').length; if(n>0){ b.textContent=n>9?'9+':n; b.classList.remove('hide'); } else b.classList.add('hide'); }
+  function renderQuejasReporte(c){
+    const qs=quejasCache||{}; const all=Object.keys(qs).map(k=>Object.assign({k:k},qs[k])).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const nuevas=all.filter(q=>q.estado==='nuevo'), atend=all.filter(q=>q.estado!=='nuevo');
+    let h='<div class="sec-header" style="margin:14px 0 16px"><h2 style="font-size:18px">Quejas ciudadanas</h2><div class="sub">Reportes del portal público · verifica contra el recorrido real</div><span class="accent"></span></div>';
+    // contadores
+    h+='<div class="ini-metrics" style="margin-bottom:16px">'
+      +'<div class="im-cell"><div class="im-v">'+all.length+'</div><div class="im-l">Total recibidas</div></div>'
+      +'<div class="im-cell'+(nuevas.length?' im-alert':'')+'"><div class="im-v" style="color:'+(nuevas.length?'#C2402F':'#27A35B')+'">'+nuevas.length+'</div><div class="im-l">Sin atender</div></div>'
+      +'<div class="im-cell"><div class="im-v">'+atend.length+'</div><div class="im-l">Atendidas</div></div>'
+      +'<div class="im-cell"><div class="im-v">'+all.filter(q=>q.ts&&new Date(q.ts).toDateString()===new Date().toDateString()).length+'</div><div class="im-l">Hoy</div></div>'
+      +'</div>';
+    if(!all.length){ c.innerHTML=h+'<div class="rd-empty">Aún no hay quejas ciudadanas.<br>Comparte el enlace <b>?quejas</b> con un código QR para que los vecinos reporten.</div>'; return; }
+    // filtros
+    h+='<div class="rep-scope" style="margin-bottom:6px">'
+      +[['nuevo','Sin atender'],['atendida','Atendidas'],['todas','Todas']].map(f=>'<button class="rd-fchip'+(quejaFilt===f[0]?' on':'')+'" data-qf="'+f[0]+'">'+f[1]+'</button>').join('')
+      +'<input class="fld" id="qSearch" placeholder="Buscar sector, nombre o cédula…" style="flex:1;min-width:180px;margin-left:6px" value="'+esc(quejaSearch)+'"></div>';
+    let list=quejaFilt==='todas'?all:(quejaFilt==='nuevo'?nuevas:atend);
+    if(quejaSearch){ const s=quejaSearch.toLowerCase(); list=list.filter(q=>((q.sector||'')+' '+(q.nombre||'')+' '+(q.cedula||'')+' '+(q.motivo||'')).toLowerCase().indexOf(s)>=0); }
+    h+='<div style="margin-top:14px">';
+    if(!list.length)h+='<div class="rd-empty">No hay quejas que coincidan.</div>';
+    list.forEach(q=>{
+      const fecha=q.ts?new Date(q.ts).toLocaleDateString('es-DO',{day:'numeric',month:'short',year:'numeric'}):'';
+      const hora=q.ts?new Date(q.ts).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}):'';
+      const col=q.estado==='nuevo'?'#C2402F':'#27A35B';
+      h+='<div class="qjr-row" data-qk="'+esc(q.k)+'">'
+        +'<span class="qjr-dot" style="background:'+col+'"></span>'
+        +'<div class="qjr-main"><div class="qjr-top"><b>'+esc(q.motivo||'Queja')+'</b><span class="qjr-folio">'+esc(q.folio||'')+'</span></div>'
+        +'<div class="q-meta">'+esc(q.sector||'—')+' · '+esc(q.nombre||'')+' · '+fecha+' '+hora+'</div></div>'
+        +'<span class="qjr-badge" style="color:'+col+';background:'+col+'15">'+(q.estado==='nuevo'?'Nueva':'Atendida')+'</span>'
+        +'<i class="ti ti-chevron-right qjr-ar"></i></div>';
+    });
+    h+='</div>';
+    c.innerHTML=h;
+    c.querySelectorAll('[data-qf]').forEach(b=>b.addEventListener('click',()=>{ quejaFilt=b.dataset.qf; renderReportes(); }));
+    const sb=c.querySelector('#qSearch'); if(sb)sb.addEventListener('input',()=>{ quejaSearch=sb.value; const cur=sb.selectionStart; renderReportes(); const ns=document.getElementById('qSearch'); if(ns){ns.focus();ns.setSelectionRange(cur,cur);} });
+    c.querySelectorAll('.qjr-row').forEach(r=>r.addEventListener('click',()=>verQueja(r.dataset.qk)));
+  }
   function renderReportes(){ const body=document.getElementById('repBody'); const filt=document.getElementById('repFilt'); if(filt)filt.innerHTML=''; if(!body)return;
     body.innerHTML=repTabsHtml(repView)+'<div id="repContent"></div>';
     wireRepTabs(body);
     const c=document.getElementById('repContent'); let ch='';
+    if(repView==='quejas'){ renderQuejasReporte(c); return; }
     // filtros de fecha SIEMPRE visibles, en todas las vistas
     ch+='<div class="rep-scope">'+[['hoy','Hoy'],['ayer','Ayer'],['semana','7 días'],['todos','Todos']].map(s=>'<button class="rd-fchip'+(repScope===s[0]?' on':'')+'" data-sc="'+s[0]+'">'+s[1]+'</button>').join('')
       +'<span class="rep-range"><label>Desde</label><input type="date" id="repFrom" class="fld" value="'+(repFrom||'')+'"><label>Hasta</label><input type="date" id="repTo" class="fld" value="'+(repTo||'')+'"></span></div>';
@@ -3944,7 +4002,7 @@
   const CAM_ESTADOS=['en operación','en reparación','en análisis','sin uso','fuera de uso'];
   function camActivo(est){ const e=(est||'').toString().toLowerCase(); return e.indexOf('opera')>=0||e==='disponible'||e===''; }
   let admTab='cam';
-  function repTabsHtml(active){ const T=[['rutas','ti-route','Rutas'],['choferes','ti-user','Choferes'],['supervisores','ti-eye','Supervisores'],['camiones','ti-truck','Camiones'],['recursos','ti-clipboard-data','Recursos']];
+  function repTabsHtml(active){ const T=[['rutas','ti-route','Rutas'],['choferes','ti-user','Choferes'],['supervisores','ti-eye','Supervisores'],['camiones','ti-truck','Camiones'],['quejas','ti-message-report','Quejas'],['recursos','ti-clipboard-data','Recursos']];
     return '<div class="rtab-bar">'+T.map(t=>'<button class="rtab'+(active===t[0]?' on':'')+'" data-v="'+t[0]+'"><i class="ti '+t[1]+'"></i><span>'+t[2]+'</span></button>').join('')+'</div>'; }
   function wireRepTabs(root){ root.querySelectorAll('.rtab').forEach(t=>t.addEventListener('click',()=>{ const v=t.dataset.v;
     if(v==='recursos'){ setSection('recursos'); return; }
