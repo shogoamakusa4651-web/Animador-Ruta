@@ -1181,6 +1181,23 @@
   .cc-health{grid-column:span 12;}
   .cc-health-meta{font-size:11.5px;color:#8C887E;margin:-4px 0 12px;}
   .cc-health-meta span{font-weight:700;}
+  /* ===== Tira de métricas clave bajo el banner ===== */
+  .ini-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(30,28,24,.07);border:1px solid rgba(30,28,24,.07);border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 3px rgba(30,28,24,.04),0 6px 18px -10px rgba(30,28,24,.1);}
+  body.dark .ini-metrics{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.08);}
+  .im-cell{background:#fff;padding:15px 16px;display:flex;flex-direction:column;gap:4px;transition:background .15s;}
+  body.dark .im-cell{background:#26241F;}
+  .im-cell.im-alert{background:rgba(194,64,47,.05);}
+  body.dark .im-cell.im-alert{background:rgba(194,64,47,.12);}
+  .im-v{font-size:27px;font-weight:800;letter-spacing:-1px;color:var(--tx0);line-height:1;}
+  body.dark .im-v{color:#F4F2EC;}
+  .im-v small{font-size:14px;font-weight:600;color:#A8A49B;letter-spacing:0;}
+  .im-l{font-size:11px;font-weight:600;color:#8C887E;letter-spacing:.2px;}
+  /* ===== Encabezado de sub-sección dentro de Inicio ===== */
+  .ini-focus-h{font-size:13px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#8C887E;margin:4px 0 12px;display:flex;align-items:center;gap:10px;}
+  .ini-focus-h::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(126,155,134,.4),transparent);}
+  /* ===== Chip de estado en la cola de operación ===== */
+  .q-status{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px;flex:none;letter-spacing:.2px;white-space:nowrap;}
+  @media(max-width:768px){.ini-metrics{grid-template-columns:repeat(2,1fr);}.im-v{font-size:23px;}}
   @media(max-width:768px){.ini-banner-content{flex-wrap:wrap;gap:14px;}.ini-banner-status{padding-left:0;border-left:none;border-top:1px solid rgba(255,255,255,.12);padding-top:14px;width:100%;}.ini-banner-title{font-size:22px;}}
   /* ===== Hero de Salud ancho (banda oscura protagonista) ===== */
   .cc-hero2{grid-column:span 12;display:flex;align-items:center;gap:30px;background:linear-gradient(135deg,#26241F 0%,#1A1814 100%);border:none;padding:24px 30px;position:relative;overflow:hidden;}
@@ -1203,7 +1220,8 @@
   .cc-mun{grid-column:span 7;}
   .cc-op{grid-column:span 7;}
   .cc-al{grid-column:span 5;}
-  .cc-side{grid-column:span 5;display:flex;flex-direction:column;gap:12px;}
+  .cc-side{grid-column:span 7;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start;}
+  .cc-side>.cc-card:last-child{grid-column:span 2;}
   .cc-tr{grid-column:span 12;}
   .cc-stateline{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;background:#fff;border:1px solid rgba(30,28,24,.06);border-radius:16px;padding:14px 18px;box-shadow:0 1px 3px rgba(30,28,24,.04),0 6px 18px -10px rgba(30,28,24,.1);}
   body.dark .cc-stateline{background:#26241F;border-color:rgba(255,255,255,.08);}
@@ -1222,14 +1240,16 @@
   .cc-kpi.soon em{font-size:9px;font-weight:700;letter-spacing:.4px;color:#B0843C;font-style:normal;margin-top:2px;text-transform:uppercase;}
   body.dark .cc-kpi{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.06);}
   .cc-soon{grid-column:span 3;border-style:dashed !important;opacity:.92;}
-  .cc-ia{grid-column:span 6;}
+  .cc-ia{grid-column:span 5;}
   .cc-estrat{grid-column:span 6;}
+  .cc-exped{grid-column:span 6;}
+  .cc-gastos{grid-column:span 6;}
   .cc-soontag{font-size:9px;font-weight:800;letter-spacing:.5px;color:#fff;background:#B0843C;padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle;text-transform:uppercase;}
   .cc-soonbody{font-size:12px;line-height:1.5;color:#6C6960;}
   .cc-soonreq{font-size:10.5px;color:#A8A49B;margin-top:9px;padding-top:8px;border-top:1px dashed rgba(30,28,24,.12);font-style:italic;}
   body.dark .cc-soonbody{color:#B7B4AC;}
-  @media(max-width:1020px){.cc-soon{grid-column:span 6;} .cc-ia,.cc-estrat{grid-column:span 12;}}
-  @media(max-width:768px){.cc-kpis{grid-template-columns:repeat(2,1fr);} .cc-soon,.cc-ia,.cc-estrat{grid-column:span 12;} .cc-st{min-width:70px;}}
+  @media(max-width:1020px){.cc-soon{grid-column:span 6;} .cc-ia,.cc-estrat,.cc-exped,.cc-gastos,.cc-side{grid-column:span 12;}}
+  @media(max-width:768px){.cc-kpis{grid-template-columns:repeat(2,1fr);} .cc-soon,.cc-ia,.cc-estrat,.cc-exped,.cc-gastos{grid-column:span 12;} .cc-st{min-width:70px;} .cc-side{grid-template-columns:1fr;}}
   .cc-exrow{display:flex;gap:8px;}
   .cc-ex{flex:1;display:flex;flex-direction:column;gap:1px;background:rgba(30,28,24,.025);border-radius:10px;padding:9px 10px;}
   .cc-ex b{font-size:20px;}
@@ -1336,7 +1356,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.54 · 2026-06-15</div>
+    <div class="ver" style="padding-top:4px">v3.55 · 2026-06-15</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1660,7 +1680,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.54 · 2026-06-15</div>
+<div class="ver-badge" id="verBadge">v3.55 · 2026-06-15</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2826,45 +2846,38 @@
       +'<div class="ibs-lbl"><b style="color:'+EST[0]+'">'+EST[1]+'</b><span>Salud del servicio</span></div>'
       +'</div>'
       +'</div></div>';
-    // ===== Banda 1: Estado general (números clave del municipio)
-    h+='<div class="cc-stateline">'
-      +'<div class="cc-st"><b>'+(idx==null?'—':idx)+'</b><span>Salud del servicio</span></div>'
-      +'<div class="cc-st"><b>'+(cob!=null?cob+'%':'—')+'</b><span>Cobertura</span></div>'
-      +'<div class="cc-st"><b>'+(fPct!=null?fPct+'%':'—')+'</b><span>Flota disponible</span></div>'
-      +'<div class="cc-st"><b>'+nDone+'/'+(todayIds.length||0)+'</b><span>Rutas hoy</span></div>'
-      +'<div class="cc-st"><b style="color:'+(alerts.some(a=>a.sev===2)?'#C2402F':'#27A35B')+'">'+alerts.filter(a=>a.sev===2).length+'</b><span>Incidencias críticas</span></div></div>';
+    // ===== Tira de métricas clave (integrada, sin caja redundante)
+    h+='<div class="ini-metrics">'
+      +'<div class="im-cell"><div class="im-v">'+(cob!=null?cob+'<small>%</small>':'—')+'</div><div class="im-l">Cobertura del día</div></div>'
+      +'<div class="im-cell"><div class="im-v">'+nDone+'<small>/'+(todayIds.length||0)+'</small></div><div class="im-l">Rutas completadas</div></div>'
+      +'<div class="im-cell"><div class="im-v">'+(fPct!=null?fPct+'<small>%</small>':'—')+'</div><div class="im-l">Flota disponible</div></div>'
+      +'<div class="im-cell"><div class="im-v">'+(kmHoy?Math.round(kmHoy):'0')+'<small> km</small></div><div class="im-l">Recorridos hoy</div></div>'
+      +'<div class="im-cell'+(alerts.some(a=>a.sev===2)?' im-alert':'')+'"><div class="im-v" style="color:'+(alerts.some(a=>a.sev===2)?'#C2402F':'#27A35B')+'">'+alerts.filter(a=>a.sev===2).length+'</div><div class="im-l">Incidencias críticas</div></div>'
+      +'</div>';
+    // ===== SECCIÓN PRIORITARIA: lo que requiere atención hoy
+    h+='<div class="ini-focus-h">Atención del día</div>';
     h+='<div class="cc-grid">';
-    // ===== Componentes de salud como tarjeta de detalle
-    h+='<div class="cc-card cc-health"><div class="cc-h">DESGLOSE · SALUD DEL SERVICIO</div>'
-      +'<div class="cc-health-meta">'+(trendDelta!=null?('<span style="color:'+(trendDelta>=0?'#27A35B':'#C2402F')+'">'+(trendDelta>=0?'▲ +':'▼ ')+trendDelta+' pts</span> vs semana previa'):'Sin histórico suficiente')+' · actualizado '+hora+'</div>'
-      +'<div class="cc-comp">';
-    parts.forEach(p=>{ h+='<div class="cc-crow"><span>'+p.lab+'</span><div class="cc-cbar"><i style="width:'+p.v+'%;background:'+p.c+'"></i></div><b>'+p.v+'</b></div>'; });
-    if(!parts.length)h+='<div class="ini-empty" style="margin:0">Sin datos del día todavía.</div>';
-    h+='</div></div>';
-    let tonHoy=0,tonHubo=false; ids.forEach(id=>{ const vj=(rutas[id]||{}).viajes||{}; const dd=vj[hoy]||{}; Object.keys(dd).forEach(k=>{ if(dd[k]&&dd[k].toneladas!=null){tonHoy+=Number(dd[k].toneladas)||0;tonHubo=true;} }); });
-    h+='<div class="cc-card cc-mun"><div class="cc-h">RESUMEN DEL DÍA</div>'
-      +'<div class="cc-kpis">'
-      +'<div class="cc-kpi"><b>'+nDone+'</b><span>Viajes ejecutados</span></div>'
-      +'<div class="cc-kpi"><b>'+(kmHoy?kmHoy.toLocaleString('en-US',{maximumFractionDigits:0}):'0')+'</b><span>Km recorridos</span></div>'
-      +'<div class="cc-kpi"><b>'+(cob!=null?cob+'%':'—')+'</b><span>Cobertura del día</span></div>'
-      +'<div class="cc-kpi"><b>'+(avgHoy!=null?avgHoy:'—')+'</b><span>Calificación promedio</span></div>'
-      +'<div class="cc-kpi"><b>'+(tonHubo?tonHoy.toLocaleString('en-US',{maximumFractionDigits:1}):'—')+'</b><span>Toneladas recolectadas</span></div>'
-      +'<div class="cc-kpi soon"><b>—</b><span>CTR · costo/tonelada</span><em>Próximamente</em></div>'
-      +'</div></div>';
-    h+='<div class="cc-card cc-op"><div class="cc-h">OPERACIÓN DEL DÍA · '+todayIds.length+' RUTAS</div>';
+    // Operación del día (cola de rutas)
+    h+='<div class="cc-card cc-op"><div class="cc-h">OPERACIÓN · '+todayIds.length+' RUTAS PROGRAMADAS</div>';
     if(!cola.length)h+='<div class="ini-empty" style="margin:0">No hay rutas programadas hoy.</div>';
     cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const t=live[x.id];
       h+='<div class="ini-q" data-id="'+esc(x.id)+'"><span class="q-dot" style="background:'+st[1]+'"></span>'
         +'<div class="q-main"><div class="q-name">'+esc(r.nombre||'(sin nombre)')+(t&&t.progress!=null?' <small>'+esc(t.progress)+'%</small>':'')+'</div>'
         +'<div class="q-meta">'+esc(r.choferCode||'sin chofer')+' · '+esc(r.camion||'sin camión')+'</div></div>'
+        +'<span class="q-status" style="color:'+st[1]+';background:'+st[1]+'15">'+st[0]+'</span>'
         +'<button class="q-btn" data-id="'+esc(x.id)+'" data-s="'+x.s+'">'+st[2]+'</button></div>'; });
     h+='<select class="ini-extra" id="iniExtra" style="margin:6px 0 0;width:100%;max-width:none"><option value="">Despachar una ruta de otro día…</option>';
     ids.filter(id=>todayIds.indexOf(id)<0).sort((a,b)=>(((rutas[a]||{}).nombre||'').localeCompare((rutas[b]||{}).nombre||''))).forEach(id=>{ h+='<option value="'+esc(id)+'">'+esc((rutas[id]||{}).nombre||'(sin nombre)')+' · '+esc(((rutas[id]||{}).freq||[]).join('·')||'sin días')+'</option>'; });
     h+='</select></div>';
+    // Alertas
     h+='<div class="cc-card cc-al"><div class="cc-h">ALERTAS</div>';
     if(!alerts.length)h+='<div class="ini-ok"><i class="ti ti-circle-check" aria-hidden="true"></i> Sin incidencias activas</div>';
     else alerts.slice(0,8).forEach((a,i)=>{ h+='<div class="ini-alert'+(a.sev===2?' grave':'')+'"><span class="ia-dot"></span><span class="ia-tx"><span class="ia-sev">'+(a.sev===2?'CRÍTICA':'ALTA')+'</span>'+a.tx+'</span><button class="ia-btn" data-i="'+i+'">'+a.act+'</button></div>'; });
     h+='</div>';
+    h+='</div>'; // cierra grid "Atención del día"
+    // ===== SECCIÓN: panorama municipal (contexto, no urgente)
+    h+='<div class="ini-focus-h">Panorama municipal</div>';
+    h+='<div class="cc-grid">';
     h+='<div class="cc-side">';
     h+='<div class="cc-card" data-go="admin" style="cursor:pointer"><div class="cc-h">SALUD DE FLOTA</div>'
       +'<div class="cc-fbar">'+(tot?('<i style="width:'+(disp/tot*100)+'%;background:#27A35B"></i><i style="width:'+(fTal/tot*100)+'%;background:#B0843C"></i>'):'')+'</div>'
@@ -2899,7 +2912,7 @@
       if(done){ let omit=0,sc=null; const dd=r.viajes[hoy]; Object.keys(dd).forEach(k=>{ omit+=Number((dd[k]||{}).omitidos)||0; }); const reps=r.reportes||{}; Object.keys(reps).forEach(k=>{ if(reps[k].fecha===hoy){const s=(reps[k].rating!=null?reps[k].rating:reps[k].routeCompletion); if(s!=null)sc=Number(s);} });
         if(omit>0||(sc!=null&&sc<60))exEscalado++; else exResuelto++; }
       else exAbierto++; });
-    h+='<div class="cc-card"><div class="cc-h">EXPEDIENTES DEL DÍA</div>'
+    h+='<div class="cc-card cc-exped"><div class="cc-h">EXPEDIENTES DEL DÍA</div>'
       +'<div class="cc-exrow"><div class="cc-ex"><b>'+exTot+'</b><span>Generados</span></div>'
       +'<div class="cc-ex"><b style="color:#B0843C">'+exAbierto+'</b><span>Abiertos</span></div>'
       +'<div class="cc-ex"><b style="color:#27A35B">'+exResuelto+'</b><span>Resueltos</span></div>'
@@ -2923,7 +2936,7 @@
       const nom=sd(mgmtChoferes)+sd(mgmtAyudantes)+sd(mgmtSup)+sd(mgmtMecanicos)+sd(mgmtCamiones);
       const tot=fuel+mant+nom; const money=n=>'RD$ '+Number(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
       const falta=(precio==null||comisionCfg.montoChofer==null);
-      h+='<div class="cc-card cc-click" data-go="recursos-gastos"><div class="cc-h">PROYECCIÓN DE GASTOS <span class="cc-arrow">→</span></div>'
+      h+='<div class="cc-card cc-click cc-gastos" data-go="recursos-gastos"><div class="cc-h">PROYECCIÓN DE GASTOS <span class="cc-arrow">→</span></div>'
         +'<div class="cc-st" style="margin:4px 0 10px"><b style="color:#C2402F;font-size:26px">'+money(tot)+'</b><span>gasto estimado del período</span></div>'
         +'<div class="cc-mini3"><div><b>'+money(fuel)+'</b><span>⛽ combustible</span></div><div><b>'+money(mant)+'</b><span>🔧 mant.</span></div><div><b>'+money(nom)+'</b><span>👥 nómina</span></div></div>'
         +(falta?'<div class="cc-soonreq" style="margin-top:9px;color:#B0843C">Define precio del galón y comisiones en Recursos → Gastos para afinar el cálculo</div>':'')+'</div>'; })();
