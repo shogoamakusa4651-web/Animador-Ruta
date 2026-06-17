@@ -1507,7 +1507,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.68 · 2026-06-17</div>
+    <div class="ver" style="padding-top:4px">v3.69 · 2026-06-17</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1935,7 +1935,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.68 · 2026-06-17</div>
+<div class="ver-badge" id="verBadge">v3.69 · 2026-06-17</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2693,6 +2693,14 @@
       if(PALABRAS_EDICION.test(txt)){ ev.preventDefault(); ev.stopPropagation(); avisarSoloLectura(); }
     },true);
   }
+  function nombreSaludo(){
+    // El maestro (correo) saluda como "Administración"; los usuarios creados, con su nombre
+    let su=null; try{su=localStorage.getItem('animador_user');}catch(_){}
+    if(su==='maestro'||!currentUserName)return 'Administración';
+    // primer nombre + primer apellido, capitalizado
+    const n=String(currentUserName).trim();
+    return n||'Administración';
+  }
   function actualizarBadgeUsuario(){
     const tx=document.getElementById('shellUserTx'), av=document.getElementById('shellUserAv');
     if(!tx||!av)return;
@@ -3244,7 +3252,7 @@
       +'<div class="ini-banner-crest"><i class="ti ti-recycle"></i></div>'
       +'<div class="ini-banner-text">'
       +'<div class="ini-banner-org">AYUNTAMIENTO MUNICIPAL DE LA VEGA</div>'
-      +'<div class="ini-banner-title">'+_saludo+', <b>Administración</b></div>'
+      +'<div class="ini-banner-title">'+_saludo+', <b>'+esc(nombreSaludo())+'</b></div>'
       +'<div class="ini-banner-sub">Dirección de Aseo Urbano · '+(DAY_FULL[today]||'')+' '+fecha+'</div>'
       +'</div>'
       +'<div class="ini-banner-status" style="--est:'+EST[0]+'">'
