@@ -1507,7 +1507,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.66 · 2026-06-17</div>
+    <div class="ver" style="padding-top:4px">v3.67 · 2026-06-17</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1935,7 +1935,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.66 · 2026-06-17</div>
+<div class="ver-badge" id="verBadge">v3.67 · 2026-06-17</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2654,6 +2654,30 @@
     supervisor:['inicio','monitoreo','reportes'],
     chofer:    ['monitoreo']
   };
+  // Guardián: en modo solo-lectura, bloquea TODA escritura a Firebase y avisa
+  let _guardiaInstalada=false;
+  function instalarGuardiaLectura(){
+    if(_guardiaInstalada||!fbDb)return; _guardiaInstalada=true;
+    const origRef=fbDb.ref.bind(fbDb);
+    const bloqueables=['set','update','push','remove','setWithPriority','transaction'];
+    fbDb.ref=function(...args){
+      const r=origRef(...args);
+      bloqueables.forEach(m=>{
+        if(typeof r[m]!=='function')return;
+        const orig=r[m].bind(r);
+        r[m]=function(...a){
+          if(readOnlyMode){ avisarSoloLectura(); return Promise.reject({code:'readonly/blocked',message:'Solo lectura'}); }
+          return orig(...a);
+        };
+      });
+      return r;
+    };
+  }
+  let _soloLecturaAviso=0;
+  function avisarSoloLectura(){
+    const ahora=Date.now(); if(ahora-_soloLecturaAviso<1500)return; _soloLecturaAviso=ahora;
+    toast('🔒 Solo lectura · no puedes editar con este usuario');
+  }
   function aplicarPermisos(rol){
     const permitidas=ROL_SECCIONES[rol]||ROL_SECCIONES.adm;
     document.querySelectorAll('#shellNav .nav-item[data-sec]').forEach(it=>{
@@ -2720,6 +2744,7 @@
       if(typeof firebase==='undefined'||!firebase.initializeApp){ setFbStatus('nolib'); return; }
       fbApp=firebase.initializeApp(FB_CONFIG);
       fbDb=firebase.database();
+      instalarGuardiaLectura();
       if(firebase.auth){ firebase.auth().onAuthStateChanged(u=>{
         if(!u){ if(!admSigningIn) firebase.auth().signInAnonymously().catch(e=>console.warn('anon auth:',e&&e.code)); }
         else if(u.isAnonymous && savedRole()==='adm'){ try{localStorage.removeItem('animador_role');}catch(_){ } location.reload(); }
@@ -4890,7 +4915,7 @@
       if(!window.firebase||!firebase.auth){ gateError('admGate'); return; }
       admSigningIn=true;
       firebase.auth().signInWithEmailAndPassword(ADM_EMAIL,v)
-        .then(()=>{ admSigningIn=false; try{localStorage.setItem('animador_user','maestro');}catch(_){}  enterAdmApp(); })
+        .then(()=>{ admSigningIn=false; readOnlyMode=false; currentUserRole='adm'; currentUserName='Administrador'; document.body.classList.remove('readonly'); try{localStorage.setItem('animador_user','maestro');}catch(_){}  enterAdmApp(); })
         .catch(()=>{ admSigningIn=false; gateError('admGate','Usuario o contraseña incorrectos'); }); });
     bind('supEnter',()=>{ const v=(document.getElementById('supKeyIn').value||'').trim();
       if(v!==ACCESS_KEYS.sup){ gateError('supGate'); return; }
@@ -5025,7 +5050,7 @@
     hideWelcome();
     // Auto-entra solo el maestro (sesión Firebase real). Los usuarios creados re-ingresan por seguridad.
     let savedUser=null; try{savedUser=localStorage.getItem('animador_user');}catch(_){}
-    if(savedRole()==='adm' && savedUser==='maestro'){ enterAdmApp(); }
+    if(savedRole()==='adm' && savedUser==='maestro'){ readOnlyMode=false; currentUserRole='adm'; enterAdmApp(); }
     else { try{localStorage.removeItem('animador_role');}catch(_){} document.getElementById('admGate').classList.remove('hide'); }
     return true;
   }
