@@ -1507,7 +1507,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.65 · 2026-06-16</div>
+    <div class="ver" style="padding-top:4px">v3.66 · 2026-06-17</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1935,7 +1935,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.65 · 2026-06-16</div>
+<div class="ver-badge" id="verBadge">v3.66 · 2026-06-17</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -4523,14 +4523,21 @@
     if(!pass||pass.length<4)return show('La contraseña debe tener al menos 4 caracteres.');
     if(buildUserIndex()[user])return show('Ese usuario ya existe. Elige otro.');
     const salt=randSalt(); const ph=await hashPass(pass,salt);
-    if(rol==='adm'){
-      const nombre=(document.getElementById('usuNombre').value||'').trim(); if(!nombre)return show('Escribe el nombre del administrador.');
-      const k=fbKey('adm-'+user);
-      await fbDb.ref('config/usuarios/'+k).set({user:user,name:nombre,rol:'adm',pass:ph,salt:salt,active:true,ts:Date.now()});
-    } else {
-      const code=document.getElementById('usuVinc').value; if(!code)return show('Selecciona el colaborador a vincular.');
-      const path=rol==='chofer'?'config/choferes/':'config/supervisores/';
-      await fbDb.ref(path+code).update({user:user,pass:ph,salt:salt});
+    try{
+      if(rol==='adm'){
+        const nombre=(document.getElementById('usuNombre').value||'').trim(); if(!nombre)return show('Escribe el nombre del administrador.');
+        const k=fbKey('adm-'+user);
+        await fbDb.ref('config/usuarios/'+k).set({user:user,name:nombre,rol:'adm',pass:ph,salt:salt,active:true,ts:Date.now()});
+      } else {
+        const code=document.getElementById('usuVinc').value; if(!code)return show('Selecciona el colaborador a vincular.');
+        const path=rol==='chofer'?'config/choferes/':'config/supervisores/';
+        await fbDb.ref(path+code).update({user:user,pass:ph,salt:salt});
+      }
+    }catch(e){
+      const code=e&&e.code?e.code:'';
+      if(String(code).indexOf('permission')>=0||String(e).indexOf('permission')>=0)
+        return show('No tienes permiso para guardar. Entra con el acceso maestro (correo admin) para crear usuarios.');
+      return show('No se pudo guardar: '+(code||'error de conexión')+'. Intenta de nuevo.');
     }
     if(err)err.classList.add('hide');
     document.getElementById('usuUser').value=''; document.getElementById('usuPass').value=''; const nm=document.getElementById('usuNombre'); if(nm)nm.value='';
@@ -4792,6 +4799,9 @@
     const acDel=document.getElementById('acDelSel'); if(acDel)acDel.addEventListener('click',()=>{ if(!camSel.size)return; if(!confirm('¿Eliminar '+camSel.size+' camión(es)?'))return; const upd={}; camSel.forEach(k=>{ upd[k]=null; delete mgmtCamiones[k]; }); if(fbDb)fbDb.ref('config/camiones').update(upd); camSel.clear(); camSelMode=false; renderCamGrid(); toast('Eliminados ✓'); });
     const pAdd=document.getElementById('pAdd'); if(pAdd)pAdd.addEventListener('click',()=>{ if(admTab==='cam')return; const cfg=PEOPLE[admTab]; const i=document.getElementById('pName'); const n=(i.value||'').trim(); if(!n||!fbDb){toast('Escribe el nombre');return;} const su=document.getElementById('pSueldo').value; const x=parseFloat(String(su).replace(',','.')); const code=genCode(cfg.pre); fbDb.ref(cfg.path+'/'+fbKey(code)).set({name:n,active:true,sueldo:isNaN(x)?null:x,ts:Date.now()}); i.value=''; document.getElementById('pSueldo').value=''; toast(code+' · '+n+' agregado ✓'); });
     const cb=document.getElementById('camBack'); if(cb)cb.addEventListener('click',()=>document.getElementById('camOv').classList.remove('show'));
+    // Usuarios y accesos
+    const uCrear=document.getElementById('usuCrear'); if(uCrear)uCrear.addEventListener('click',crearUsuario);
+    const uRol=document.getElementById('usuRol'); if(uRol)uRol.addEventListener('change',poblarVincUsuarios);
   }
 
   function monSetup(){
