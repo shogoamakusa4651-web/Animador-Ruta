@@ -470,6 +470,9 @@
   .acc-btn i{font-size:18px;transition:transform .15s;}
   .acc-btn:hover i{transform:translateX(3px);}
   .acc-note{display:flex;align-items:center;gap:8px;margin-top:22px;font-size:12.5px;color:#9B978E;font-weight:500;}
+  .acc-errmsg{display:none;background:rgba(194,64,47,.1);border:1px solid rgba(194,64,47,.3);color:#A33124;font-size:13px;font-weight:600;padding:10px 13px;border-radius:10px;margin-top:16px;}
+  body.readonly .mon-crear,body.readonly .usu-create,body.readonly .usu-formcard,body.readonly .mon-row .ic[title="Enviar trazado"]{opacity:.5;pointer-events:none;}
+  body.readonly::after{content:"Solo lectura";position:fixed;bottom:14px;right:14px;z-index:2000;background:#2E2C27;color:#fff;font-size:11px;font-weight:700;padding:5px 12px;border-radius:99px;letter-spacing:.3px;box-shadow:0 4px 12px rgba(0,0,0,.25);}
   .acc-note-dot{width:7px;height:7px;border-radius:50%;background:#7E9B86;flex:none;box-shadow:0 0 0 3px rgba(126,155,134,.2);}
   @media(max-width:860px){.acc-left{display:none;}.acc-right{flex:1;background:#F4F2EC;}}
   @media(max-width:520px){.acc-right{padding:24px;}.acc h2{font-size:25px;}}
@@ -903,6 +906,33 @@
   .adm2-tab{padding:8px 16px;border:none;background:transparent;color:#807E77;font-size:13.5px;font-family:inherit;border-radius:9px;cursor:pointer;}
   .adm2-tab.on{background:#fff;color:var(--tx0);box-shadow:0 1px 3px rgba(0,0,0,.06);}
   .adm2-pane{display:none;} .adm2-pane.on{display:block;}
+  /* ===== Gestión de usuarios ===== */
+  .usu-formcard{background:#fff;border:1px solid rgba(30,28,24,.08);border-radius:16px;padding:18px 20px;box-shadow:0 1px 3px rgba(30,28,24,.04),0 6px 18px -10px rgba(30,28,24,.1);}
+  body.dark .usu-formcard{background:#26241F;border-color:rgba(255,255,255,.08);}
+  .usu-formtitle{font-size:14px;font-weight:700;color:var(--tx0);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  body.dark .usu-formtitle{color:#ECEAE3;}
+  .usu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .usu-fld{display:flex;flex-direction:column;gap:5px;}
+  .usu-fld>span{font-size:12px;font-weight:600;color:#8C887E;}
+  .usu-fld .fld{margin:0;}
+  .usu-create{margin-top:16px;height:44px;padding:0 20px;border:none;border-radius:11px;background:linear-gradient(135deg,#7E9B86,#5B7A66);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 6px 16px -6px rgba(91,122,102,.55);transition:transform .15s;}
+  .usu-create:hover{transform:translateY(-1px);}
+  .usu-err{margin-top:12px;background:rgba(194,64,47,.1);border:1px solid rgba(194,64,47,.3);color:#A33124;font-size:13px;font-weight:600;padding:10px 13px;border-radius:10px;}
+  .usu-err.hide{display:none;}
+  .usu-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid rgba(30,28,24,.07);border-radius:13px;padding:12px 15px;margin-bottom:9px;box-shadow:0 1px 3px rgba(30,28,24,.04);}
+  body.dark .usu-row{background:#26241F;border-color:rgba(255,255,255,.08);}
+  .usu-ava{width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;flex:none;color:#fff;}
+  .usu-main{flex:1;min-width:0;}
+  .usu-nm{font-size:14px;font-weight:700;color:var(--tx0);}
+  body.dark .usu-nm{color:#ECEAE3;}
+  .usu-meta{font-size:12px;color:#8C887E;display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:2px;}
+  .usu-uchip{font-family:ui-monospace,monospace;background:rgba(30,28,24,.06);padding:2px 8px;border-radius:6px;font-weight:600;}
+  body.dark .usu-uchip{background:rgba(255,255,255,.08);}
+  .usu-rolchip{font-size:10px;font-weight:800;letter-spacing:.5px;padding:3px 9px;border-radius:99px;text-transform:uppercase;}
+  .usu-acts{display:flex;gap:7px;flex:none;}
+  .usu-ibtn{width:32px;height:32px;border-radius:9px;border:1px solid rgba(30,28,24,.12);background:rgba(255,255,255,.7);color:#807E77;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:15px;transition:all .14s;}
+  .usu-ibtn:hover{border-color:#7E9B86;color:#5B7A66;}
+  body.dark .usu-ibtn{background:rgba(255,255,255,.06);color:#A8A49B;}
   .adm2-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
   .cam-badge{font-size:11px;padding:2px 8px;border-radius:8px;white-space:nowrap;}
   .cam-op{color:#1f6e3d;background:rgba(39,163,91,.16);}
@@ -1477,7 +1507,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.61 · 2026-06-16</div>
+    <div class="ver" style="padding-top:4px">v3.65 · 2026-06-16</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1505,6 +1535,7 @@
     <button class="adm2-tab" data-at="ayu">Ayudantes</button>
     <button class="adm2-tab" data-at="sup">Supervisores</button>
     <button class="adm2-tab" data-at="mec">Mecánicos</button>
+    <button class="adm2-tab" data-at="usuarios"><i class="ti ti-key" style="font-size:14px"></i> Usuarios y accesos</button>
   </div>
   <div class="adm2-pane on" id="adm2Cam">
     <div id="admHero"></div>
@@ -1522,6 +1553,32 @@
     <div class="adm2-bar"><input id="pName" class="fld" placeholder="Nombre" style="max-width:240px;margin:0"><input id="pSueldo" class="fld" inputmode="decimal" placeholder="Sueldo mensual RD$ (opcional)" style="max-width:200px;margin:0"><button class="mon-tinybtn" id="pAdd" style="flex:none;width:auto;padding:0 16px;background:#2E2C27;color:#fff;border-color:#2E2C27"><i class="ti ti-plus"></i> Agregar</button></div>
     <div id="pLink" style="margin:10px 0 0"></div>
     <div id="pList" style="margin-top:14px"></div>
+  </div>
+  <div class="adm2-pane" id="adm2Usuarios">
+    <div id="usuHero"></div>
+    <div class="usu-formcard">
+      <div class="usu-formtitle"><i class="ti ti-user-plus"></i> Crear nuevo usuario</div>
+      <div class="usu-grid">
+        <label class="usu-fld"><span>Rol</span>
+          <select id="usuRol" class="fld">
+            <option value="adm">Administrador</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="chofer">Chofer</option>
+          </select></label>
+        <label class="usu-fld" id="usuVincWrap"><span>Vincular a colaborador</span>
+          <select id="usuVinc" class="fld"></select></label>
+        <label class="usu-fld" id="usuNombreWrap"><span>Nombre completo</span>
+          <input id="usuNombre" class="fld" placeholder="Ej: Juan Pérez"></label>
+        <label class="usu-fld"><span>Usuario</span>
+          <input id="usuUser" class="fld" placeholder="ej: jperez" autocomplete="off"></label>
+        <label class="usu-fld"><span>Contraseña</span>
+          <input id="usuPass" class="fld" type="text" placeholder="Mínimo 4 caracteres" autocomplete="off"></label>
+      </div>
+      <button class="usu-create" id="usuCrear"><i class="ti ti-check"></i> Crear usuario</button>
+      <div class="usu-err hide" id="usuErr"></div>
+    </div>
+    <div id="usuList" style="margin-top:18px"></div>
+    <div id="usuAccesos" style="margin-top:24px"></div>
   </div>
 </div></div>
 <div class="rd-ov" id="camOv">
@@ -1678,10 +1735,12 @@
     <div class="acc-right">
       <div class="acc-card">
         <h2>Centro de control</h2>
-        <p class="acc-sub">Ingresa tu clave para acceder al panel administrativo</p>
+        <p class="acc-sub">Ingresa tu usuario y clave para acceder</p>
+        <label class="acc-lbl">Usuario</label>
+        <input class="acc-in" id="admUserIn" type="text" placeholder="usuario (escribe: admin)" autocomplete="off" autocapitalize="off" style="margin-bottom:16px">
         <label class="acc-lbl">Clave de acceso</label>
         <input class="acc-in" id="admKeyIn" type="password" placeholder="••••••••" autocomplete="off">
-        <button class="acc-btn" id="admEnter">Entrar al panel <i class="ti ti-arrow-right"></i></button>
+        <button class="acc-btn" id="admEnter">Entrar <i class="ti ti-arrow-right"></i></button>
         <div class="acc-note"><span class="acc-note-dot"></span> Acceso exclusivo de personal autorizado</div>
       </div>
     </div>
@@ -1876,7 +1935,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.61 · 2026-06-16</div>
+<div class="ver-badge" id="verBadge">v3.65 · 2026-06-16</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2588,6 +2647,54 @@
   const ACCESS_KEYS={sup:'sup2026'};
   const ADM_EMAIL='admin@animadorruta.com';
   let admSigningIn=false;
+  let currentUserName=null, currentUserRole=null, readOnlyMode=false;
+  // ===== Permisos por rol: qué secciones del menú ve cada uno =====
+  const ROL_SECCIONES={
+    adm:       ['inicio','monitoreo','rutas','admin','reportes'],
+    supervisor:['inicio','monitoreo','reportes'],
+    chofer:    ['monitoreo']
+  };
+  function aplicarPermisos(rol){
+    const permitidas=ROL_SECCIONES[rol]||ROL_SECCIONES.adm;
+    document.querySelectorAll('#shellNav .nav-item[data-sec]').forEach(it=>{
+      it.style.display=permitidas.indexOf(it.dataset.sec)>=0?'':'none';
+    });
+    // Reportes es un grupo aparte (id navReportes)
+    const nrep=document.getElementById('navReportes'); if(nrep)nrep.style.display=permitidas.indexOf('reportes')>=0?'':'none';
+    document.body.classList.toggle('rol-chofer',rol==='chofer');
+    document.body.classList.toggle('rol-supervisor',rol==='supervisor');
+  }
+  let usuariosCache={};
+  // ===== Motor de usuarios (hash SHA-256 con sal) =====
+  async function hashPass(pass, salt){
+    salt=salt||'';
+    const data=new TextEncoder().encode(salt+'::'+pass+'::animadorRutaV1');
+    const buf=await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  function randSalt(){ const a=new Uint8Array(8); crypto.getRandomValues(a); return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+  function normUser(u){ return String(u||'').trim().toLowerCase().replace(/\s+/g,''); }
+  // Construye índice de todos los usuarios: admins (config/usuarios) + choferes + supervisores con credenciales
+  function buildUserIndex(){
+    const idx={};
+    Object.keys(usuariosCache||{}).forEach(k=>{ const v=usuariosCache[k]||{}; if(v.user)idx[normUser(v.user)]={src:'usuarios',key:k,rol:v.rol||'adm',data:v}; });
+    Object.keys(mgmtChoferes||{}).forEach(k=>{ const v=mgmtChoferes[k]||{}; if(v.user)idx[normUser(v.user)]={src:'choferes',key:k,rol:'chofer',code:k,data:v}; });
+    Object.keys(mgmtSup||{}).forEach(k=>{ const v=mgmtSup[k]||{}; if(v.user)idx[normUser(v.user)]={src:'supervisores',key:k,rol:'supervisor',code:k,data:v}; });
+    return idx;
+  }
+  async function validarLogin(user, pass){
+    const idx=buildUserIndex(); const u=idx[normUser(user)];
+    if(!u)return {ok:false,reason:'Usuario no encontrado'};
+    if(u.data.active===false)return {ok:false,reason:'Usuario desactivado'};
+    if(!u.data.pass||!u.data.salt)return {ok:false,reason:'Usuario sin contraseña configurada'};
+    const h=await hashPass(pass, u.data.salt);
+    if(h!==u.data.pass)return {ok:false,reason:'Contraseña incorrecta'};
+    return {ok:true,user:u};
+  }
+  function registrarAcceso(u){
+    if(!fbDb)return;
+    try{ fbDb.ref('config/accesos').push({ user:u.data.user||'', rol:u.rol, code:u.code||null, ts:Date.now() }); }catch(_){}
+  }
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   const COV_AB='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   function covEnc(set,n){ let s=''; for(let i=0;i<n;i+=6){ let v=0; for(let j=0;j<6;j++){ if(set.has(i+j))v|=(1<<j); } s+=COV_AB[v]; } return s; }
@@ -2723,6 +2830,7 @@
     if(!fbDb || mgmtSub) return; mgmtSub=true;
     fbDb.ref('config/choferes').on('value',s=>{ mgmtChoferes=s.val()||{}; mgmtList('chList',mgmtChoferes,id=>fbDb.ref('config/choferes/'+id).remove()); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('config/supervisores').on('value',s=>{ mgmtSup=s.val()||{}; mgmtList('spList',mgmtSup,id=>fbDb.ref('config/supervisores/'+id).remove()); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
+    fbDb.ref('config/usuarios').on('value',s=>{ usuariosCache=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='admin'&&admTab==='usuarios'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('config/camiones').on('value',s=>{ mgmtCamiones=s.val()||{}; camionList(); refreshRutaSelects(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('config/mecanicos').on('value',s=>{ mgmtMecanicos=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
     fbDb.ref('config/ayudantes').on('value',s=>{ mgmtAyudantes=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='admin'&&typeof renderAdmin==='function')renderAdmin(); });
@@ -2871,6 +2979,13 @@
   const SEC_TITLE={inicio:'Inicio',monitoreo:'Monitoreo',rutas:'Rutas',recursos:'Recursos',admin:'Administración',reportes:'Reportes'};
   let curSec=null;
   function setSection(name){
+    // Guardia de permisos: si el rol no puede ver la sección, redirige a la primera permitida
+    if(currentUserRole&&ROL_SECCIONES[currentUserRole]){
+      const perm=ROL_SECCIONES[currentUserRole];
+      if(perm.indexOf(name)<0&&name!=='recursos'){ name=perm[0]; }
+      // recursos pertenece al grupo reportes; permitido solo si reportes lo está
+      if(name==='recursos'&&perm.indexOf('reportes')<0)name=perm[0];
+    }
     curSec=name;
     document.body.classList.add('adm-shell');
     // re-disparar animación de entrada
@@ -4103,7 +4218,12 @@
     (repCache||[]).forEach(r=>{ const ok=(r.rating!=null?r.rating:r.routeCompletion); const cumplido=(ok!=null&&ok>=70&&!r.omitidos); if(cumplido&&r.choferCode)cumplCho[r.choferCode]=(cumplCho[r.choferCode]||0)+1; });
     const totalCumplCho=Object.values(cumplCho).reduce((a,b)=>a+b,0);
     const comCho=(comisionCfg.montoChofer!=null)?totalCumplCho*comisionCfg.montoChofer:null;
-    const comAyu=(comisionCfg.montoAyudante!=null)?0:null; // ayudantes: cumplimiento se atará cuando se registren en viajes
+    // comisión de ayudante: hereda el cumplimiento del chofer al que está vinculado
+    let totalCumplAyu=0;
+    if(comisionCfg.montoAyudante!=null){
+      Object.keys(mgmtAyudantes||{}).forEach(a=>{ const v=mgmtAyudantes[a]||{}; if(!v.active&&v.active!==undefined)return; const cho=v.chofer; if(!cho)return; const n=cumplCho[cho]||cumplCho[fbKey(cho)]||0; cumplAyu[a]=n; totalCumplAyu+=n; });
+    }
+    const comAyu=(comisionCfg.montoAyudante!=null)?totalCumplAyu*comisionCfg.montoAyudante:null;
     const comTot=(comCho||0)+(comAyu||0);
     const nominaTot=sueldoTot+comTot;
     const granTot=fuelMonto+mantTot+nominaTot;
@@ -4343,7 +4463,89 @@
     fbDb.ref('combustible').push({ ficha:ficha.trim(), galones:g, precio:(precio&&!isNaN(parseFloat(precio)))?parseFloat(precio):null, sup:(sup||'').trim()||null, fecha:fecha, ts:Date.now() });
     toast('Carga registrada: '+g+' gal'); renderRecursos();
   }
-  function renderAdmin(){ if(admTab==='cam')renderCamGrid(); else renderPeople(admTab); }
+  const ROLINFO={adm:{lbl:'Administrador',col:'#7E9B86',icon:'ti-shield-check'},supervisor:{lbl:'Supervisor',col:'#C7A765',icon:'ti-eye'},chofer:{lbl:'Chofer',col:'#5E8AB4',icon:'ti-steering-wheel'}};
+  function renderUsuarios(){
+    const hero=document.getElementById('usuHero'); const lst=document.getElementById('usuList'); const acc=document.getElementById('usuAccesos');
+    const idx=buildUserIndex(); const users=Object.keys(idx).map(u=>idx[u]);
+    const nAdm=users.filter(u=>u.rol==='adm').length, nSup=users.filter(u=>u.rol==='supervisor').length, nCho=users.filter(u=>u.rol==='chofer').length;
+    if(hero)hero.innerHTML='<div class="af-hero" style="margin:6px 0 16px"><div class="af-cell"><b>'+users.length+'</b><span>Usuarios con acceso</span></div>'
+      +'<div class="af-cell"><b style="color:#7E9B86">'+nAdm+'</b><span>Administradores</span></div>'
+      +'<div class="af-cell"><b style="color:#C7A765">'+nSup+'</b><span>Supervisores</span></div>'
+      +'<div class="af-cell"><b style="color:#5E8AB4">'+nCho+'</b><span>Choferes</span></div></div>';
+    // poblar select de vinculación según rol elegido
+    poblarVincUsuarios();
+    // lista de usuarios
+    if(!users.length){ lst.innerHTML='<div class="ini-empty">Aún no hay usuarios con acceso. Crea el primero arriba.</div>'; }
+    else {
+      let h='<div class="usu-formtitle" style="margin:6px 0 12px"><i class="ti ti-users"></i> Usuarios activos</div>';
+      users.sort((a,b)=>(a.rol+a.data.user).localeCompare(b.rol+b.data.user)).forEach(u=>{
+        const ri=ROLINFO[u.rol]||ROLINFO.chofer; const act=u.data.active!==false;
+        const nombre=u.data.name||u.code||u.data.user;
+        h+='<div class="usu-row"'+(!act?' style="opacity:.55"':'')+'>'
+          +'<span class="usu-ava" style="background:'+ri.col+'"><i class="ti '+ri.icon+'"></i></span>'
+          +'<div class="usu-main"><div class="usu-nm">'+esc(nombre)+(u.code?' <span style="font-weight:500;color:#8C887E;font-size:12px">· '+esc(u.code)+'</span>':'')+'</div>'
+          +'<div class="usu-meta"><span class="usu-uchip">'+esc(u.data.user)+'</span><span class="usu-rolchip" style="color:'+ri.col+';background:'+ri.col+'18">'+ri.lbl+'</span>'+(act?'':'<span style="color:#C2402F;font-weight:600">desactivado</span>')+'</div></div>'
+          +'<div class="usu-acts">'
+          +'<button class="usu-ibtn" data-ua="pass" data-uk="'+esc(u.src+'|'+u.key)+'" title="Cambiar contraseña"><i class="ti ti-key"></i></button>'
+          +'<button class="usu-ibtn" data-ua="toggle" data-uk="'+esc(u.src+'|'+u.key)+'" title="'+(act?'Desactivar':'Activar')+'"><i class="ti ti-'+(act?'lock':'lock-open')+'"></i></button>'
+          +(u.rol==='adm'?'<button class="usu-ibtn" data-ua="del" data-uk="'+esc(u.src+'|'+u.key)+'" title="Eliminar" style="color:#C0705F"><i class="ti ti-trash"></i></button>':'')
+          +'</div></div>';
+      });
+      lst.innerHTML=h;
+      lst.querySelectorAll('[data-ua]').forEach(b=>b.addEventListener('click',()=>accionUsuario(b.dataset.ua,b.dataset.uk)));
+    }
+    // accesos recientes
+    if(acc){ if(fbDb)fbDb.ref('config/accesos').orderByChild('ts').limitToLast(12).once('value',s=>{
+      const v=s.val()||{}; const arr=Object.keys(v).map(k=>v[k]).sort((a,b)=>(b.ts||0)-(a.ts||0));
+      let h='<div class="usu-formtitle" style="margin:6px 0 12px"><i class="ti ti-history"></i> Últimos inicios de sesión</div>';
+      if(!arr.length)h+='<div class="ini-empty">Aún no hay registros de acceso.</div>';
+      else { h+='<div class="usu-formcard" style="padding:6px 16px">'; arr.forEach(a=>{ const ri=ROLINFO[a.rol]||ROLINFO.chofer; const d=a.ts?new Date(a.ts):null;
+        h+='<div class="qv-row"><span><i class="ti '+ri.icon+'" style="color:'+ri.col+'"></i> '+esc(a.user||'')+(a.code?' · '+esc(a.code):'')+'</span><b style="font-weight:500;color:#8C887E">'+(d?d.toLocaleString('es-DO',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'</b></div>'; });
+        h+='</div>'; }
+      acc.innerHTML=h;
+    }); }
+  }
+  function poblarVincUsuarios(){
+    const rol=(document.getElementById('usuRol')||{}).value||'adm';
+    const vincWrap=document.getElementById('usuVincWrap'), nomWrap=document.getElementById('usuNombreWrap'), vinc=document.getElementById('usuVinc');
+    if(rol==='adm'){ if(vincWrap)vincWrap.style.display='none'; if(nomWrap)nomWrap.style.display=''; return; }
+    if(vincWrap)vincWrap.style.display=''; if(nomWrap)nomWrap.style.display='none';
+    const data=rol==='chofer'?mgmtChoferes:mgmtSup;
+    const sinUser=Object.keys(data||{}).filter(k=>!(data[k]||{}).user);
+    if(vinc)vinc.innerHTML='<option value="">Selecciona…</option>'+sinUser.map(k=>'<option value="'+esc(k)+'">'+esc(k)+' · '+esc((data[k]||{}).name||'')+'</option>').join('')+( sinUser.length?'':'<option value="" disabled>Todos ya tienen usuario</option>');
+  }
+  async function crearUsuario(){
+    const err=document.getElementById('usuErr'); const show=m=>{ if(err){err.textContent=m;err.classList.remove('hide');} };
+    const rol=document.getElementById('usuRol').value;
+    const user=normUser(document.getElementById('usuUser').value);
+    const pass=document.getElementById('usuPass').value;
+    if(!user||user.length<3)return show('El usuario debe tener al menos 3 caracteres.');
+    if(!pass||pass.length<4)return show('La contraseña debe tener al menos 4 caracteres.');
+    if(buildUserIndex()[user])return show('Ese usuario ya existe. Elige otro.');
+    const salt=randSalt(); const ph=await hashPass(pass,salt);
+    if(rol==='adm'){
+      const nombre=(document.getElementById('usuNombre').value||'').trim(); if(!nombre)return show('Escribe el nombre del administrador.');
+      const k=fbKey('adm-'+user);
+      await fbDb.ref('config/usuarios/'+k).set({user:user,name:nombre,rol:'adm',pass:ph,salt:salt,active:true,ts:Date.now()});
+    } else {
+      const code=document.getElementById('usuVinc').value; if(!code)return show('Selecciona el colaborador a vincular.');
+      const path=rol==='chofer'?'config/choferes/':'config/supervisores/';
+      await fbDb.ref(path+code).update({user:user,pass:ph,salt:salt});
+    }
+    if(err)err.classList.add('hide');
+    document.getElementById('usuUser').value=''; document.getElementById('usuPass').value=''; const nm=document.getElementById('usuNombre'); if(nm)nm.value='';
+    toast('Usuario "'+user+'" creado ✓');
+    renderUsuarios();
+  }
+  function accionUsuario(act,uk){
+    const [src,key]=uk.split('|'); const path='config/'+src+'/'+key;
+    const data=src==='usuarios'?usuariosCache:(src==='choferes'?mgmtChoferes:mgmtSup);
+    const v=(data||{})[key]||{};
+    if(act==='toggle'){ fbDb.ref(path+'/active').set(v.active===false); toast(v.active===false?'Usuario activado':'Usuario desactivado'); }
+    else if(act==='del'){ if(!confirm('¿Eliminar el usuario "'+(v.user||'')+'"?'))return; if(src==='usuarios')fbDb.ref(path).remove(); else { fbDb.ref(path+'/user').remove(); fbDb.ref(path+'/pass').remove(); fbDb.ref(path+'/salt').remove(); } toast('Usuario eliminado'); }
+    else if(act==='pass'){ const np=prompt('Nueva contraseña para "'+(v.user||'')+'" (mín. 4):'); if(np===null)return; if(np.length<4){toast('Muy corta');return;} const salt=randSalt(); hashPass(np,salt).then(ph=>{ fbDb.ref(path).update({pass:ph,salt:salt}); toast('Contraseña actualizada ✓'); }); }
+  }
+  function renderAdmin(){ if(admTab==='cam')renderCamGrid(); else if(admTab==='usuarios')renderUsuarios(); else renderPeople(admTab); }
   let camSelMode=false, camSel=new Set(), camDragKey=null;
   function tipoOf(v){ if(v&&v.tipo)return v.tipo; const s=((v&&v.estructura)||'').toLowerCase(),m=((v&&v.marca)||'').toLowerCase(); if(s.indexOf('cabina')>=0||s.indexOf('yipeta')>=0||m.indexOf('land cruiser')>=0||m.indexOf('hilux')>=0||m.indexOf('navara')>=0)return 'ligero'; return 'pesado'; }
   function estadoOpts(cur){ const list=CAM_ESTADOS.slice(); if(cur&&list.indexOf(cur)<0)list.push(cur); return list.map(e=>'<option value="'+e+'"'+((cur||'en operación')===e?' selected':'')+'>'+e+'</option>').join(''); }
@@ -4582,7 +4784,7 @@
     lst.querySelectorAll('[data-a="del"]').forEach(b=>b.addEventListener('click',()=>{ const c=b.dataset.c; if(!confirm('¿Eliminar '+c+'?'))return; fbDb.ref(path+c).remove(); }));
     lst.querySelectorAll('[data-a="link"]').forEach(b=>b.addEventListener('click',()=>{ const c=b.dataset.c; const chs=Object.keys(mgmtChoferes); if(!chs.length){toast('Primero registra choferes');return;} const opts=chs.map(k=>k+' · '+(mgmtChoferes[k].name||'')).join('\n'); const pick=prompt('Vincular '+c+' a qué chofer/camión?\nEscribe el código del chofer:\n\n'+opts, (data[c]||{}).chofer||''); if(pick===null)return; fbDb.ref(path+c+'/chofer').set((pick||'').trim()||null); })); }
   function admSetup2(){
-    document.querySelectorAll('#secAdmin .adm2-tab').forEach(t=>t.addEventListener('click',()=>{ admTab=t.dataset.at; document.querySelectorAll('#secAdmin .adm2-tab').forEach(x=>x.classList.toggle('on',x===t)); document.querySelectorAll('#secAdmin .adm2-pane').forEach(p=>p.classList.remove('on')); document.getElementById(admTab==='cam'?'adm2Cam':'adm2People').classList.add('on'); renderAdmin(); }));
+    document.querySelectorAll('#secAdmin .adm2-tab').forEach(t=>t.addEventListener('click',()=>{ admTab=t.dataset.at; document.querySelectorAll('#secAdmin .adm2-tab').forEach(x=>x.classList.toggle('on',x===t)); document.querySelectorAll('#secAdmin .adm2-pane').forEach(p=>p.classList.remove('on')); document.getElementById(admTab==='cam'?'adm2Cam':(admTab==='usuarios'?'adm2Usuarios':'adm2People')).classList.add('on'); renderAdmin(); }));
     const acAdd=document.getElementById('acAdd'); if(acAdd)acAdd.addEventListener('click',()=>openCamProfile(null));
     const acF=document.getElementById('acFicha'); if(acF)acF.addEventListener('input',()=>{ camFilter=acF.value; renderCamGrid(); });
     const acImp=document.getElementById('acImport'); if(acImp)acImp.addEventListener('click',importLevantamiento);
@@ -4605,18 +4807,81 @@
     const rpb=document.getElementById('repBack'); if(rpb)rpb.addEventListener('click',closeReportes);
     document.querySelectorAll('#rdOv .rd-tab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('#rdOv .rd-tab').forEach(x=>x.classList.remove('on')); t.classList.add('on'); rdTab=t.dataset.rt; rdDate=null; renderDetail(); }));
   }
-  function gateError(id){
+  function gateError(id,msg){
     const c=document.querySelector('#'+id+' .acc-card'); if(!c)return;
     c.style.animation='none'; void c.offsetWidth; c.style.animation='accShake .35s';
+    if(msg){ let e=document.getElementById(id+'_msg'); if(!e){ e=document.createElement('div'); e.id=id+'_msg'; e.className='acc-errmsg'; const note=c.querySelector('.acc-note'); if(note)note.parentNode.insertBefore(e,note); else c.appendChild(e); } e.textContent=msg; e.style.display='block'; }
+  }
+  // Carga los nodos necesarios para validar login antes de entrar (sesión anónima ya activa)
+  async function cargarIndiceLogin(){
+    if(!fbDb)return;
+    const lee=async (ref,setter)=>{ try{ const s=await fbDb.ref(ref).once('value'); setter(s.val()||{}); }catch(_){} };
+    await Promise.all([
+      lee('config/usuarios',v=>usuariosCache=v),
+      lee('config/choferes',v=>mgmtChoferes=v),
+      lee('config/supervisores',v=>mgmtSup=v)
+    ]);
+  }
+  // Enruta al usuario validado según su rol
+  function entrarPorRol(u){
+    const g=document.getElementById('admGate'); if(g)g.classList.add('hide');
+    try{ localStorage.setItem('animador_user', u.src+'|'+u.key); }catch(_){}
+    if(u.rol==='adm'){ try{localStorage.setItem('animador_role','adm');}catch(_){}
+      iniciarComoAdminSecundario(u);
+    } else if(u.rol==='supervisor'){ try{localStorage.setItem('animador_role','sup');}catch(_){}
+      currentUserName=u.data.name||u.code||u.data.user; currentUserRole='supervisor';
+      iniciarComoSupervisor(u);
+    } else { // chofer
+      try{localStorage.setItem('animador_role','chofer');}catch(_){}
+      choferCode=u.code; choferName=u.data.name||null; currentUserRole='chofer';
+      iniciarComoChofer(u);
+    }
+  }
+  function iniciarComoSupervisor(u){
+    // Supervisor: shell completo pero con permisos (ve Inicio, Monitoreo, Reportes), solo lectura en edición
+    currentUserRole='supervisor'; readOnlyMode=true;
+    enterAdmApp();
+    document.body.classList.add('readonly');
+    aplicarPermisos('supervisor');
+    setSection('inicio');
+    toast('Supervisor · '+(currentUserName||''));
+  }
+  function iniciarComoChofer(u){
+    // Chofer: solo Monitoreo con su turno. Por ahora usa el flujo de transmisión existente.
+    currentUserRole='chofer';
+    enterAdmApp();
+    aplicarPermisos('chofer');
+    setSection('monitoreo');
+    toast('Chofer · '+(choferName||choferCode||''));
+  }
+  function iniciarComoAdminSecundario(u){
+    // Admin secundario: entra al panel completo en modo solo-lectura.
+    // La edición real exige el correo maestro (lo garantizan las reglas de Firebase).
+    currentUserName=u.data.name||u.data.user; currentUserRole='adm';
+    readOnlyMode=true;
+    enterAdmApp();
+    document.body.classList.add('readonly');
+    toast('Sesión de solo lectura · '+(currentUserName||''));
   }
   function accSetup(){
     const bind=(id,fn)=>{const e=document.getElementById(id); if(e)e.addEventListener('click',fn);};
-    bind('admEnter',()=>{ const v=(document.getElementById('admKeyIn').value||'').trim();
-      if(!v||!window.firebase||!firebase.auth){ gateError('admGate'); return; }
+    bind('admEnter', async ()=>{ const userRaw=(document.getElementById('admUserIn')||{}).value||''; const v=(document.getElementById('admKeyIn').value||'').trim();
+      const user=normUser(userRaw);
+      if(!user||!v){ gateError('admGate'); return; }
+      // 1) intentar como usuario creado (chofer/supervisor/admin-secundario)
+      try{
+        await cargarIndiceLogin();
+        const res=await validarLogin(user,v);
+        if(res.ok){ registrarAcceso(res.user); entrarPorRol(res.user); return; }
+        // si el usuario existe pero clave mala, error directo
+        if(res.reason!=='Usuario no encontrado'){ gateError('admGate', res.reason); return; }
+      }catch(_){}
+      // 2) maestro: correo Firebase (usuario "admin" o el correo, clave = contraseña Firebase)
+      if(!window.firebase||!firebase.auth){ gateError('admGate'); return; }
       admSigningIn=true;
       firebase.auth().signInWithEmailAndPassword(ADM_EMAIL,v)
-        .then(()=>{ admSigningIn=false; enterAdmApp(); })
-        .catch(()=>{ admSigningIn=false; gateError('admGate'); }); });
+        .then(()=>{ admSigningIn=false; try{localStorage.setItem('animador_user','maestro');}catch(_){}  enterAdmApp(); })
+        .catch(()=>{ admSigningIn=false; gateError('admGate','Usuario o contraseña incorrectos'); }); });
     bind('supEnter',()=>{ const v=(document.getElementById('supKeyIn').value||'').trim();
       if(v!==ACCESS_KEYS.sup){ gateError('supGate'); return; }
       if(currentRutaId){
@@ -4641,7 +4906,7 @@
       document.getElementById('choferGate').classList.add('hide');
       startTx(); startGps(true); });
     const onEnter=(id,btn)=>{const e=document.getElementById(id); if(e)e.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();const b=document.getElementById(btn);if(b)b.click();}});};
-    onEnter('admKeyIn','admEnter'); onEnter('supKeyIn','supEnter'); onEnter('choferNum','choferEnter');
+    onEnter('admUserIn','admEnter'); onEnter('admKeyIn','admEnter'); onEnter('supKeyIn','supEnter'); onEnter('choferNum','choferEnter');
     const se=document.getElementById('supExit'); if(se)se.addEventListener('click',logout);
     const ml=document.getElementById('mgmtLogout'); if(ml)ml.addEventListener('click',logout);
     mgmtSetup();
@@ -4666,6 +4931,7 @@
     const parts=h.replace(/^#/,'').split('&');
     for(const p of parts){ if(p.indexOf('r=')===0){ rParam=p.slice(2); break; } }
     if(rParam){ const pts=decode(rParam); if(pts){loadRoute(pts); setSection('rutas');} }
+    if(!currentUserRole||currentUserRole==='adm')aplicarPermisos('adm');
     hideWelcome();
   }
   // ===== PORTAL CIUDADANO DE QUEJAS =====
@@ -4718,7 +4984,6 @@
   function routeAccess(){
     // Portal ciudadano de quejas (público, sin login): ?quejas o #quejas
     if(/(^|[?&#])quejas(=|&|$)/.test(location.search+location.hash)){ userRole='quejas'; hideWelcome(); abrirPortalQuejas(); return true; }
-    if(/(^|[?&#])quejas(=|&|$)/.test(location.search+location.hash)){ userRole='quejas'; hideWelcome(); abrirPortalQuejas(); return true; }
     const raw=(location.hash||'').replace(/^#/,'');
     const parts=raw.split('&');
     const mode=parts[0];
@@ -4748,7 +5013,10 @@
     // TODO lo demás (plano, #adm, #r=, lo que sea) exige clave de ADM
     userRole='adm';
     hideWelcome();
-    if(savedRole()==='adm'){ enterAdmApp(); } else { document.getElementById('admGate').classList.remove('hide'); }
+    // Auto-entra solo el maestro (sesión Firebase real). Los usuarios creados re-ingresan por seguridad.
+    let savedUser=null; try{savedUser=localStorage.getItem('animador_user');}catch(_){}
+    if(savedRole()==='adm' && savedUser==='maestro'){ enterAdmApp(); }
+    else { try{localStorage.removeItem('animador_role');}catch(_){} document.getElementById('admGate').classList.remove('hide'); }
     return true;
   }
 
