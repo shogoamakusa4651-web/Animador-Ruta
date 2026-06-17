@@ -1507,14 +1507,14 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.67 · 2026-06-17</div>
+    <div class="ver" style="padding-top:4px">v3.68 · 2026-06-17</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
   <span class="shell-title" id="shellTitle">Inicio</span>
   <span class="shell-badge" id="shellBadge" style="display:none"></span>
   <button class="shell-help" id="shellHelp" title="¿Qué significa cada cosa?"><i class="ti ti-help" aria-hidden="true"></i> Ayuda</button>
-  <span class="shell-user" id="shellUser"><span class="av">A</span>ADM <i class="ti ti-chevron-down" style="font-size:14px" aria-hidden="true"></i></span>
+  <span class="shell-user" id="shellUser"><span class="av" id="shellUserAv">A</span><span id="shellUserTx">ADM</span> <i class="ti ti-chevron-down" style="font-size:14px" aria-hidden="true"></i></span>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -1935,7 +1935,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.67 · 2026-06-17</div>
+<div class="ver-badge" id="verBadge">v3.68 · 2026-06-17</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2678,6 +2678,30 @@
     const ahora=Date.now(); if(ahora-_soloLecturaAviso<1500)return; _soloLecturaAviso=ahora;
     toast('🔒 Solo lectura · no puedes editar con este usuario');
   }
+  const PALABRAS_EDICION=/guardar|editar|enviar|genera|crear|eliminar|borrar|quitar|agregar|añadir|asignar|registrar|nueva ruta|importar|definir|vincular|desactivar|atender|reabrir|despachar|completar/i;
+  let _bloqueoClicsInstalado=false;
+  function instalarBloqueoClics(){
+    if(_bloqueoClicsInstalado)return; _bloqueoClicsInstalado=true;
+    document.addEventListener('click',function(ev){
+      if(!readOnlyMode)return;
+      const btn=ev.target.closest('button, .acc-btn, .qj-btn, .primary-action, .mon-crear, .usu-create, [data-ua], .ia-btn, .q-btn');
+      if(!btn)return;
+      const txt=(btn.textContent||'').trim();
+      if(btn.closest('.shell-nav, .rtab-bar, .adm2-tab, .rep-scope, .rd-tabs'))return;
+      const permitido=/^(ver|buscar|cerrar|volver|copiar|word|imprimir|exportar|×|‹|›|−|\+|filtrar|hoy|ayer|todos|todas|ocultar|calles)/i.test(txt);
+      if(permitido)return;
+      if(PALABRAS_EDICION.test(txt)){ ev.preventDefault(); ev.stopPropagation(); avisarSoloLectura(); }
+    },true);
+  }
+  function actualizarBadgeUsuario(){
+    const tx=document.getElementById('shellUserTx'), av=document.getElementById('shellUserAv');
+    if(!tx||!av)return;
+    const rolLbl={adm:readOnlyMode?'Admin (lectura)':'Administrador',supervisor:'Supervisor',chofer:'Chofer'}[currentUserRole]||'Administrador';
+    const nombre=currentUserName|| (currentUserRole==='chofer'?(choferName||choferCode):'') ||'Administrador';
+    const corto=nombre.length>22?nombre.slice(0,22)+'…':nombre;
+    tx.innerHTML='<span style="font-weight:700">'+esc(corto)+'</span> <span style="opacity:.6;font-size:11px">· '+rolLbl+'</span>';
+    av.textContent=(nombre[0]||'A').toUpperCase();
+  }
   function aplicarPermisos(rol){
     const permitidas=ROL_SECCIONES[rol]||ROL_SECCIONES.adm;
     document.querySelectorAll('#shellNav .nav-item[data-sec]').forEach(it=>{
@@ -2687,6 +2711,7 @@
     const nrep=document.getElementById('navReportes'); if(nrep)nrep.style.display=permitidas.indexOf('reportes')>=0?'':'none';
     document.body.classList.toggle('rol-chofer',rol==='chofer');
     document.body.classList.toggle('rol-supervisor',rol==='supervisor');
+    actualizarBadgeUsuario();
   }
   let usuariosCache={};
   // ===== Motor de usuarios (hash SHA-256 con sal) =====
@@ -5057,6 +5082,7 @@
 
   (function init(){
     fbInit();
+    instalarBloqueoClics();
     accSetup();
     if(routeAccess())return;
     const h=location.hash;
