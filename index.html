@@ -22,6 +22,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+<script src="js/utils.js"></script>
 <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -43,7 +44,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.74 · 2026-06-18</div>
+    <div class="ver" style="padding-top:4px">v3.75 · 2026-06-18</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -471,7 +472,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.74 · 2026-06-18</div>
+<div class="ver-badge" id="verBadge">v3.75 · 2026-06-18</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -833,12 +834,6 @@
     if(rdViajes[fecha]&&rdViajes[fecha][vk])Object.assign(rdViajes[fecha][vk],upd);
     toast('Pesaje registrado: '+asignado+' t'); renderDetail();
   }
-  function haversine(a,b){const R=6371000,t=Math.PI/180;const dLat=(b[0]-a[0])*t,dLng=(b[1]-a[1])*t,la1=a[0]*t,la2=b[0]*t;
-    const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
-  function bearing(a,b){const t=Math.PI/180,la1=a[0]*t,la2=b[0]*t,dLng=(b[1]-a[1])*t;
-    const y=Math.sin(dLng)*Math.cos(la2),x=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dLng);
-    return (Math.atan2(y,x)*180/Math.PI+360)%360;}
-  function lerp(a,b,f){return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f];}
   function totalDist(){let d=0;for(let i=1;i<waypoints.length;i++)d+=haversine(waypoints[i-1],waypoints[i]);return d;}
 
   function setPlayLabel(icon,label){
@@ -1309,8 +1304,6 @@
     if(String(stored).indexOf('v2$')===0){ return (await hashPass(pass,salt))===stored; }
     return (await hashPassV1(pass,salt))===String(stored); // hash antiguo sin prefijo
   }
-  function randSalt(){ const a=new Uint8Array(8); crypto.getRandomValues(a); return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join(''); }
-  function normUser(u){ return String(u||'').trim().toLowerCase().replace(/\s+/g,''); }
   // Construye índice de todos los usuarios: admins (config/usuarios) + choferes + supervisores con credenciales
   function buildUserIndex(){
     const idx={};
@@ -1332,7 +1325,6 @@
     if(!fbDb)return;
     try{ fbDb.ref('config/accesos').push({ user:u.data.user||'', rol:u.rol, code:u.code||null, ts:Date.now() }); }catch(_){}
   }
-  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   const COV_AB='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   function covEnc(set,n){ let s=''; for(let i=0;i<n;i+=6){ let v=0; for(let j=0;j<6;j++){ if(set.has(i+j))v|=(1<<j); } s+=COV_AB[v]; } return s; }
   function covDec(s,n){ const out=new Array(n).fill(false); if(!s)return out; for(let c=0;c<s.length;c++){ const v=COV_AB.indexOf(s[c]); if(v<0)continue; for(let j=0;j<6;j++){ const i=c*6+j; if(i<n&&(v&(1<<j)))out[i]=true; } } return out; }
@@ -1451,7 +1443,6 @@
   // ===== GESTIÓN ADM: choferes y supervisores con código (Fase 4) =====
   let mgmtChoferes={}, mgmtSup={}, mgmtCamiones={}, mgmtMecanicos={}, mgmtAyudantes={}, mgmtSub=false;
   let fuelCache={}, mantCache={}, quejasCache={}, comisionCfg={precioGalon:null, montoChofer:null, montoAyudante:null};
-  function fbKey(c){ return c.replace(/[.#$\[\]\/]/g,'_'); }
   function nextCode(prefix,obj){ let max=0; if(obj)Object.keys(obj).forEach(k=>{const m=k.match(/(\d+)$/);if(m){const v=parseInt(m[1],10);if(v>max)max=v;}}); return prefix+String(max+1).padStart(2,'0'); }
   function mgmtList(elId,data,onDel){
     const el=document.getElementById(elId); if(!el)return;
@@ -2240,7 +2231,6 @@
     const lvl=prog>=80?'Excelente':(prog>=50?'Aceptable':'Deficiente');
     fbDb.ref('rutas/'+id+'/viajes/'+fecha).push({ inicio:simStartTs||Date.now(), fin:Date.now(), choferCode:(r.choferCode||code), supCode:r.supCode||null, ficha:r.camion||null, progress:prog, kmInicio:kmIni, kmFin:Math.round(kmFin*100)/100, distancia:Math.round(dist*100)/100, paradas:(decode(r.wp||'')||[]).length, sim:true });
     fbDb.ref('rutas/'+id+'/reportes').push({ tipo:'chofer', choferCode:(r.choferCode||code), supCode:r.supCode||null, ficha:r.camion||null, fecha:fecha, inicio:simStartTs||Date.now(), fin:Date.now(), rating:prog, routeCompletion:prog, ratingLevel:lvl, kmInicio:kmIni, kmFin:Math.round(kmFin*100)/100, distancia:Math.round(dist*100)/100, texto:'Recorrido simulado completado ('+prog+'%).', sim:true, ts:Date.now() }); }
-  function fmtKm(n){ n=Number(n)||0; return n.toLocaleString('en-US',{maximumFractionDigits:2})+' km'; }
   function fitRoute(id){ const g=routeLayers[id]; if(!g)return; let b=null; g.eachLayer(l=>{ if(l.getBounds){ b=b?b.extend(l.getBounds()):l.getBounds(); } }); if(b&&b.isValid()){ const panelOpen=!document.getElementById('monPanel').classList.contains('collapsed'); map.fitBounds(b,{paddingTopLeft:[panelOpen?345:60,80],paddingBottomRight:[60,60],maxZoom:16}); } }
   function routeBoundsAll(){ let b=null; Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l.getBounds){ b=b?b.extend(l.getBounds()):l.getBounds(); } }); }); return (b&&b.isValid())?b:null; }
   function showAllRoutes(){ monAllOn=true; syncMonLayers(); const b=routeBoundsAll(); if(b){ const panelOpen=!document.getElementById('monPanel').classList.contains('collapsed'); map.fitBounds(b,{paddingTopLeft:[panelOpen?345:60,80],paddingBottomRight:[60,60]}); } const btn=document.getElementById('monAllBtn'); if(btn){btn.classList.add('on');btn.textContent='Ocultar todas';} renderMonitor(); }
@@ -2250,7 +2240,6 @@
   // ---- Detalle de ruta ----
   let rdId=null, rdTab='datos', rdDate=null, rdViajes={}, rdReportes={};
   function fmtTime(ts){ if(!ts)return '—'; const d=new Date(ts); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
-  function fmtFecha(f){ if(!f)return '—'; const p=String(f).split('-'); if(p.length!==3)return f; const ms=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return parseInt(p[2],10)+' '+ms[parseInt(p[1],10)-1]+' '+p[0]; }
   function openRouteDetail(id){ rdId=id; rdDate=null; rdViajes={}; rdReportes={};
     const _tbs=document.querySelector('#rdOv .rd-tabs'); if(_tbs)_tbs.style.display='';
     const liveNow=(typeof liveByRuta==='function')?liveByRuta():{};
