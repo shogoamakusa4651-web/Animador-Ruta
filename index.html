@@ -46,7 +46,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.77 · 2026-06-18</div>
+    <div class="ver" style="padding-top:4px">v3.78 · 2026-06-18</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -474,7 +474,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.77 · 2026-06-18</div>
+<div class="ver-badge" id="verBadge">v3.78 · 2026-06-18</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1957,20 +1957,19 @@
 
   // ===== MONITOREO (pantalla principal) =====
   let routeLayers={}, monDaysSel=new Set(), simTimer=null;
-  const ROUTE_COLORS=['#CF9A4A','#C56B4E','#5E8B7E','#7A6FA8','#B0843C','#4E7FA8','#A85C7A','#6E8B3D'];
+  const ROUTE_COLORS=['#2E7DF2','#F59E0B','#A855F7','#EC4899','#06B6D4','#F97316','#14B8A6','#EF4444'];
   function routeColor(id){ const ids=Object.keys(mgmtRutas||{}).sort(); const i=ids.indexOf(id); return ROUTE_COLORS[(i<0?0:i)%ROUTE_COLORS.length]; }
-  function routeWeights(){ const z=map.getZoom?map.getZoom():15; const f=Math.max(0.4,Math.min(1,(z-9)/6)); return {out:Math.max(2.5,5.5*f), main:Math.max(1.4,3*f)}; }
+  function routeWeights(){ const z=map.getZoom?map.getZoom():15; const f=Math.max(0.4,Math.min(1,(z-9)/6)); return {out:Math.max(5,9*f), main:Math.max(3,5.5*f)}; }
   function showRouteLayer(id){ const r=mgmtRutas[id]; if(!r||routeLayers[id])return;
     const pts=decode(r.wp||''); if(!pts||pts.length<2)return;
     // semáforo del día: completada=verde sólido · programada hoy sin transitar=rojo · otras=color propio
     const _n=new Date(); const _hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const done=r.viajes&&r.viajes[_hoy]&&Object.keys(r.viajes[_hoy]).length;
-    const esHoy=(r.freq||[]).includes(todayLetter());
-    const col=done?'#27A35B':(esHoy?'#E05A4F':routeColor(id));
-    const dash=done?null:'2,7';
+    const col=done?'#27A35B':routeColor(id);
+    const dash=null;
     const g=L.layerGroup(); const w=routeWeights();
-    const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.35,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
-    const main=L.polyline(pts,{color:col,weight:w.main,opacity:.95,dashArray:dash,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
+    const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.75,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
+    const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,dashArray:dash,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
     L.circleMarker(pts[0],{radius:6,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(g);
     L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
     g.addTo(map); routeLayers[id]=g; }
