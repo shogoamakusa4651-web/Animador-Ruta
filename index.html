@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Animador">
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -1507,7 +1507,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.69 · 2026-06-17</div>
+    <div class="ver" style="padding-top:4px">v3.73 · 2026-06-18</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -1935,7 +1935,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.69 · 2026-06-17</div>
+<div class="ver-badge" id="verBadge">v3.73 · 2026-06-18</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2135,6 +2135,34 @@
 
 <script>
 (function(){
+  /* ============================================================================
+     ANIMADOR DE RUTA · MAPA DE MÓDULOS (índice para desarrolladores)
+     ----------------------------------------------------------------------------
+     Este archivo único agrupa el sistema por módulos lógicos. Búscalos por su
+     cabecera "// ===== NOMBRE =====". Capas (de baja a alta):
+
+       INFRAESTRUCTURA
+         · Firebase / conexión .......... fbInit, fbKey, setFbStatus
+         · Utilidades ................... toast, esc, fmt*, haversine, encode/decode
+       SERVICIOS
+         · Motor de usuarios ............ hashPass(PBKDF2), verifyPass, validarLogin
+         · GPS / Mapa ................... map, waypoints, loadRoute, renderMarkers
+       NÚCLEO
+         · Permisos por rol ............. ROL_SECCIONES, aplicarPermisos, guardias
+         · App Shell / Router ........... setSection, curSec
+       MÓDULOS DE DOMINIO
+         · Dashboard (Inicio) ........... buildInicio
+         · Monitoreo (tiempo real) ...... startTx, renderMonitor, simTick
+         · Rutas ........................ saveRuta, newRuta, buildRutasList
+         · Flota / Administración ....... mgmt*, renderAdmin, renderUsuarios
+         · Recursos / Pesaje ............ renderRecursos, openPesaje, addFuel
+         · Reportes ..................... renderReportes, downloadReportWord
+         · Quejas ciudadanas ............ abrirPortalQuejas, enviarQueja, verQueja
+
+     SEGURIDAD: las reglas de Firebase son la única verdad. El control de roles
+     en este archivo es comodidad de interfaz, no barrera real. Toda escritura
+     sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
+     ============================================================================ */
   const LA_VEGA=[19.2225,-70.5293];
   const map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:18}).setView(LA_VEGA,15);
 
@@ -2643,8 +2671,6 @@
     messagingSenderId:"253607225989",
     appId:"1:253607225989:web:dfedf4c6c4b02d49b997ec"
   };
-  // Claves compartidas — CÁMBIALAS cuando quieras (beta)
-  const ACCESS_KEYS={sup:'sup2026'};
   const ADM_EMAIL='admin@animadorruta.com';
   let admSigningIn=false;
   let currentUserName=null, currentUserRole=null, readOnlyMode=false;
@@ -2722,12 +2748,30 @@
     actualizarBadgeUsuario();
   }
   let usuariosCache={};
-  // ===== Motor de usuarios (hash SHA-256 con sal) =====
+  // ===== Motor de usuarios (hash PBKDF2 v2 + compatibilidad SHA-256 v1) =====
+  // Hash de contraseña con versión. v2 = PBKDF2 (costoso, seguro). Compatibilidad total con v1 (SHA-256 simple).
+  const HASH_ITER=150000;
   async function hashPass(pass, salt){
+    // Genera SIEMPRE el formato nuevo (v2). La validación de los viejos la hace verifyPass.
+    salt=salt||'';
+    const keyMaterial=await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), {name:'PBKDF2'}, false, ['deriveBits']);
+    const bits=await crypto.subtle.deriveBits(
+      {name:'PBKDF2', salt:new TextEncoder().encode(salt+'::animadorRutaV2'), iterations:HASH_ITER, hash:'SHA-256'},
+      keyMaterial, 256);
+    return 'v2$'+Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  // Hash viejo (v1) — solo para validar contraseñas creadas antes de PBKDF2
+  async function hashPassV1(pass, salt){
     salt=salt||'';
     const data=new TextEncoder().encode(salt+'::'+pass+'::animadorRutaV1');
     const buf=await crypto.subtle.digest('SHA-256', data);
     return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  // Verifica una contraseña contra un hash almacenado, detectando su versión automáticamente
+  async function verifyPass(pass, salt, stored){
+    if(stored==null)return false;
+    if(String(stored).indexOf('v2$')===0){ return (await hashPass(pass,salt))===stored; }
+    return (await hashPassV1(pass,salt))===String(stored); // hash antiguo sin prefijo
   }
   function randSalt(){ const a=new Uint8Array(8); crypto.getRandomValues(a); return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join(''); }
   function normUser(u){ return String(u||'').trim().toLowerCase().replace(/\s+/g,''); }
@@ -2744,8 +2788,8 @@
     if(!u)return {ok:false,reason:'Usuario no encontrado'};
     if(u.data.active===false)return {ok:false,reason:'Usuario desactivado'};
     if(!u.data.pass||!u.data.salt)return {ok:false,reason:'Usuario sin contraseña configurada'};
-    const h=await hashPass(pass, u.data.salt);
-    if(h!==u.data.pass)return {ok:false,reason:'Contraseña incorrecta'};
+    const ok=await verifyPass(pass, u.data.salt, u.data.pass);
+    if(!ok)return {ok:false,reason:'Contraseña incorrecta'};
     return {ok:true,user:u};
   }
   function registrarAcceso(u){
@@ -3689,6 +3733,7 @@
     const ficha=r.camion||t.code||'—';
     const gal=await promptDialog('Combustible · '+ficha,'Galones cargados al camión:','',{numeric:true});
     if(gal===null)return; const g=parseFloat(String(gal).replace(',','.')); if(isNaN(g)||g<=0){toast('Cantidad inválida');return;}
+    if(g>500){toast('Galones fuera de rango (máx 500)');return;}
     const precio=await promptDialog('Combustible · '+ficha,'Precio por galón (RD$, opcional):','',{numeric:true});
     const sup=await promptDialog('Combustible · '+ficha,'Supervisor que registra:',r.supCode||'',{});
     const now=new Date(); const fecha=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
@@ -4493,6 +4538,8 @@
         const vc=num(f.querySelector('.pj-vacio'));
         const sup=(f.querySelector('.pj-sup').value||'').trim()||null;
         if(ll==null){ toast('Pon el peso LLENO'); return; }
+        if(ll<0||(vc!=null&&vc<0)){ toast('El peso no puede ser negativo'); return; }
+        if(ll>100||(vc!=null&&vc>100)){ toast('Peso fuera de rango (máx 100 t)'); return; }
         if(vc!=null&&vc>ll){ toast('El vacío no puede pesar más que el lleno'); return; }
         const ton=calc();
         const base='rutas/'+rid+'/viajes/'+fecha+'/'+vk;
@@ -4515,6 +4562,7 @@
     if(ficha===null||!ficha.trim())return;
     const gal=await promptDialog('Carga de combustible','Galones cargados:','',{numeric:true});
     if(gal===null)return; const g=parseFloat(String(gal).replace(',','.')); if(isNaN(g)||g<=0){toast('Cantidad inválida');return;}
+    if(g>500){toast('Galones fuera de rango (máx 500)');return;}
     const precio=await promptDialog('Carga de combustible','Precio por galón (RD$, opcional):','',{numeric:true});
     const sup=await promptDialog('Carga de combustible','Supervisor que registra:','',{});
     const now=new Date(); const fecha=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
@@ -4951,16 +4999,17 @@
         .then(()=>{ admSigningIn=false; readOnlyMode=false; currentUserRole='adm'; currentUserName='Administrador'; document.body.classList.remove('readonly'); try{localStorage.setItem('animador_user','maestro');}catch(_){}  enterAdmApp(); })
         .catch(()=>{ admSigningIn=false; gateError('admGate','Usuario o contraseña incorrectos'); }); });
     bind('supEnter',()=>{ const v=(document.getElementById('supKeyIn').value||'').trim();
-      if(v!==ACCESS_KEYS.sup){ gateError('supGate'); return; }
+      // Solo válido en contexto de un enlace de ruta específico (validación contextual del supervisor asignado).
       if(currentRutaId){
         const c=(document.getElementById('supRutaCode').value||'').trim();
-        if(!currentRuta || currentRuta.supActive===false || !currentRuta.supAccess || c!==String(currentRuta.supAccess)){ gateError('supGate'); return; }
+        if(!currentRuta || currentRuta.supActive===false || !currentRuta.supAccess || c!==String(currentRuta.supAccess)){ gateError('supGate','Código de ruta incorrecto'); return; }
         document.getElementById('supGate').classList.add('hide');
         const p=document.getElementById('panel'); if(p)p.style.display='none';
         toast('Supervisor en ruta: '+(currentRuta.nombre||''));
         return;
       }
-      try{localStorage.setItem('animador_role','sup');}catch(_){} document.getElementById('supGate').classList.add('hide'); startSupervisor(); });
+      // Sin ruta en contexto: el acceso general de supervisor ahora exige usuario+contraseña (login unificado).
+      gateError('supGate','Ingresa por la pantalla principal con tu usuario y contraseña'); });
     bind('choferEnter', async ()=>{ const n=(document.getElementById('choferNum').value||'').trim();
       const err=document.getElementById('choferErr');
       if(!/^\d+$/.test(n)){ if(err)err.classList.remove('hide'); gateError('choferGate'); return; }
@@ -5036,6 +5085,7 @@
     if(!sector)return show('Selecciona tu sector.');
     if(tel.replace(/\D/g,'').length<10)return show('Escribe un teléfono válido (10 dígitos).');
     if(!motivo)return show('Selecciona el motivo.');
+    if(desc.length>500)return show('La descripción es muy larga (máximo 500 caracteres).');
     if(err)err.classList.add('hide');
     const bt=document.getElementById('qjEnviar'); if(bt){bt.disabled=true;bt.textContent='Enviando…';}
     const folio='Q'+Date.now().toString(36).toUpperCase().slice(-6);
