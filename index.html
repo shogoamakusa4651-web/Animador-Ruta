@@ -23,6 +23,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
 <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -44,7 +45,7 @@
   </div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.75 · 2026-06-18</div>
+    <div class="ver" style="padding-top:4px">v3.76 · 2026-06-18</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -472,7 +473,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.75 · 2026-06-18</div>
+<div class="ver-badge" id="verBadge">v3.76 · 2026-06-18</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1280,30 +1281,6 @@
   }
   let usuariosCache={};
   // ===== Motor de usuarios (hash PBKDF2 v2 + compatibilidad SHA-256 v1) =====
-  // Hash de contraseña con versión. v2 = PBKDF2 (costoso, seguro). Compatibilidad total con v1 (SHA-256 simple).
-  const HASH_ITER=150000;
-  async function hashPass(pass, salt){
-    // Genera SIEMPRE el formato nuevo (v2). La validación de los viejos la hace verifyPass.
-    salt=salt||'';
-    const keyMaterial=await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), {name:'PBKDF2'}, false, ['deriveBits']);
-    const bits=await crypto.subtle.deriveBits(
-      {name:'PBKDF2', salt:new TextEncoder().encode(salt+'::animadorRutaV2'), iterations:HASH_ITER, hash:'SHA-256'},
-      keyMaterial, 256);
-    return 'v2$'+Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-  // Hash viejo (v1) — solo para validar contraseñas creadas antes de PBKDF2
-  async function hashPassV1(pass, salt){
-    salt=salt||'';
-    const data=new TextEncoder().encode(salt+'::'+pass+'::animadorRutaV1');
-    const buf=await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-  // Verifica una contraseña contra un hash almacenado, detectando su versión automáticamente
-  async function verifyPass(pass, salt, stored){
-    if(stored==null)return false;
-    if(String(stored).indexOf('v2$')===0){ return (await hashPass(pass,salt))===stored; }
-    return (await hashPassV1(pass,salt))===String(stored); // hash antiguo sin prefijo
-  }
   // Construye índice de todos los usuarios: admins (config/usuarios) + choferes + supervisores con credenciales
   function buildUserIndex(){
     const idx={};
