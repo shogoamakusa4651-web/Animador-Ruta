@@ -36,17 +36,10 @@
   <div class="nav-item" data-sec="monitoreo"><i class="ti ti-broadcast" aria-hidden="true"></i>Monitoreo</div>
   <div class="nav-item" data-sec="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
   <div class="nav-item" data-sec="admin"><i class="ti ti-settings" aria-hidden="true"></i>Administración</div>
-  <div class="nav-item" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span><i class="ti ti-chevron-down nav-chev" aria-hidden="true"></i></div>
-  <div class="nav-sub" id="navRepSub">
-    <div class="nav-subitem" data-rv="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
-    <div class="nav-subitem" data-rv="choferes"><i class="ti ti-user" aria-hidden="true"></i>Choferes</div>
-    <div class="nav-subitem" data-rv="supervisores"><i class="ti ti-eye" aria-hidden="true"></i>Supervisores</div>
-    <div class="nav-subitem" data-rv="camiones"><i class="ti ti-truck" aria-hidden="true"></i>Camiones</div>
-    <div class="nav-subitem" id="navSubRecursos"><i class="ti ti-clipboard-data" aria-hidden="true"></i>Recursos</div>
-  </div>
+  <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.79 · 2026-06-18</div>
+    <div class="ver" style="padding-top:4px">v3.80 · 2026-06-18</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -474,7 +467,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.79 · 2026-06-18</div>
+<div class="ver-badge" id="verBadge">v3.80 · 2026-06-18</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1602,11 +1595,9 @@
     const _rd=document.getElementById('rdOv'); if(_rd&&_rd.classList.contains('show'))closeRouteDetail();
     const _cam=document.getElementById('camOv'); if(_cam)_cam.classList.remove('show');
     document.querySelectorAll('#shellNav .nav-item').forEach(n=>n.classList.toggle('on',n.dataset.sec===name));
-    const nrep=document.getElementById('navReportes'), nrsub=document.getElementById('navRepSub');
+    const nrep=document.getElementById('navReportes');
     const enGrupoReportes=(name==='reportes'||name==='recursos');
     if(nrep)nrep.classList.toggle('on',enGrupoReportes);
-    if(nrsub){ nrsub.classList.toggle('open',enGrupoReportes); if(nrep)nrep.classList.toggle('open',enGrupoReportes);
-      if(enGrupoReportes)document.querySelectorAll('#navRepSub .nav-subitem').forEach(x=>{ if(name==='recursos')x.classList.toggle('on',x.id==='navSubRecursos'); else x.classList.toggle('on',x.dataset.rv===repView); }); }
     const t=document.getElementById('shellTitle'); if(t)t.textContent=SEC_TITLE[name]||name;
     const monP=document.getElementById('monPanel'), editor=document.getElementById('panel');
     if(monP)monP.classList.toggle('show',name==='monitoreo');
@@ -1638,9 +1629,6 @@
     const hx=document.getElementById('helpX'); if(hx)hx.addEventListener('click',()=>document.getElementById('helpOv').classList.remove('show'));
     const hov=document.getElementById('helpOv'); if(hov)hov.addEventListener('click',e=>{ if(e.target===hov)hov.classList.remove('show'); });
     document.querySelectorAll('#shellNav .nav-item[data-sec]').forEach(n=>n.addEventListener('click',()=>setSection(n.dataset.sec)));
-    const nr=document.getElementById('navReportes'), nrs=document.getElementById('navRepSub');
-    if(nr&&nrs)nr.addEventListener('click',()=>{ const o=nrs.classList.toggle('open'); nr.classList.toggle('open',o); });
-    document.querySelectorAll('#navRepSub .nav-subitem').forEach(s=>s.addEventListener('click',()=>{ if(s.id==='navSubRecursos'){ document.querySelectorAll('#navRepSub .nav-subitem').forEach(x=>x.classList.toggle('on',x===s)); setSection('recursos'); if(nrs)nrs.classList.remove('open'); if(nr)nr.classList.remove('open'); return; } repView=s.dataset.rv; repSel=null; repScope='hoy'; repFrom=null; repTo=null; document.querySelectorAll('#navRepSub .nav-subitem').forEach(x=>x.classList.toggle('on',x===s)); setSection('reportes'); if(nrs)nrs.classList.remove('open'); if(nr)nr.classList.remove('open'); }));
     const lo=document.getElementById('shellLogout'); if(lo)lo.addEventListener('click',logout);
     const su=document.getElementById('shellUser'), um=document.getElementById('userMenu');
     if(su&&um){ su.addEventListener('click',e=>{ e.stopPropagation(); um.classList.toggle('open'); }); document.addEventListener('click',()=>um.classList.remove('open')); um.addEventListener('click',e=>e.stopPropagation()); }
