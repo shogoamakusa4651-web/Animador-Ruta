@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.80 · 2026-06-18</div>
+    <div class="ver" style="padding-top:4px">v3.81 · 2026-06-18</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -467,7 +467,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.80 · 2026-06-18</div>
+<div class="ver-badge" id="verBadge">v3.81 · 2026-06-18</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -856,11 +856,37 @@
       const g=L.layerGroup();
       L.polyline(waypoints,{color:'#FFFFFF',weight:9,opacity:.8,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
       L.polyline(waypoints,{color:'#E2453C',weight:5,opacity:.97,dashArray:'12,9',lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+      addDirArrows(waypoints, g);
       g.addTo(map); baseLine=g;
     }
     if(waypoints.length>=1){
       startFlag=L.marker(waypoints[0],{icon:L.divIcon({html:'<div class="start-flag">🚩</div>',className:'',iconSize:[28,28],iconAnchor:[5,26]}),interactive:false,zIndexOffset:800}).addTo(map);
     }}
+  // Coloca flechas de dirección a lo largo del trazado para indicar el sentido del recorrido
+  function addDirArrows(pts, group){
+    if(!pts||pts.length<2)return;
+    // distancia entre flechas según el zoom: más cerca cuando hay más zoom
+    const z=map.getZoom?map.getZoom():15;
+    const stepM=z>=16?70:(z>=14?130:(z>=12?260:500)); // metros entre flechas
+    let acc=0;
+    for(let i=1;i<pts.length;i++){
+      const a=pts[i-1], b=pts[i];
+      const segLen=haversine(a,b);
+      if(segLen<1)continue;
+      const ang=bearing(a,b); // 0=norte, sentido horario
+      // colocar flechas cada stepM a lo largo de este segmento
+      let d=(acc===0?stepM*0.6:stepM-acc);
+      while(d<segLen){
+        const f=d/segLen;
+        const pos=[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f];
+        L.marker(pos,{interactive:false,zIndexOffset:600,
+          icon:L.divIcon({className:'',iconSize:[18,18],iconAnchor:[9,9],
+            html:'<div class="dir-arrow" style="transform:rotate('+ang+'deg)">▲</div>'})}).addTo(group);
+        d+=stepM;
+      }
+      acc=(segLen-d+stepM)%stepM;
+    }
+  }
   function updateStats(){
     document.getElementById('nPts').textContent=waypoints.length;
     document.getElementById('dist').textContent=(totalDist()/1000).toFixed(2);
