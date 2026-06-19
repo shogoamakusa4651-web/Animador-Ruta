@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-polylinedecorator/1.6.0/leaflet.polylineDecorator.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <!-- ===== Firebase (Fase 1) ===== -->
@@ -39,7 +40,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.85 · 2026-06-19</div>
+    <div class="ver" style="padding-top:4px">v3.86 · 2026-06-19</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -467,7 +468,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.85 · 2026-06-19</div>
+<div class="ver-badge" id="verBadge">v3.86 · 2026-06-19</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -866,54 +867,28 @@
     if(waypoints.length>1){
       baseEnd=L.marker(waypoints[waypoints.length-1],{icon:L.divIcon({html:'<div class="route-end">FIN</div>',className:'',iconSize:[34,34],iconAnchor:[17,17]}),interactive:false,zIndexOffset:780}).addTo(map);
     }}
-  // Coloca flechas de dirección a lo largo del trazado para indicar el sentido del recorrido
-  // Flechas de dirección HÍBRIDAS:
-  // - No aparecen bajo zoom 16 (vista panorámica queda limpia).
-  // - Densidad progresiva según zoom.
-  // - Solo se dibujan las que caen dentro del área visible (rendimiento).
-  // - Acumulador continuo: no satura calles cortas.
+  // Flechas de dirección con leaflet-polylinedecorator (nivel producción):
+  // tamaño fijo en píxeles, espaciado uniforme, chevron fino.
+  // Híbrido: no aparecen bajo zoom 16; densidad progresiva según zoom.
   function addDirArrows(pts, group, lineColor){
     if(!pts||pts.length<2)return;
+    if(typeof L.polylineDecorator!=='function')return; // librería no cargada
     const z=map.getZoom?map.getZoom():15;
-    if(z<16)return; // zoom lejano: línea limpia, sin flechas
-    const stepM = z>=19?60 : (z>=18?95 : (z>=17?110 : 180)); // metros entre flechas
-    // tamaño de la flecha en metros: largo (hacia adelante) y medio-ancho (a los lados)
-    const lenM  = z>=19?6 : (z>=18?9 : (z>=17?14 : 22));   // largo del triángulo
-    const halfW = z>=19?2.2 : (z>=18?3.2 : (z>=17?5 : 8)); // medio-ancho (no excede la línea)
+    if(z<16)return; // zoom lejano: línea limpia
+    const repeat = z>=19?70 : (z>=18?95 : (z>=17?130 : 200)); // px entre flechas
+    const pixelSize = z>=18?9 : (z>=17?10 : 12);               // tamaño fijo de la flecha
     const col=lineColor||'#FFFFFF';
-    const R=6378137, toRad=Math.PI/180, toDeg=180/Math.PI;
-    const MIN_SEG=20; // segmentos menores no fuerzan flecha
-    let bounds=null; try{ bounds=map.getBounds&&map.getBounds().pad(0.15); }catch(_){}
-    function move(lat,lng,d,brng){
-      const br=brng*toRad, la=lat*toRad, lo=lng*toRad, dr=d/R;
-      const la2=Math.asin(Math.sin(la)*Math.cos(dr)+Math.cos(la)*Math.sin(dr)*Math.cos(br));
-      const lo2=lo+Math.atan2(Math.sin(br)*Math.sin(dr)*Math.cos(la),Math.cos(dr)-Math.sin(la)*Math.sin(la2));
-      return [la2*toDeg, lo2*toDeg];
-    }
-    let acc=0;
-    for(let i=1;i<pts.length;i++){
-      const a=pts[i-1], b=pts[i];
-      const segLen=haversine(a,b);
-      if(segLen<1)continue;
-      const ang=bearing(a,b);
-      let d=(acc===0?stepM*0.55:stepM-acc);
-      while(d<segLen){
-        if(segLen>=MIN_SEG){
-          const f=d/segLen;
-          const c=[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f]; // centro de la flecha sobre la línea
-          if(!bounds || bounds.contains(L.latLng(c[0],c[1]))){
-            // triángulo: punta adelante, base atrás, centrado y contenido en el ancho de la línea
-            const tip=move(c[0],c[1],lenM/2,ang);
-            const baseC=move(c[0],c[1],lenM/2,ang+180);
-            const bl=move(baseC[0],baseC[1],halfW,ang-90);
-            const br2=move(baseC[0],baseC[1],halfW,ang+90);
-            L.polygon([tip,bl,br2],{color:col,weight:0.5,fillColor:col,fillOpacity:1,opacity:1,interactive:false}).addTo(group);
+    const dec=L.polylineDecorator(pts,{
+      patterns:[{
+        offset:'5%', endOffset:'5%', repeat:repeat,
+        symbol:L.Symbol.arrowHead({
+          pixelSize:pixelSize, polygon:false, pathOptions:{
+            stroke:true, color:col, weight:2.2, opacity:1, lineCap:'round', lineJoin:'round', interactive:false
           }
-        }
-        d+=stepM;
-      }
-      acc=(segLen-d+stepM)%stepM;
-    }
+        })
+      }]
+    });
+    dec.addTo(group);
   }
   function updateStats(){
     document.getElementById('nPts').textContent=waypoints.length;
