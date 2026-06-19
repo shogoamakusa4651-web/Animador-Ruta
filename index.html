@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.83 · 2026-06-19</div>
+    <div class="ver" style="padding-top:4px">v3.84 · 2026-06-19</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -467,7 +467,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.83 · 2026-06-19</div>
+<div class="ver-badge" id="verBadge">v3.84 · 2026-06-19</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -704,7 +704,7 @@
   const satGroup=L.layerGroup([sat,satLabels]).addTo(map);
 
   let waypoints=[], markers=[], baseLine=null, progLine=null, car=null, animId=null, playing=false;
-  let startFlag=null, reachedStart=false;
+  let startFlag=null, reachedStart=false, baseEnd=null;
   let pauseState=null;
   let guideLayer=null, guideVisible=true;
   let viewMode=false;
@@ -861,39 +861,54 @@
     }
     if(waypoints.length>=1){
       startFlag=L.marker(waypoints[0],{icon:L.divIcon({html:'<div class="start-flag">🚩</div>',className:'',iconSize:[28,28],iconAnchor:[5,26]}),interactive:false,zIndexOffset:800}).addTo(map);
+    }
+    if(baseEnd){map.removeLayer(baseEnd);baseEnd=null;}
+    if(waypoints.length>1){
+      baseEnd=L.marker(waypoints[waypoints.length-1],{icon:L.divIcon({html:'<div class="route-end">FIN</div>',className:'',iconSize:[34,34],iconAnchor:[17,17]}),interactive:false,zIndexOffset:780}).addTo(map);
     }}
   // Coloca flechas de dirección a lo largo del trazado para indicar el sentido del recorrido
-  // Dibuja chevrons de dirección integrados en la línea (no marcadores encima).
-  // Cada chevron es una "V" en coordenadas geográficas, alineada al sentido del recorrido.
+  // Flechas de dirección HÍBRIDAS:
+  // - No aparecen bajo zoom 16 (vista panorámica queda limpia).
+  // - Densidad progresiva según zoom.
+  // - Solo se dibujan las que caen dentro del área visible (rendimiento).
+  // - Acumulador continuo: no satura calles cortas.
   function addDirArrows(pts, group, lineColor){
     if(!pts||pts.length<2)return;
     const z=map.getZoom?map.getZoom():15;
-    const stepM=z>=17?55:(z>=16?80:(z>=14?150:(z>=12?320:650))); // metros entre chevrons
-    // tamaño del chevron en metros (escala con el zoom para verse proporcional)
-    const armM=z>=17?9:(z>=16?12:(z>=14?20:(z>=12?40:80)));
+    if(z<16)return; // zoom lejano: línea limpia, sin flechas
+    const stepM = z>=19?60 : (z>=18?95 : (z>=17?110 : 180)); // metros entre flechas
+    const armM  = z>=19?10 : (z>=18?14 : (z>=17?20 : 28));    // tamaño de la flecha
     const col=lineColor||'#FFFFFF';
     const R=6378137, toRad=Math.PI/180, toDeg=180/Math.PI;
-    // mueve un punto [lat,lng] una distancia d (m) en un rumbo brng (grados)
+    const MIN_SEG=20; // segmentos menores no fuerzan flecha
+    let bounds=null; try{ bounds=map.getBounds&&map.getBounds().pad(0.15); }catch(_){}
     function move(lat,lng,d,brng){
       const br=brng*toRad, la=lat*toRad, lo=lng*toRad, dr=d/R;
       const la2=Math.asin(Math.sin(la)*Math.cos(dr)+Math.cos(la)*Math.sin(dr)*Math.cos(br));
       const lo2=lo+Math.atan2(Math.sin(br)*Math.sin(dr)*Math.cos(la),Math.cos(dr)-Math.sin(la)*Math.sin(la2));
       return [la2*toDeg, lo2*toDeg];
     }
+    const wArrow=Math.max(2.5, routeWeights().main-0.5);
     let acc=0;
     for(let i=1;i<pts.length;i++){
       const a=pts[i-1], b=pts[i];
       const segLen=haversine(a,b);
       if(segLen<1)continue;
-      const ang=bearing(a,b); // sentido del recorrido
+      const ang=bearing(a,b);
       let d=(acc===0?stepM*0.55:stepM-acc);
       while(d<segLen){
-        const f=d/segLen;
-        const tip=[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f]; // punta del chevron (hacia adelante)
-        // los dos brazos salen de la punta hacia atrás, abiertos ±35°
-        const left=move(tip[0],tip[1],armM,ang+180-35);
-        const right=move(tip[0],tip[1],armM,ang+180+35);
-        L.polyline([left,tip,right],{color:col,weight:Math.max(2,routeWeights().main-1),opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(group);
+        if(segLen>=MIN_SEG){
+          const f=d/segLen;
+          const tip=[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f];
+          // dibujar solo si está en el área visible
+          if(!bounds || bounds.contains(L.latLng(tip[0],tip[1]))){
+            const left=move(tip[0],tip[1],armM,ang+180-35);
+            const right=move(tip[0],tip[1],armM,ang+180+35);
+            // halo oscuro fino debajo para legibilidad sobre satélite claro
+            L.polyline([left,tip,right],{color:'#1A1814',weight:wArrow+2,opacity:.55,lineCap:'round',lineJoin:'round',interactive:false}).addTo(group);
+            L.polyline([left,tip,right],{color:col,weight:wArrow,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(group);
+          }
+        }
         d+=stepM;
       }
       acc=(segLen-d+stepM)%stepM;
@@ -1970,6 +1985,9 @@
     const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,dashArray:dash,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
     addDirArrows(pts, g, '#FFFFFF');
     L.circleMarker(pts[0],{radius:6,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(g);
+    // Marcador de FIN: disco institucional con la palabra FIN
+    const fin=pts[pts.length-1];
+    L.marker(fin,{interactive:false,keyboard:false,zIndexOffset:700,icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,17],html:'<div class="route-end">FIN</div>'})}).addTo(g);
     L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
     g.addTo(map); routeLayers[id]=g; }
   function adjustRouteWeights(){ const w=routeWeights(); Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l._wbase&&l.setStyle)l.setStyle({weight:l._wbase==='out'?w.out:w.main}); }); }); Object.keys(liveTrails).forEach(id=>{ if(liveTrails[id].setStyle)liveTrails[id].setStyle({weight:w.main+1.6}); }); }
