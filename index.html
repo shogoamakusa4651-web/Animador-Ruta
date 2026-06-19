@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.82 · 2026-06-18</div>
+    <div class="ver" style="padding-top:4px">v3.83 · 2026-06-19</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -467,7 +467,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.82 · 2026-06-18</div>
+<div class="ver-badge" id="verBadge">v3.83 · 2026-06-19</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -856,32 +856,44 @@
       const g=L.layerGroup();
       L.polyline(waypoints,{color:'#FFFFFF',weight:9,opacity:.8,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
       L.polyline(waypoints,{color:'#E2453C',weight:5,opacity:.97,dashArray:'12,9',lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
-      addDirArrows(waypoints, g);
+      addDirArrows(waypoints, g, '#FFFFFF');
       g.addTo(map); baseLine=g;
     }
     if(waypoints.length>=1){
       startFlag=L.marker(waypoints[0],{icon:L.divIcon({html:'<div class="start-flag">🚩</div>',className:'',iconSize:[28,28],iconAnchor:[5,26]}),interactive:false,zIndexOffset:800}).addTo(map);
     }}
   // Coloca flechas de dirección a lo largo del trazado para indicar el sentido del recorrido
-  function addDirArrows(pts, group){
+  // Dibuja chevrons de dirección integrados en la línea (no marcadores encima).
+  // Cada chevron es una "V" en coordenadas geográficas, alineada al sentido del recorrido.
+  function addDirArrows(pts, group, lineColor){
     if(!pts||pts.length<2)return;
-    // distancia entre flechas según el zoom: más cerca cuando hay más zoom
     const z=map.getZoom?map.getZoom():15;
-    const stepM=z>=16?70:(z>=14?130:(z>=12?260:500)); // metros entre flechas
+    const stepM=z>=17?55:(z>=16?80:(z>=14?150:(z>=12?320:650))); // metros entre chevrons
+    // tamaño del chevron en metros (escala con el zoom para verse proporcional)
+    const armM=z>=17?9:(z>=16?12:(z>=14?20:(z>=12?40:80)));
+    const col=lineColor||'#FFFFFF';
+    const R=6378137, toRad=Math.PI/180, toDeg=180/Math.PI;
+    // mueve un punto [lat,lng] una distancia d (m) en un rumbo brng (grados)
+    function move(lat,lng,d,brng){
+      const br=brng*toRad, la=lat*toRad, lo=lng*toRad, dr=d/R;
+      const la2=Math.asin(Math.sin(la)*Math.cos(dr)+Math.cos(la)*Math.sin(dr)*Math.cos(br));
+      const lo2=lo+Math.atan2(Math.sin(br)*Math.sin(dr)*Math.cos(la),Math.cos(dr)-Math.sin(la)*Math.sin(la2));
+      return [la2*toDeg, lo2*toDeg];
+    }
     let acc=0;
     for(let i=1;i<pts.length;i++){
       const a=pts[i-1], b=pts[i];
       const segLen=haversine(a,b);
       if(segLen<1)continue;
-      const ang=bearing(a,b); // 0=norte, sentido horario
-      // colocar flechas cada stepM a lo largo de este segmento
-      let d=(acc===0?stepM*0.6:stepM-acc);
+      const ang=bearing(a,b); // sentido del recorrido
+      let d=(acc===0?stepM*0.55:stepM-acc);
       while(d<segLen){
         const f=d/segLen;
-        const pos=[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f];
-        L.marker(pos,{interactive:false,zIndexOffset:600,
-          icon:L.divIcon({className:'',iconSize:[18,18],iconAnchor:[9,9],
-            html:'<div class="dir-arrow" style="transform:rotate('+ang+'deg)">▲</div>'})}).addTo(group);
+        const tip=[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f]; // punta del chevron (hacia adelante)
+        // los dos brazos salen de la punta hacia atrás, abiertos ±35°
+        const left=move(tip[0],tip[1],armM,ang+180-35);
+        const right=move(tip[0],tip[1],armM,ang+180+35);
+        L.polyline([left,tip,right],{color:col,weight:Math.max(2,routeWeights().main-1),opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(group);
         d+=stepM;
       }
       acc=(segLen-d+stepM)%stepM;
@@ -1956,7 +1968,7 @@
     const g=L.layerGroup(); const w=routeWeights();
     const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.75,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
     const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,dashArray:dash,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
-    addDirArrows(pts, g);
+    addDirArrows(pts, g, '#FFFFFF');
     L.circleMarker(pts[0],{radius:6,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(g);
     L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
     g.addTo(map); routeLayers[id]=g; }
