@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.81 · 2026-06-18</div>
+    <div class="ver" style="padding-top:4px">v3.82 · 2026-06-18</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -467,7 +467,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.81 · 2026-06-18</div>
+<div class="ver-badge" id="verBadge">v3.82 · 2026-06-18</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1956,11 +1956,15 @@
     const g=L.layerGroup(); const w=routeWeights();
     const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.75,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
     const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,dashArray:dash,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
+    addDirArrows(pts, g);
     L.circleMarker(pts[0],{radius:6,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(g);
     L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
     g.addTo(map); routeLayers[id]=g; }
   function adjustRouteWeights(){ const w=routeWeights(); Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l._wbase&&l.setStyle)l.setStyle({weight:l._wbase==='out'?w.out:w.main}); }); }); Object.keys(liveTrails).forEach(id=>{ if(liveTrails[id].setStyle)liveTrails[id].setStyle({weight:w.main+1.6}); }); }
+  let _arrowZoomTimer=null;
+  function refreshArrowsOnZoom(){ if(_arrowZoomTimer)clearTimeout(_arrowZoomTimer); _arrowZoomTimer=setTimeout(()=>{ const ids=Object.keys(routeLayers); ids.forEach(id=>{ const keepLive=liveTrails[id]; map.removeLayer(routeLayers[id]); delete routeLayers[id]; showRouteLayer(id); }); },120); }
   map.on('zoomend',adjustRouteWeights);
+  map.on('zoomend',refreshArrowsOnZoom);
   function hideRouteLayer(id){ if(routeLayers[id]){map.removeLayer(routeLayers[id]);delete routeLayers[id];}
     if(liveTrails&&liveTrails[id]){map.removeLayer(liveTrails[id]);delete liveTrails[id];}
     const ok='omit_'+id; if(omitLayers&&omitLayers[ok]){map.removeLayer(omitLayers[ok]);delete omitLayers[ok];} }
