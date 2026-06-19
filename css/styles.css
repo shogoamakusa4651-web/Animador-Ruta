@@ -1,4 +1,5 @@
-  --bg:#ECEAE3;
+  :root{
+    --bg:#ECEAE3;
     --glass:rgba(247,245,240,0.86);
     --glass-2:rgba(68,65,58,0.05);
     --glass-3:rgba(68,65,58,0.09);
@@ -1461,10 +1462,3 @@
     body.adm-shell .panel{left:10px;right:10px;width:auto;}
   }
 
-  /* ========= FLECHAS DE DIRECCIÓN (animador de ruta) ========= */
-  .dir-arrow{
-    width:18px;height:18px;line-height:18px;text-align:center;
-    font-size:15px;font-weight:900;color:#FFFFFF;
-    text-shadow:0 0 3px #1A1814,0 0 3px #1A1814,0 1px 2px rgba(0,0,0,.9);
-    pointer-events:none;user-select:none;
-  }
