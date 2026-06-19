@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.84 · 2026-06-19</div>
+    <div class="ver" style="padding-top:4px">v3.85 · 2026-06-19</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -467,7 +467,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.84 · 2026-06-19</div>
+<div class="ver-badge" id="verBadge">v3.85 · 2026-06-19</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -877,7 +877,9 @@
     const z=map.getZoom?map.getZoom():15;
     if(z<16)return; // zoom lejano: línea limpia, sin flechas
     const stepM = z>=19?60 : (z>=18?95 : (z>=17?110 : 180)); // metros entre flechas
-    const armM  = z>=19?10 : (z>=18?14 : (z>=17?20 : 28));    // tamaño de la flecha
+    // tamaño de la flecha en metros: largo (hacia adelante) y medio-ancho (a los lados)
+    const lenM  = z>=19?6 : (z>=18?9 : (z>=17?14 : 22));   // largo del triángulo
+    const halfW = z>=19?2.2 : (z>=18?3.2 : (z>=17?5 : 8)); // medio-ancho (no excede la línea)
     const col=lineColor||'#FFFFFF';
     const R=6378137, toRad=Math.PI/180, toDeg=180/Math.PI;
     const MIN_SEG=20; // segmentos menores no fuerzan flecha
@@ -888,7 +890,6 @@
       const lo2=lo+Math.atan2(Math.sin(br)*Math.sin(dr)*Math.cos(la),Math.cos(dr)-Math.sin(la)*Math.sin(la2));
       return [la2*toDeg, lo2*toDeg];
     }
-    const wArrow=Math.max(2.5, routeWeights().main-0.5);
     let acc=0;
     for(let i=1;i<pts.length;i++){
       const a=pts[i-1], b=pts[i];
@@ -899,14 +900,14 @@
       while(d<segLen){
         if(segLen>=MIN_SEG){
           const f=d/segLen;
-          const tip=[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f];
-          // dibujar solo si está en el área visible
-          if(!bounds || bounds.contains(L.latLng(tip[0],tip[1]))){
-            const left=move(tip[0],tip[1],armM,ang+180-35);
-            const right=move(tip[0],tip[1],armM,ang+180+35);
-            // halo oscuro fino debajo para legibilidad sobre satélite claro
-            L.polyline([left,tip,right],{color:'#1A1814',weight:wArrow+2,opacity:.55,lineCap:'round',lineJoin:'round',interactive:false}).addTo(group);
-            L.polyline([left,tip,right],{color:col,weight:wArrow,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(group);
+          const c=[a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f]; // centro de la flecha sobre la línea
+          if(!bounds || bounds.contains(L.latLng(c[0],c[1]))){
+            // triángulo: punta adelante, base atrás, centrado y contenido en el ancho de la línea
+            const tip=move(c[0],c[1],lenM/2,ang);
+            const baseC=move(c[0],c[1],lenM/2,ang+180);
+            const bl=move(baseC[0],baseC[1],halfW,ang-90);
+            const br2=move(baseC[0],baseC[1],halfW,ang+90);
+            L.polygon([tip,bl,br2],{color:col,weight:0.5,fillColor:col,fillOpacity:1,opacity:1,interactive:false}).addTo(group);
           }
         }
         d+=stepM;
