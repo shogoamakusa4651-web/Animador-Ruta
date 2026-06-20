@@ -16,7 +16,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="js/leaflet.polylineDecorator.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <!-- ===== Firebase (Fase 1) ===== -->
@@ -40,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.88 · 2026-06-19</div>
+    <div class="ver" style="padding-top:4px">v3.89 · 2026-06-19</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -468,7 +467,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.88 · 2026-06-19</div>
+<div class="ver-badge" id="verBadge">v3.89 · 2026-06-19</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -856,44 +855,22 @@
     if(waypoints.length>1){
       const g=L.layerGroup();
       L.polyline(waypoints,{color:'#FFFFFF',weight:9,opacity:.8,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
-      L.polyline(waypoints,{color:'#E2453C',weight:5,opacity:.97,dashArray:'12,9',lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
-      if(baseArrows){map.removeLayer(baseArrows);baseArrows=null;}
-      baseArrows=addDirArrows(waypoints, '#FFFFFF', null);
+      L.polyline(waypoints,{color:'#E2453C',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+      L.polyline(waypoints,{color:'#FFFFFF',weight:3,opacity:.9,dashArray:'2,16',className:'route-flow',lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
       g.addTo(map); baseLine=g;
     }
     if(waypoints.length>=1){
-      startFlag=L.marker(waypoints[0],{icon:L.divIcon({html:'<div class="start-flag">🚩</div>',className:'',iconSize:[28,28],iconAnchor:[5,26]}),interactive:false,zIndexOffset:800}).addTo(map);
+      startFlag=L.marker(waypoints[0],{icon:L.divIcon({html:'<div class="route-flag ini">🚩</div>',className:'',iconSize:[30,30],iconAnchor:[15,15]}),interactive:false,zIndexOffset:800}).addTo(map);
     }
     if(baseEnd){map.removeLayer(baseEnd);baseEnd=null;}
     if(waypoints.length>1){
-      baseEnd=L.marker(waypoints[waypoints.length-1],{icon:L.divIcon({html:'<div class="route-end">FIN</div>',className:'',iconSize:[34,34],iconAnchor:[17,17]}),interactive:false,zIndexOffset:780}).addTo(map);
+      baseEnd=L.marker(waypoints[waypoints.length-1],{icon:L.divIcon({html:'<div class="route-flag fin">🏁</div>',className:'',iconSize:[30,30],iconAnchor:[15,15]}),interactive:false,zIndexOffset:780}).addTo(map);
     }}
   let arrowDecorators={};
-  // Flechas de dirección con leaflet-polylinedecorator (tamaño fijo px, espaciado uniforme).
-  // Híbrido: no aparecen bajo zoom 16. Se añaden directo al mapa y se registran por id para limpiar.
-  function addDirArrows(pts, lineColor, id){
-    if(id && arrowDecorators[id]){ map.removeLayer(arrowDecorators[id]); delete arrowDecorators[id]; }
-    if(!pts||pts.length<2)return;
-    if(typeof L.polylineDecorator!=='function')return;
-    const z=map.getZoom?map.getZoom():15;
-    if(z<16)return;
-    const repeat = z>=19?70 : (z>=18?95 : (z>=17?130 : 200));
-    const pixelSize = z>=18?9 : (z>=17?10 : 12);
-    const col=lineColor||'#FFFFFF';
-    const dec=L.polylineDecorator(pts,{
-      patterns:[{
-        offset:'5%', endOffset:'5%', repeat:repeat,
-        symbol:L.Symbol.arrowHead({
-          pixelSize:pixelSize, polygon:false, pathOptions:{
-            stroke:true, color:col, weight:2.2, opacity:1, lineCap:'round', lineJoin:'round', interactive:false
-          }
-        })
-      }]
-    });
-    dec.addTo(map);
-    if(id)arrowDecorators[id]=dec;
-    return dec;
-  }
+  // Sistema de flechas eliminado. La dirección ahora se indica con la línea punteada
+  // animada que fluye en el sentido del recorrido (ver clase CSS .route-flow).
+  // Se mantiene como función vacía para no romper llamadas existentes.
+  function addDirArrows(){ return null; }
   function updateStats(){
     document.getElementById('nPts').textContent=waypoints.length;
     document.getElementById('dist').textContent=(totalDist()/1000).toFixed(2);
@@ -1962,19 +1939,18 @@
     const dash=null;
     const g=L.layerGroup(); const w=routeWeights();
     const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.75,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
-    const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,dashArray:dash,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
+    const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
+    // Capa de flujo: guiones blancos que se desplazan en el sentido del recorrido (efecto movimiento)
+    const flow=L.polyline(pts,{color:'#FFFFFF',weight:Math.max(2,w.main-1.5),opacity:.9,dashArray:'2,16',className:'route-flow',lineCap:'round',lineJoin:'round',interactive:false}); flow._wbase='flow'; flow.addTo(g);
     addDirArrows(pts, '#FFFFFF', id);
-    L.circleMarker(pts[0],{radius:6,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(g);
-    // Marcador de FIN: disco institucional con la palabra FIN
+    // Bandera de INICIO (salida) y FIN (meta)
     const fin=pts[pts.length-1];
-    L.marker(fin,{interactive:false,keyboard:false,zIndexOffset:700,icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,17],html:'<div class="route-end">FIN</div>'})}).addTo(g);
+    L.marker(pts[0],{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:'<div class="route-flag ini">🚩</div>'})}).addTo(g);
+    L.marker(fin,{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:'<div class="route-flag fin">🏁</div>'})}).addTo(g);
     L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
     g.addTo(map); routeLayers[id]=g; }
-  function adjustRouteWeights(){ const w=routeWeights(); Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l._wbase&&l.setStyle)l.setStyle({weight:l._wbase==='out'?w.out:w.main}); }); }); Object.keys(liveTrails).forEach(id=>{ if(liveTrails[id].setStyle)liveTrails[id].setStyle({weight:w.main+1.6}); }); }
-  let _arrowZoomTimer=null;
-  function refreshArrowsOnZoom(){ if(_arrowZoomTimer)clearTimeout(_arrowZoomTimer); _arrowZoomTimer=setTimeout(()=>{ const ids=Object.keys(routeLayers); ids.forEach(id=>{ const keepLive=liveTrails[id]; map.removeLayer(routeLayers[id]); delete routeLayers[id]; showRouteLayer(id); }); },120); }
+  function adjustRouteWeights(){ const w=routeWeights(); Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l._wbase&&l.setStyle){ if(l._wbase==='out')l.setStyle({weight:w.out}); else if(l._wbase==='flow')l.setStyle({weight:Math.max(2,w.main-1.5)}); else l.setStyle({weight:w.main}); } }); }); Object.keys(liveTrails).forEach(id=>{ if(liveTrails[id].setStyle)liveTrails[id].setStyle({weight:w.main+1.6}); }); }
   map.on('zoomend',adjustRouteWeights);
-  map.on('zoomend',refreshArrowsOnZoom);
   function hideRouteLayer(id){ if(routeLayers[id]){map.removeLayer(routeLayers[id]);delete routeLayers[id];}
     if(arrowDecorators[id]){map.removeLayer(arrowDecorators[id]);delete arrowDecorators[id];}
     if(liveTrails&&liveTrails[id]){map.removeLayer(liveTrails[id]);delete liveTrails[id];}
