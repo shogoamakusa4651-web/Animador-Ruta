@@ -1476,3 +1476,46 @@
   }
   .route-dot.ini{ background:#1F9D55; }
   .route-dot.fin{ background:#D64242; }
+
+  /* ============================================================
+     PANTALLA DEL CHOFER — diseño grande, simple, por colores
+     ============================================================ */
+  .chofer-screen{
+    position:fixed; inset:0; z-index:5000;
+    background:#042C53; color:#fff;
+    display:flex; flex-direction:column;
+    font-family:-apple-system,Segoe UI,sans-serif;
+  }
+  .chofer-screen.hide{ display:none; }
+  .cho-view{ flex:1; display:flex; flex-direction:column; padding:18px; max-width:560px; margin:0 auto; width:100%; box-sizing:border-box; }
+  .cho-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .cho-user{ display:flex; align-items:center; gap:12px; }
+  .cho-ava{ width:48px; height:48px; border-radius:50%; background:#185FA5; display:flex; align-items:center; justify-content:center; font-size:26px; }
+  .cho-id b{ display:block; font-size:18px; font-weight:600; }
+  .cho-id small{ display:block; font-size:13px; color:#85B7EB; }
+  .cho-screenlock{ display:flex; align-items:center; gap:5px; background:#0C447C; padding:7px 11px; border-radius:8px; font-size:12px; color:#FAC775; }
+  .cho-screenlock.off{ color:#F09595; }
+  .cho-body{ flex:1; display:flex; flex-direction:column; gap:12px; }
+  .cho-rcard{ background:#0C447C; border-radius:12px; padding:16px; display:flex; align-items:center; gap:12px; }
+  .cho-rcard .pin{ width:42px; height:42px; border-radius:50%; background:#185FA5; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+  .cho-rcard .info b{ display:block; font-size:17px; font-weight:600; }
+  .cho-rcard .info small{ display:block; font-size:13px; color:#85B7EB; margin-top:2px; }
+  .cho-empty{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#85B7EB; gap:14px; padding:30px; }
+  .cho-empty i{ font-size:64px; }
+  .cho-empty span{ font-size:17px; }
+  /* Botón gigante semáforo */
+  .cho-bigbtn{ border:none; border-radius:16px; padding:26px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; margin-top:16px; width:100%; transition:transform .08s; }
+  .cho-bigbtn:active{ transform:scale(.97); }
+  .cho-bigbtn i{ font-size:52px; }
+  .cho-bigbtn span{ font-size:19px; font-weight:600; }
+  .cho-bigbtn.verde{ background:#1F9D55; color:#fff; }
+  .cho-bigbtn.verde i, .cho-bigbtn.verde span{ color:#fff; }
+  .cho-bigbtn.amarillo{ background:#EF9F27; }
+  .cho-bigbtn.amarillo i, .cho-bigbtn.amarillo span{ color:#412402; }
+  .cho-bigbtn.rojo{ background:#E24B4A; }
+  .cho-bigbtn.rojo i, .cho-bigbtn.rojo span{ color:#501313; }
+  .cho-bigbtn:disabled{ opacity:.5; cursor:default; }
+
+  .cho-topright{ display:flex; align-items:center; gap:8px; }
+  .cho-exit{ width:38px; height:38px; border-radius:9px; background:#0C447C; border:none; color:#85B7EB; font-size:19px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .cho-exit:active{ transform:scale(.95); }
