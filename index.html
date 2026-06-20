@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.92 · 2026-06-20</div>
+    <div class="ver" style="padding-top:4px">v3.93 · 2026-06-20</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -489,7 +489,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.92 · 2026-06-20</div>
+<div class="ver-badge" id="verBadge">v3.93 · 2026-06-20</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3484,13 +3484,23 @@
   function iniciarComoChofer(u){
     // Chofer: pantalla propia, grande y simple. NO ve el panel de admin.
     currentUserRole='chofer';
+    if(u&&u.code)choferCode=u.code;
+    if(u&&u.data&&u.data.name)choferName=u.data.name;
+    document.body.classList.add('rol-chofer');
+    // Ocultar TODO lo del panel admin y el login
+    const ag=document.getElementById('admGate'); if(ag)ag.classList.add('hide');
+    const sg=document.getElementById('supGate'); if(sg)sg.classList.add('hide');
     const sc=document.getElementById('choferScreen');
-    document.getElementById('admGate').classList.add('hide');
     if(sc)sc.classList.remove('hide');
-    // datos visibles
     const nm=document.getElementById('choNombre'); if(nm)nm.textContent=choferName||choferCode||'Chofer';
-    // cargar sus rutas del día y montar la pantalla de inicio
-    renderChoferInicio();
+    // Si las rutas aún no han cargado de Firebase, esperar a que lleguen
+    try{ renderChoferInicio(); }catch(e){ console.warn('chofer init:',e); }
+    if(!mgmtRutas || !Object.keys(mgmtRutas).length){
+      fbDb.ref('rutas').once('value').then(s=>{ mgmtRutas=s.val()||{}; try{renderChoferInicio();}catch(_){}})
+        .catch(()=>{});
+      // y suscribirse a cambios para mantener actualizado
+      fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; if(currentUserRole==='chofer'){try{renderChoferInicio();}catch(_){}}});
+    }
   }
   // Mantener pantalla encendida (Wake Lock) mientras el chofer trabaja
   let _wakeLock=null;
