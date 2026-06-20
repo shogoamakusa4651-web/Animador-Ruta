@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.95 · 2026-06-20</div>
+    <div class="ver" style="padding-top:4px">v3.96 · 2026-06-20</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -515,7 +515,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.95 · 2026-06-20</div>
+<div class="ver-badge" id="verBadge">v3.96 · 2026-06-20</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3572,6 +3572,10 @@
       return;
     }
     if(btn)btn.style.display='';
+    // Asignar el onclick DIRECTAMENTE al botón (forma más robusta, sin delegación)
+    if(btn){ btn.onclick=function(ev){ if(ev){ev.preventDefault();} choferEmpezar(); }; }
+    const exitBtn=document.getElementById('choExit');
+    if(exitBtn){ exitBtn.onclick=function(){ if(confirm('¿Salir de tu sesión?')) logout(); }; }
     list.innerHTML=rutas.map(o=>{
       const r=o.r; const km=r.wp?((decode(r.wp)||[]).length):0;
       return '<div class="cho-rcard"><div class="pin"><i class="ti ti-map-pin" aria-hidden="true"></i></div>'
@@ -3628,11 +3632,7 @@
       +'<button id="choNovedad" style="flex:1;background:#E24B4A;border:none;border-radius:14px;padding:20px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;">'
       +'<i class="ti ti-flag" style="font-size:34px;color:#501313;"></i><span style="color:#501313;font-size:15px;font-weight:600;">Novedad</span></button>';
   }
-  // Handler directo del botón Empezar (al montar la pantalla)
-  document.addEventListener('click',function(e){
-    const b=e.target.closest&&e.target.closest('#choStartBtn'); if(b){ e.preventDefault(); e.stopPropagation(); choferEmpezar(); return; }
-    const x=e.target.closest&&e.target.closest('#choExit'); if(x){ if(confirm('¿Salir de tu sesión?')) logout(); return; }
-  },true);
+  // (El onclick del botón Empezar y Salir se asigna directamente en renderChoferInicio)
   function iniciarComoAdminSecundario(u){
     // Admin secundario: entra al panel completo en modo solo-lectura.
     // La edición real exige el correo maestro (lo garantizan las reglas de Firebase).
