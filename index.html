@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.90 · 2026-06-19</div>
+    <div class="ver" style="padding-top:4px">v3.91 · 2026-06-19</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -467,7 +467,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.90 · 2026-06-19</div>
+<div class="ver-badge" id="verBadge">v3.91 · 2026-06-19</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1929,7 +1929,7 @@
   let routeLayers={}, monDaysSel=new Set(), simTimer=null;
   const ROUTE_COLORS=['#2E7DF2','#F59E0B','#A855F7','#EC4899','#06B6D4','#F97316','#14B8A6','#EF4444'];
   function routeColor(id){ const ids=Object.keys(mgmtRutas||{}).sort(); const i=ids.indexOf(id); return ROUTE_COLORS[(i<0?0:i)%ROUTE_COLORS.length]; }
-  function routeWeights(){ const z=map.getZoom?map.getZoom():15; const f=Math.max(0.4,Math.min(1,(z-9)/6)); return {out:Math.max(3,5*f), main:Math.max(1.6,3*f)}; }
+  function routeWeights(){ const z=map.getZoom?map.getZoom():15; const f=Math.max(0.4,Math.min(1,(z-9)/6)); return {out:Math.max(4,7*f), main:Math.max(2.5,4.5*f)}; }
   // Dibuja la ruta como línea fina con GRADIENTE DE PROGRESO:
   // del inicio (claro) al final (oscuro). Cada segmento toma un color según su
   // posición en el orden del recorrido, así dos pasadas por la misma calle no se confunden.
@@ -1954,24 +1954,17 @@
     // semáforo del día: completada=verde sólido · programada hoy sin transitar=rojo · otras=color propio
     const _n=new Date(); const _hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const done=r.viajes&&r.viajes[_hoy]&&Object.keys(r.viajes[_hoy]).length;
-    const col=done?'#27A35B':routeColor(id);
-    const dash=null;
     const g=L.layerGroup(); const w=routeWeights();
-    if(done){
-      // Ruta completada: línea verde sólida fina con contraste
-      L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.6,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
-      const m=L.polyline(pts,{color:'#27A35B',weight:w.main,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}); m._wbase='main'; m.addTo(g);
-    } else {
-      // Halo de contraste fino debajo
-      const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.55,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
-      // Gradiente de progreso: cada segmento se colorea según su orden en el recorrido
-      drawProgressLine(pts, g, w.main);
-    }
+    const col=done?'#27A35B':routeColor(id);
+    // Halo de contraste debajo
+    const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.6,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
+    // Línea principal sólida (el verde de avance lo pinta el trail en vivo encima)
+    const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
     addDirArrows(pts, '#FFFFFF', id);
     // Marcadores discretos: A (inicio) y B (fin)
     const fin=pts[pts.length-1];
-    L.marker(pts[0],{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[20,20],iconAnchor:[10,10],html:'<div class="route-dot ini">A</div>'})}).addTo(g);
-    L.marker(fin,{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[20,20],iconAnchor:[10,10],html:'<div class="route-dot fin">B</div>'})}).addTo(g);
+    L.marker(pts[0],{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:'<div class="route-dot ini">🚩</div>'})}).addTo(g);
+    L.marker(fin,{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:'<div class="route-dot fin">🏁</div>'})}).addTo(g);
     L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
     g.addTo(map); routeLayers[id]=g; }
   function adjustRouteWeights(){ const w=routeWeights(); Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l._wbase&&l.setStyle){ if(l._wbase==='out')l.setStyle({weight:w.out}); else if(l._wbase==='flow')l.setStyle({weight:Math.max(2,w.main-1.5)}); else l.setStyle({weight:w.main}); } }); }); Object.keys(liveTrails).forEach(id=>{ if(liveTrails[id].setStyle)liveTrails[id].setStyle({weight:w.main+1.6}); }); }
