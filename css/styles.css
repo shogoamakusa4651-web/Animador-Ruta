@@ -1466,14 +1466,13 @@
 
 
 
-  /* ========= MARCADORES A (inicio) y B (fin) ========= */
+
+  /* ========= MARCADORES INICIO Y FIN ========= */
   .route-dot{
-    width:20px;height:20px;border-radius:50%;
+    width:26px;height:26px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
-    font-size:11px;font-weight:800;color:#fff;
-    border:2px solid #fff;
-    box-shadow:0 1px 5px rgba(0,0,0,.5);
-    font-family:-apple-system,Segoe UI,sans-serif;
+    font-size:14px;border:3px solid #fff;
+    box-shadow:0 2px 7px rgba(0,0,0,.55);
   }
-  .route-dot.ini{ background:#3B8BD4; }
-  .route-dot.fin{ background:#5B2AA8; }
+  .route-dot.ini{ background:#1F9D55; }
+  .route-dot.fin{ background:#D64242; }
