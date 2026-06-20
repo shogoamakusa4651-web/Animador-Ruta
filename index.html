@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.94 · 2026-06-20</div>
+    <div class="ver" style="padding-top:4px">v3.95 · 2026-06-20</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -515,7 +515,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.94 · 2026-06-20</div>
+<div class="ver-badge" id="verBadge">v3.95 · 2026-06-20</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3578,16 +3578,61 @@
         +'<div class="info"><b>'+esc(r.nombre||'Ruta')+'</b><small>'+esc(r.sector||'')+(r.freq&&r.freq.length?(' · '+r.freq.join(' ')):'')+'</small></div></div>';
     }).join('');
   }
-  // Botón empezar (Etapa 1: activa wake lock y avisa; el modo navegación viene en Etapa 2)
-  document.addEventListener('click',function(e){
-    const b=e.target.closest&&e.target.closest('#choStartBtn'); if(!b)return;
+  // Estado del turno del chofer
+  let choferTurno={activo:false, rutaId:null};
+  function choferEmpezar(){
     pedirWakeLock();
-    toast('Turno iniciado · próximamente: navegación a la ruta');
-  });
+    const rutas=rutasDelChofer();
+    if(!rutas.length){ toast('No tienes rutas asignadas hoy'); return; }
+    choferTurno.activo=true; choferTurno.rutaId=rutas[0].id;
+    // Ocultar la pantalla de inicio del chofer → deja ver el MAPA de fondo
+    const sc=document.getElementById('choferScreen'); if(sc)sc.classList.add('hide');
+    // Mostrar el mapa con la ruta del chofer
+    document.body.classList.add('chofer-ruta-activa');
+    mostrarMapaChofer(rutas[0].id);
+  }
+  function mostrarMapaChofer(rutaId){
+    // Asegurar que el contenedor del mapa sea visible y recalcular tamaño
+    const mapEl=document.getElementById('map'); if(mapEl)mapEl.style.zIndex='1';
+    try{ map.invalidateSize(); }catch(_){}
+    // Limpiar capas previas y dibujar SOLO la ruta del chofer
+    try{ Object.keys(routeLayers||{}).forEach(id=>hideRouteLayer(id)); }catch(_){}
+    const r=mgmtRutas[rutaId];
+    if(r&&r.wp){ const pts=decode(r.wp);
+      if(pts&&pts.length){ showRouteLayer(rutaId);
+        try{ map.fitBounds(L.latLngBounds(pts).pad(0.15)); }catch(_){}
+      }
+    }
+    // Mostrar la barra superior del chofer y los botones de acción
+    montarBarraChofer(r);
+  }
+  function montarBarraChofer(r){
+    let bar=document.getElementById('choBar');
+    if(!bar){
+      bar=document.createElement('div'); bar.id='choBar';
+      bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:6000;background:#042C53;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:-apple-system,Segoe UI,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.4);';
+      document.body.appendChild(bar);
+    }
+    bar.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'
+      +'<i class="ti ti-map-pin" style="font-size:22px;color:#85B7EB;"></i>'
+      +'<div><b style="font-size:16px;">'+esc((r&&r.nombre)||'Ruta')+'</b><div style="font-size:12px;color:#85B7EB;">Sigue la línea de tu ruta</div></div></div>'
+      +'<div style="display:flex;align-items:center;gap:5px;background:#0C447C;padding:6px 10px;border-radius:8px;font-size:12px;color:#FAC775;"><i class="ti ti-bulb"></i> Activa</div>';
+    let acts=document.getElementById('choActs');
+    if(!acts){
+      acts=document.createElement('div'); acts.id='choActs';
+      acts.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:6000;display:flex;gap:10px;padding:12px;font-family:-apple-system,Segoe UI,sans-serif;';
+      document.body.appendChild(acts);
+    }
+    acts.innerHTML='<button id="choDescargar" style="flex:2;background:#EF9F27;border:none;border-radius:14px;padding:20px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;">'
+      +'<i class="ti ti-truck-loading" style="font-size:34px;color:#412402;"></i><span style="color:#412402;font-size:15px;font-weight:600;">Descargar</span></button>'
+      +'<button id="choNovedad" style="flex:1;background:#E24B4A;border:none;border-radius:14px;padding:20px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;">'
+      +'<i class="ti ti-flag" style="font-size:34px;color:#501313;"></i><span style="color:#501313;font-size:15px;font-weight:600;">Novedad</span></button>';
+  }
+  // Handler directo del botón Empezar (al montar la pantalla)
   document.addEventListener('click',function(e){
-    const x=e.target.closest&&e.target.closest('#choExit'); if(!x)return;
-    if(confirm('¿Salir de tu sesión?')) logout();
-  });
+    const b=e.target.closest&&e.target.closest('#choStartBtn'); if(b){ e.preventDefault(); e.stopPropagation(); choferEmpezar(); return; }
+    const x=e.target.closest&&e.target.closest('#choExit'); if(x){ if(confirm('¿Salir de tu sesión?')) logout(); return; }
+  },true);
   function iniciarComoAdminSecundario(u){
     // Admin secundario: entra al panel completo en modo solo-lectura.
     // La edición real exige el correo maestro (lo garantizan las reglas de Firebase).
