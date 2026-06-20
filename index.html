@@ -40,7 +40,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.86 · 2026-06-19</div>
+    <div class="ver" style="padding-top:4px">v3.87 · 2026-06-19</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -468,7 +468,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.86 · 2026-06-19</div>
+<div class="ver-badge" id="verBadge">v3.87 · 2026-06-19</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -705,7 +705,7 @@
   const satGroup=L.layerGroup([sat,satLabels]).addTo(map);
 
   let waypoints=[], markers=[], baseLine=null, progLine=null, car=null, animId=null, playing=false;
-  let startFlag=null, reachedStart=false, baseEnd=null;
+  let startFlag=null, reachedStart=false, baseEnd=null, baseArrows=null;
   let pauseState=null;
   let guideLayer=null, guideVisible=true;
   let viewMode=false;
@@ -857,7 +857,8 @@
       const g=L.layerGroup();
       L.polyline(waypoints,{color:'#FFFFFF',weight:9,opacity:.8,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
       L.polyline(waypoints,{color:'#E2453C',weight:5,opacity:.97,dashArray:'12,9',lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
-      addDirArrows(waypoints, g, '#FFFFFF');
+      if(baseArrows){map.removeLayer(baseArrows);baseArrows=null;}
+      baseArrows=addDirArrows(waypoints, '#FFFFFF', null);
       g.addTo(map); baseLine=g;
     }
     if(waypoints.length>=1){
@@ -867,16 +868,17 @@
     if(waypoints.length>1){
       baseEnd=L.marker(waypoints[waypoints.length-1],{icon:L.divIcon({html:'<div class="route-end">FIN</div>',className:'',iconSize:[34,34],iconAnchor:[17,17]}),interactive:false,zIndexOffset:780}).addTo(map);
     }}
-  // Flechas de dirección con leaflet-polylinedecorator (nivel producción):
-  // tamaño fijo en píxeles, espaciado uniforme, chevron fino.
-  // Híbrido: no aparecen bajo zoom 16; densidad progresiva según zoom.
-  function addDirArrows(pts, group, lineColor){
+  let arrowDecorators={};
+  // Flechas de dirección con leaflet-polylinedecorator (tamaño fijo px, espaciado uniforme).
+  // Híbrido: no aparecen bajo zoom 16. Se añaden directo al mapa y se registran por id para limpiar.
+  function addDirArrows(pts, lineColor, id){
+    if(id && arrowDecorators[id]){ map.removeLayer(arrowDecorators[id]); delete arrowDecorators[id]; }
     if(!pts||pts.length<2)return;
-    if(typeof L.polylineDecorator!=='function')return; // librería no cargada
+    if(typeof L.polylineDecorator!=='function')return;
     const z=map.getZoom?map.getZoom():15;
-    if(z<16)return; // zoom lejano: línea limpia
-    const repeat = z>=19?70 : (z>=18?95 : (z>=17?130 : 200)); // px entre flechas
-    const pixelSize = z>=18?9 : (z>=17?10 : 12);               // tamaño fijo de la flecha
+    if(z<16)return;
+    const repeat = z>=19?70 : (z>=18?95 : (z>=17?130 : 200));
+    const pixelSize = z>=18?9 : (z>=17?10 : 12);
     const col=lineColor||'#FFFFFF';
     const dec=L.polylineDecorator(pts,{
       patterns:[{
@@ -888,7 +890,9 @@
         })
       }]
     });
-    dec.addTo(group);
+    dec.addTo(map);
+    if(id)arrowDecorators[id]=dec;
+    return dec;
   }
   function updateStats(){
     document.getElementById('nPts').textContent=waypoints.length;
@@ -1959,7 +1963,7 @@
     const g=L.layerGroup(); const w=routeWeights();
     const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.75,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
     const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,dashArray:dash,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
-    addDirArrows(pts, g, '#FFFFFF');
+    addDirArrows(pts, '#FFFFFF', id);
     L.circleMarker(pts[0],{radius:6,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(g);
     // Marcador de FIN: disco institucional con la palabra FIN
     const fin=pts[pts.length-1];
@@ -1972,6 +1976,7 @@
   map.on('zoomend',adjustRouteWeights);
   map.on('zoomend',refreshArrowsOnZoom);
   function hideRouteLayer(id){ if(routeLayers[id]){map.removeLayer(routeLayers[id]);delete routeLayers[id];}
+    if(arrowDecorators[id]){map.removeLayer(arrowDecorators[id]);delete arrowDecorators[id];}
     if(liveTrails&&liveTrails[id]){map.removeLayer(liveTrails[id]);delete liveTrails[id];}
     const ok='omit_'+id; if(omitLayers&&omitLayers[ok]){map.removeLayer(omitLayers[ok]);delete omitLayers[ok];} }
   function refreshRouteLayers(){ Object.keys(routeLayers).forEach(id=>{ const keep=liveTrails[id]; map.removeLayer(routeLayers[id]); delete routeLayers[id]; showRouteLayer(id); }); }
