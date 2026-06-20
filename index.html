@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.89 · 2026-06-19</div>
+    <div class="ver" style="padding-top:4px">v3.90 · 2026-06-19</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -467,7 +467,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.89 · 2026-06-19</div>
+<div class="ver-badge" id="verBadge">v3.90 · 2026-06-19</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1929,7 +1929,26 @@
   let routeLayers={}, monDaysSel=new Set(), simTimer=null;
   const ROUTE_COLORS=['#2E7DF2','#F59E0B','#A855F7','#EC4899','#06B6D4','#F97316','#14B8A6','#EF4444'];
   function routeColor(id){ const ids=Object.keys(mgmtRutas||{}).sort(); const i=ids.indexOf(id); return ROUTE_COLORS[(i<0?0:i)%ROUTE_COLORS.length]; }
-  function routeWeights(){ const z=map.getZoom?map.getZoom():15; const f=Math.max(0.4,Math.min(1,(z-9)/6)); return {out:Math.max(5,9*f), main:Math.max(3,5.5*f)}; }
+  function routeWeights(){ const z=map.getZoom?map.getZoom():15; const f=Math.max(0.4,Math.min(1,(z-9)/6)); return {out:Math.max(3,5*f), main:Math.max(1.6,3*f)}; }
+  // Dibuja la ruta como línea fina con GRADIENTE DE PROGRESO:
+  // del inicio (claro) al final (oscuro). Cada segmento toma un color según su
+  // posición en el orden del recorrido, así dos pasadas por la misma calle no se confunden.
+  function lerpColor(c1,c2,t){
+    const a=parseInt(c1.slice(1),16), b=parseInt(c2.slice(1),16);
+    const ar=(a>>16)&255,ag=(a>>8)&255,ab=a&255, br=(b>>16)&255,bg=(b>>8)&255,bb=b&255;
+    const r=Math.round(ar+(br-ar)*t), g=Math.round(ag+(bg-ag)*t), bl=Math.round(ab+(bb-ab)*t);
+    return '#'+((1<<24)+(r<<16)+(g<<8)+bl).toString(16).slice(1);
+  }
+  function drawProgressLine(pts, group, weight){
+    const n=pts.length; if(n<2){ return; }
+    const C0='#7CC4FF', C1='#5B2AA8'; // claro (inicio) -> oscuro (fin)
+    for(let i=1;i<n;i++){
+      const t=(i-1)/(n-2||1);
+      const col=lerpColor(C0,C1,t);
+      const seg=L.polyline([pts[i-1],pts[i]],{color:col,weight:weight,opacity:1,lineCap:'round',lineJoin:'round',interactive:false});
+      seg._wbase='main'; seg.addTo(group);
+    }
+  }
   function showRouteLayer(id){ const r=mgmtRutas[id]; if(!r||routeLayers[id])return;
     const pts=decode(r.wp||''); if(!pts||pts.length<2)return;
     // semáforo del día: completada=verde sólido · programada hoy sin transitar=rojo · otras=color propio
@@ -1938,15 +1957,21 @@
     const col=done?'#27A35B':routeColor(id);
     const dash=null;
     const g=L.layerGroup(); const w=routeWeights();
-    const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.75,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
-    const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
-    // Capa de flujo: guiones blancos que se desplazan en el sentido del recorrido (efecto movimiento)
-    const flow=L.polyline(pts,{color:'#FFFFFF',weight:Math.max(2,w.main-1.5),opacity:.9,dashArray:'2,16',className:'route-flow',lineCap:'round',lineJoin:'round',interactive:false}); flow._wbase='flow'; flow.addTo(g);
+    if(done){
+      // Ruta completada: línea verde sólida fina con contraste
+      L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.6,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+      const m=L.polyline(pts,{color:'#27A35B',weight:w.main,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}); m._wbase='main'; m.addTo(g);
+    } else {
+      // Halo de contraste fino debajo
+      const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.55,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
+      // Gradiente de progreso: cada segmento se colorea según su orden en el recorrido
+      drawProgressLine(pts, g, w.main);
+    }
     addDirArrows(pts, '#FFFFFF', id);
-    // Bandera de INICIO (salida) y FIN (meta)
+    // Marcadores discretos: A (inicio) y B (fin)
     const fin=pts[pts.length-1];
-    L.marker(pts[0],{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:'<div class="route-flag ini">🚩</div>'})}).addTo(g);
-    L.marker(fin,{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:'<div class="route-flag fin">🏁</div>'})}).addTo(g);
+    L.marker(pts[0],{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[20,20],iconAnchor:[10,10],html:'<div class="route-dot ini">A</div>'})}).addTo(g);
+    L.marker(fin,{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[20,20],iconAnchor:[10,10],html:'<div class="route-dot fin">B</div>'})}).addTo(g);
     L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
     g.addTo(map); routeLayers[id]=g; }
   function adjustRouteWeights(){ const w=routeWeights(); Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l._wbase&&l.setStyle){ if(l._wbase==='out')l.setStyle({weight:w.out}); else if(l._wbase==='flow')l.setStyle({weight:Math.max(2,w.main-1.5)}); else l.setStyle({weight:w.main}); } }); }); Object.keys(liveTrails).forEach(id=>{ if(liveTrails[id].setStyle)liveTrails[id].setStyle({weight:w.main+1.6}); }); }
