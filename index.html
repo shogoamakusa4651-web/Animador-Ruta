@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.91 · 2026-06-19</div>
+    <div class="ver" style="padding-top:4px">v3.92 · 2026-06-20</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -243,6 +243,28 @@
       <span><b>Atajo:</b> Alt + click derecho sobre el mapa deshace el último punto.</span>
     </div>
     <button class="primary-action" id="startBtn">Empezar →</button>
+  </div>
+</div>
+
+<!-- ===== PANTALLA DEL CHOFER ===== -->
+<div class="chofer-screen hide" id="choferScreen">
+  <!-- ESTADO: INICIO (antes de empezar) -->
+  <div class="cho-view" id="choInicio">
+    <div class="cho-top">
+      <div class="cho-user">
+        <div class="cho-ava"><i class="ti ti-user" aria-hidden="true"></i></div>
+        <div class="cho-id"><b id="choNombre">—</b><small id="choCamion">—</small></div>
+      </div>
+      <div class="cho-topright">
+        <div class="cho-screenlock" id="choLock"><i class="ti ti-bulb" aria-hidden="true"></i><span>Pantalla activa</span></div>
+        <button class="cho-exit" id="choExit" aria-label="Salir"><i class="ti ti-logout" aria-hidden="true"></i></button>
+      </div>
+    </div>
+    <div class="cho-body" id="choRutasList"></div>
+    <button class="cho-bigbtn verde" id="choStartBtn">
+      <i class="ti ti-player-play" aria-hidden="true"></i>
+      <span>Empezar</span>
+    </button>
   </div>
 </div>
 
@@ -467,7 +489,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.91 · 2026-06-19</div>
+<div class="ver-badge" id="verBadge">v3.92 · 2026-06-20</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3460,13 +3482,73 @@
     toast('Supervisor · '+(currentUserName||''));
   }
   function iniciarComoChofer(u){
-    // Chofer: solo Monitoreo con su turno. Por ahora usa el flujo de transmisión existente.
+    // Chofer: pantalla propia, grande y simple. NO ve el panel de admin.
     currentUserRole='chofer';
-    enterAdmApp();
-    aplicarPermisos('chofer');
-    setSection('monitoreo');
-    toast('Chofer · '+(choferName||choferCode||''));
+    const sc=document.getElementById('choferScreen');
+    document.getElementById('admGate').classList.add('hide');
+    if(sc)sc.classList.remove('hide');
+    // datos visibles
+    const nm=document.getElementById('choNombre'); if(nm)nm.textContent=choferName||choferCode||'Chofer';
+    // cargar sus rutas del día y montar la pantalla de inicio
+    renderChoferInicio();
   }
+  // Mantener pantalla encendida (Wake Lock) mientras el chofer trabaja
+  let _wakeLock=null;
+  async function pedirWakeLock(){
+    try{ if('wakeLock' in navigator){ _wakeLock=await navigator.wakeLock.request('screen');
+      const lk=document.getElementById('choLock'); if(lk){lk.classList.remove('off'); lk.querySelector('span').textContent='Pantalla activa';}
+      _wakeLock.addEventListener('release',()=>{ const l=document.getElementById('choLock'); if(l)l.classList.add('off'); });
+    } }catch(e){ const lk=document.getElementById('choLock'); if(lk){lk.classList.add('off'); lk.querySelector('span').textContent='Mantén la pantalla'; } }
+  }
+  // reintentar wake lock al volver a la pestaña
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && currentUserRole==='chofer' && _wakeLock===null){ /* se repide al iniciar turno */ } });
+
+  // Devuelve las rutas asignadas a este chofer, programadas para hoy
+  function rutasDelChofer(){
+    const code=choferCode; if(!code)return [];
+    const _n=new Date(); const dia=['D','L','M','X','J','V','S'][_n.getDay()];
+    const out=[];
+    Object.keys(mgmtRutas||{}).forEach(id=>{
+      const r=mgmtRutas[id]||{};
+      const mine=(r.choferCode && (r.choferCode===code || fbKey(r.choferCode)===fbKey(code)));
+      if(!mine)return;
+      const hoy=(r.freq||[]).includes(dia);
+      if(hoy)out.push({id:id,r:r});
+    });
+    return out;
+  }
+
+  function renderChoferInicio(){
+    const cam=document.getElementById('choCamion');
+    const list=document.getElementById('choRutasList');
+    const btn=document.getElementById('choStartBtn');
+    const rutas=rutasDelChofer();
+    // camión: el de la primera ruta asignada
+    let ficha=''; if(rutas.length){ ficha=rutas[0].r.camion||''; }
+    if(cam)cam.textContent=ficha?('Camión '+ficha):'Sin camión asignado';
+    if(!list)return;
+    if(!rutas.length){
+      list.innerHTML='<div class="cho-empty"><i class="ti ti-calendar-off" aria-hidden="true"></i><span>No tienes rutas asignadas para hoy</span></div>';
+      if(btn)btn.style.display='none';
+      return;
+    }
+    if(btn)btn.style.display='';
+    list.innerHTML=rutas.map(o=>{
+      const r=o.r; const km=r.wp?((decode(r.wp)||[]).length):0;
+      return '<div class="cho-rcard"><div class="pin"><i class="ti ti-map-pin" aria-hidden="true"></i></div>'
+        +'<div class="info"><b>'+esc(r.nombre||'Ruta')+'</b><small>'+esc(r.sector||'')+(r.freq&&r.freq.length?(' · '+r.freq.join(' ')):'')+'</small></div></div>';
+    }).join('');
+  }
+  // Botón empezar (Etapa 1: activa wake lock y avisa; el modo navegación viene en Etapa 2)
+  document.addEventListener('click',function(e){
+    const b=e.target.closest&&e.target.closest('#choStartBtn'); if(!b)return;
+    pedirWakeLock();
+    toast('Turno iniciado · próximamente: navegación a la ruta');
+  });
+  document.addEventListener('click',function(e){
+    const x=e.target.closest&&e.target.closest('#choExit'); if(!x)return;
+    if(confirm('¿Salir de tu sesión?')) logout();
+  });
   function iniciarComoAdminSecundario(u){
     // Admin secundario: entra al panel completo en modo solo-lectura.
     // La edición real exige el correo maestro (lo garantizan las reglas de Firebase).
