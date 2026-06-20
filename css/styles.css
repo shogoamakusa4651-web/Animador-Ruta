@@ -1,4 +1,4 @@
-  :root{
+:root{
     --bg:#ECEAE3;
     --glass:rgba(247,245,240,0.86);
     --glass-2:rgba(68,65,58,0.05);
@@ -1463,12 +1463,20 @@
   }
 
 
-  /* ========= MARCADOR DE FIN DE RUTA ========= */
-  .route-end{
-    width:34px;height:34px;border-radius:50%;
-    background:#2E2C27;border:3px solid #FFFFFF;
-    color:#FFFFFF;font-size:11px;font-weight:800;letter-spacing:.5px;
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 2px 8px rgba(0,0,0,.5);
-    font-family:-apple-system,Segoe UI,sans-serif;
+
+  /* ========= FLUJO DIRECCIONAL DE RUTA (línea que fluye) ========= */
+  @keyframes routeFlow { to { stroke-dashoffset: -18; } }
+  .route-flow {
+    stroke-dasharray: 2 16;
+    animation: routeFlow 1s linear infinite;
   }
+
+  /* ========= BANDERAS DE INICIO Y FIN ========= */
+  .route-flag{
+    width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;border:3px solid #fff;
+    box-shadow:0 2px 8px rgba(0,0,0,.55);
+  }
+  .route-flag.ini{ background:#1F9D55; }
+  .route-flag.fin{ background:#D64242; }
