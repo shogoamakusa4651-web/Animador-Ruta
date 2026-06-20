@@ -1,4 +1,4 @@
-:root{
+ :root{
     --bg:#ECEAE3;
     --glass:rgba(247,245,240,0.86);
     --glass-2:rgba(68,65,58,0.05);
@@ -1481,7 +1481,7 @@
      PANTALLA DEL CHOFER — diseño grande, simple, por colores
      ============================================================ */
   .chofer-screen{
-    position:fixed; inset:0; z-index:5000;
+    position:fixed; inset:0; z-index:99999;
     background:#042C53; color:#fff;
     display:flex; flex-direction:column;
     font-family:-apple-system,Segoe UI,sans-serif;
