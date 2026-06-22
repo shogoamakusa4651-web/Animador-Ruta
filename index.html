@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.01 · 2026-06-22</div>
+    <div class="ver" style="padding-top:4px">v4.02 · 2026-06-22</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -282,6 +282,7 @@ body.chofer-ruta-activa .leaflet-control-attribution{ display:none !important; }
 /* La tarjeta de próximo giro (turnCard) SÍ se muestra al chofer, reposicionada bajo su barra */
 body.chofer-ruta-activa #turnCard{ top:70px !important; }
 body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:1 !important; }
+@keyframes choPulse{ 0%{ box-shadow:0 0 0 0 rgba(249,115,22,.7); } 70%{ box-shadow:0 0 0 14px rgba(249,115,22,0); } 100%{ box-shadow:0 0 0 0 rgba(249,115,22,0); } }
 /* Barra superior del chofer y botones de acción */
 #choBar{ box-sizing:border-box; }
 #choActs{ box-sizing:border-box; }
@@ -541,7 +542,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.01 · 2026-06-22</div>
+<div class="ver-badge" id="verBadge">v4.02 · 2026-06-22</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3617,13 +3618,20 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   // Estado del turno del chofer
   let choferTurno={activo:false, rutaId:null};
   function choferEmpezar(){
+    // DESBLOQUEO DE VOZ iOS: hablar AHORA mismo, en el toque directo (Safari lo exige)
+    try{
+      if('speechSynthesis' in window){
+        window.speechSynthesis.cancel();
+        const u=new SpeechSynthesisUtterance('Iniciando ruta');
+        u.lang='es-DO'; u.rate=1.0; u.volume=1.0;
+        window.speechSynthesis.speak(u);
+      }
+    }catch(_){}
     pedirWakeLock();
     const rutas=rutasDelChofer();
     if(!rutas.length){ toast('No tienes rutas asignadas hoy'); return; }
     choferTurno.activo=true; choferTurno.rutaId=rutas[0].id;
-    // Ocultar la pantalla de inicio del chofer → deja ver el MAPA de fondo
     const sc=document.getElementById('choferScreen'); if(sc){ sc.classList.add('hide'); sc.style.display='none'; }
-    // Mostrar el mapa con la ruta del chofer
     document.body.classList.add('chofer-ruta-activa');
     mostrarMapaChofer(rutas[0].id);
   }
@@ -3679,13 +3687,125 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     let acts=document.getElementById('choActs');
     if(!acts){
       acts=document.createElement('div'); acts.id='choActs';
-      acts.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:6000;display:flex;gap:10px;padding:12px;font-family:-apple-system,Segoe UI,sans-serif;';
+      acts.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:6000;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;font-family:-apple-system,Segoe UI,sans-serif;';
       document.body.appendChild(acts);
     }
-    acts.innerHTML='<button id="choDescargar" style="flex:2;background:#EF9F27;border:none;border-radius:14px;padding:20px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;">'
-      +'<i class="ti ti-truck-loading" style="font-size:34px;color:#412402;"></i><span style="color:#412402;font-size:15px;font-weight:600;">Descargar</span></button>'
-      +'<button id="choNovedad" style="flex:1;background:#E24B4A;border:none;border-radius:14px;padding:20px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;">'
-      +'<i class="ti ti-flag" style="font-size:34px;color:#501313;"></i><span style="color:#501313;font-size:15px;font-weight:600;">Novedad</span></button>';
+    acts.innerHTML=
+       botonChofer('choLleno','#EF9F27','#412402','ti-trash','Capacidad máxima')
+      +botonChofer('choCombustible','#2F7DC2','#fff','ti-gas-station','Combustible')
+      +botonChofer('choReporte','#E24B4A','#fff','ti-alert-triangle','Reporte')
+      +botonChofer('choObstaculo','#8B5CF6','#fff','ti-barrier-block','Obstáculo');
+    // Asignar acciones con confirmación
+    bindChofBtn('choLleno', ()=>accionLleno());
+    bindChofBtn('choCombustible', ()=>accionCombustible());
+    bindChofBtn('choReporte', ()=>accionAlerta('reporte','Reporte de avería o urgencia'));
+    bindChofBtn('choObstaculo', ()=>accionAlerta('obstaculo','Obstáculo que impide la ruta'));
+  }
+  function botonChofer(id,bg,fg,icon,label){
+    return '<button id="'+id+'" style="background:'+bg+';border:none;border-radius:14px;padding:16px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;min-height:84px;">'
+      +'<i class="ti '+icon+'" style="font-size:32px;color:'+fg+';"></i>'
+      +'<span style="color:'+fg+';font-size:14px;font-weight:600;text-align:center;line-height:1.1;">'+label+'</span></button>';
+  }
+  function bindChofBtn(id,fn){ const b=document.getElementById(id); if(b)b.onclick=fn; }
+  // ===== Modal de confirmación reutilizable (con X, clic fuera no hace nada) =====
+  function confirmarChofer(opts){
+    // opts: {titulo, mensaje, textoOk, colorOk, onOk}
+    let ov=document.getElementById('choConfirm');
+    if(ov)ov.remove();
+    ov=document.createElement('div'); ov.id='choConfirm';
+    ov.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px;font-family:-apple-system,Segoe UI,sans-serif;';
+    ov.innerHTML='<div style="background:#fff;border-radius:18px;max-width:380px;width:100%;padding:22px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.3);">'
+      +'<button id="choConfirmX" aria-label="Cancelar" style="position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:#F1F1F1;border:none;font-size:24px;color:#555;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">×</button>'
+      +'<div style="text-align:center;padding-top:8px;">'
+      +'<div style="font-size:21px;font-weight:700;color:#1a1a1a;margin-bottom:8px;">'+esc(opts.titulo)+'</div>'
+      +'<div style="font-size:15px;color:#555;margin-bottom:22px;line-height:1.35;">'+esc(opts.mensaje)+'</div>'
+      +'<button id="choConfirmOk" style="width:100%;background:'+(opts.colorOk||'#1F9D55')+';color:#fff;border:none;border-radius:12px;padding:18px;font-size:17px;font-weight:700;cursor:pointer;">'+esc(opts.textoOk||'Confirmar')+'</button>'
+      +'</div></div>';
+    document.body.appendChild(ov);
+    // Clic FUERA del cuadro: no hace nada (solo la X o el botón cierran)
+    ov.addEventListener('click',function(e){ if(e.target===ov){ /* nada */ } });
+    document.getElementById('choConfirmX').onclick=function(){ ov.remove(); };
+    document.getElementById('choConfirmOk').onclick=function(){ ov.remove(); if(opts.onOk)opts.onOk(); };
+  }
+  // Estado de las acciones del chofer (para el botón que "queda brillando")
+  let choferAccion={ enCurso:null }; // 'lleno' | 'combustible' | null
+  function txChofer(extra){
+    // Transmite un evento del chofer al canal live para el supervisor
+    if(!fbDb || !choferCode) return;
+    try{
+      const base={ chofer:choferName||choferCode, rutaId:choferTurno.rutaId||null, ts:Date.now() };
+      if(lastTruckPos){ base.lat=lastTruckPos[0]; base.lng=lastTruckPos[1]; }
+      fbDb.ref('live/'+txId()).update(Object.assign(base, extra||{}));
+      // Alertas persistentes (avería, obstáculo) en un nodo aparte para el supervisor
+      if(extra && extra.alerta){
+        fbDb.ref('alertas_chofer').push(Object.assign({tipo:extra.alerta, chofer:choferName||choferCode, rutaId:choferTurno.rutaId||null,
+          lat:lastTruckPos?lastTruckPos[0]:null, lng:lastTruckPos?lastTruckPos[1]:null,
+          fecha:new Date().toISOString(), atendida:false}));
+      }
+    }catch(e){ console.warn('[chofer] tx:', e); }
+  }
+  function marcarPunto(tipo,colorIcon,emoji){
+    // Pone un marcador en el mapa donde está el camión
+    if(!lastTruckPos){ return; }
+    try{
+      L.marker(lastTruckPos,{interactive:false,zIndexOffset:2000,icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,17],
+        html:'<div style="width:34px;height:34px;border-radius:50%;background:'+colorIcon+';border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.5);">'+emoji+'</div>'})}).addTo(map);
+    }catch(_){}
+  }
+  // 1. CAPACIDAD MÁXIMA (basura llena) → marca, voz, botón brilla; 2º click = reanudar
+  function accionLleno(){
+    if(choferAccion.enCurso==='lleno'){
+      // Ya estaba lleno → ahora reanuda
+      confirmarChofer({titulo:'¿Ya descargaste?', mensaje:'Confirma que terminaste de botar la basura para volver a tu ruta.', textoOk:'Sí, volver a la ruta', colorOk:'#1F9D55', onOk:()=>{
+        choferAccion.enCurso=null; tripPhase='ruta'; dumpCount=(dumpCount||0)+1;
+        const b=document.getElementById('choLleno'); if(b){ b.style.animation=''; b.style.background='#EF9F27'; }
+        txChofer({status:'en_ruta', evento:'descarga_fin'});
+        speak('Descarga completada. Regresa al punto donde quedaste y continúa tu ruta.');
+        toast('De vuelta a la ruta');
+      }});
+      return;
+    }
+    confirmarChofer({titulo:'Capacidad máxima', mensaje:'¿El camión está lleno? Se marcará tu posición y irás a botar la basura.', textoOk:'Sí, voy a botar', colorOk:'#EF9F27', onOk:()=>{
+      choferAccion.enCurso='lleno'; tripPhase='vertedero';
+      marcarPunto('lleno','#EF9F27','🗑️');
+      const b=document.getElementById('choLleno'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#F97316'; }
+      txChofer({status:'vertedero', evento:'lleno'});
+      speak('Posición marcada. Dirígete a botar la basura. Cuando termines, pulsa de nuevo el botón.');
+      toast('De camino a botar basura');
+    }});
+  }
+  // 4. COMBUSTIBLE → mismo patrón
+  function accionCombustible(){
+    if(choferAccion.enCurso==='combustible'){
+      confirmarChofer({titulo:'¿Ya pusiste combustible?', mensaje:'Confirma que terminaste para volver a tu ruta.', textoOk:'Sí, volver a la ruta', colorOk:'#1F9D55', onOk:()=>{
+        choferAccion.enCurso=null; tripPhase='ruta'; fuelCount=(fuelCount||0)+1;
+        const b=document.getElementById('choCombustible'); if(b){ b.style.animation=''; b.style.background='#2F7DC2'; }
+        txChofer({status:'en_ruta', evento:'combustible_fin'});
+        speak('Listo. Regresa al punto donde quedaste y continúa tu ruta.');
+        toast('De vuelta a la ruta');
+      }});
+      return;
+    }
+    confirmarChofer({titulo:'Combustible', mensaje:'¿Vas a poner combustible? Se marcará tu posición.', textoOk:'Sí, voy a combustible', colorOk:'#2F7DC2', onOk:()=>{
+      choferAccion.enCurso='combustible'; tripPhase='combustible';
+      marcarPunto('combustible','#2F7DC2','⛽');
+      const b=document.getElementById('choCombustible'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#1E5C99'; }
+      txChofer({status:'combustible', evento:'combustible'});
+      speak('Posición marcada. Dirígete a poner combustible. Cuando termines, pulsa de nuevo el botón.');
+      toast('De camino a combustible');
+    }});
+  }
+  // 2 y 3. REPORTE / OBSTÁCULO → alerta al supervisor
+  function accionAlerta(tipo,desc){
+    const titulo = tipo==='reporte' ? 'Reportar avería o urgencia' : 'Reportar obstáculo';
+    const msg = tipo==='reporte' ? '¿Tienes una avería, accidente o urgencia? Se enviará una alerta al supervisor.' : '¿Hay algo que te impide hacer la ruta? Se enviará una alerta al supervisor para que la revise.';
+    const color = tipo==='reporte' ? '#E24B4A' : '#8B5CF6';
+    confirmarChofer({titulo:titulo, mensaje:msg, textoOk:'Sí, enviar alerta', colorOk:color, onOk:()=>{
+      marcarPunto(tipo, color, tipo==='reporte'?'⚠️':'⛔');
+      txChofer({alerta:tipo, evento:tipo});
+      speak('Alerta enviada al supervisor. Espera instrucciones.');
+      toast('Alerta enviada al supervisor');
+    }});
   }
   // (El onclick del botón Empezar y Salir se asigna directamente en renderChoferInicio)
   function iniciarComoAdminSecundario(u){
