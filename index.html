@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.02 · 2026-06-22</div>
+    <div class="ver" style="padding-top:4px">v4.03 · 2026-06-22</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -542,7 +542,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.02 · 2026-06-22</div>
+<div class="ver-badge" id="verBadge">v4.03 · 2026-06-22</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1553,6 +1553,10 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
     if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); },300); }); }
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
+    // Alertas enviadas por choferes
+    if(!window._alertasChoferSub){ window._alertasChoferSub=true;
+      fbDb.ref('alertas_chofer').on('value', s=>{ window._alertasChofer=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); });
+    }
   }
   function toggleUnits(){ const sp=document.getElementById('supPanel'); if(!sp)return;
     if(sp.classList.contains('hide')){ sp.classList.remove('hide'); subscribeUnits(); } else { sp.classList.add('hide'); } }
@@ -1810,6 +1814,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         else alerts.push({sev:1,tx:esc(r.nombre||'(sin nombre)')+' programada hoy · aún <b>sin enviar</b>',act:'Enviar',go:'detail',id:id}); }
       if(r.camion){ const c=camByFicha[r.camion]; if(c&&!camActivo(c.estado))alerts.push({sev:2,tx:esc(r.nombre||'(sin nombre)')+' · camión <b>'+esc(r.camion)+'</b> '+esc(c.estado||'no disponible'),act:'Reasignar',go:'detail',id:id}); } });
     Object.keys(live).forEach(id=>{ const t=live[id]||{}; if(t.ts&&(Date.now()-t.ts)>20*60*1000)alerts.push({sev:2,tx:esc((rutas[id]||{}).nombre||id)+' en curso · <b>sin señal hace '+Math.round((Date.now()-t.ts)/60000)+' min</b>',act:'Monitorear',go:'mon',id:id}); });
+    // Alertas enviadas por choferes (reporte de avería/urgencia, obstáculo)
+    if(window._alertasChofer){ Object.keys(window._alertasChofer).forEach(k=>{ const a=window._alertasChofer[k]; if(!a||a.atendida)return;
+      const etq=a.tipo==='reporte'?'Avería / urgencia':'Obstáculo en ruta';
+      const rn=(rutas[a.rutaId]||{}).nombre||'';
+      alerts.push({sev:2,tx:'<b>'+esc(etq)+'</b> · chofer '+esc(a.chofer||'')+(rn?(' · '+esc(rn)):''),act:'Atender',go:'alertaChofer',id:k}); }); }
     alerts.sort((a,b)=>b.sev-a.sev);
     const parts=[];
     if(cumplim!=null)parts.push({w:.45,v:cumplim,lab:'Rutas',c:'#CF9A4A'});
@@ -3684,6 +3693,15 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       +'<button id="choBarExit" style="width:40px;height:40px;border-radius:9px;background:#0C447C;border:none;color:#85B7EB;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-logout"></i></button>'
       +'</div>';
     const bx=document.getElementById('choBarExit'); if(bx)bx.onclick=function(){ if(confirm('¿Salir de tu turno?')) logout(); };
+    // Botón de SIMULACIÓN (esquina superior derecha, flotante) para probar las indicaciones sin salir a la calle
+    let sim=document.getElementById('choSimBtn');
+    if(!sim){
+      sim=document.createElement('button'); sim.id='choSimBtn';
+      sim.style.cssText='position:fixed;top:74px;right:10px;z-index:6500;background:#fff;border:2px solid #2F7DC2;color:#2F7DC2;border-radius:10px;padding:8px 11px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:-apple-system,Segoe UI,sans-serif;';
+      document.body.appendChild(sim);
+      sim.onclick=toggleSimulacion;
+    }
+    actualizarBtnSim();
     let acts=document.getElementById('choActs');
     if(!acts){
       acts=document.createElement('div'); acts.id='choActs';
@@ -3700,6 +3718,39 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     bindChofBtn('choCombustible', ()=>accionCombustible());
     bindChofBtn('choReporte', ()=>accionAlerta('reporte','Reporte de avería o urgencia'));
     bindChofBtn('choObstaculo', ()=>accionAlerta('obstaculo','Obstáculo que impide la ruta'));
+  }
+  // ===== SIMULACIÓN DE RUTA (para probar las indicaciones de voz sin salir a la calle) =====
+  let choSimOn=false, choSimTimer=null;
+  function actualizarBtnSim(){
+    const b=document.getElementById('choSimBtn'); if(!b)return;
+    if(choSimOn){ b.innerHTML='<i class="ti ti-player-stop-filled"></i> Detener prueba'; b.style.background='#E24B4A'; b.style.borderColor='#E24B4A'; b.style.color='#fff'; }
+    else { b.innerHTML='<i class="ti ti-player-play-filled"></i> Probar ruta'; b.style.background='#fff'; b.style.borderColor='#2F7DC2'; b.style.color='#2F7DC2'; }
+  }
+  function toggleSimulacion(){ if(choSimOn)detenerSimulacion(); else iniciarSimulacion(); }
+  function iniciarSimulacion(){
+    if(!waypoints || waypoints.length<2){ toast('Esta ruta no tiene trazado para simular'); return; }
+    choSimOn=true; choSimIdx=0; actualizarBtnSim();
+    speak('Iniciando prueba de la ruta. Escucha las indicaciones.');
+    toast('Prueba en marcha · escucha las indicaciones');
+    // Generar puntos interpolados entre waypoints para un avance suave
+    const ruta=[]; const PASO=12; // metros entre puntos simulados
+    for(let i=1;i<waypoints.length;i++){
+      const a=waypoints[i-1], b=waypoints[i]; const d=haversine(a,b); const n=Math.max(1,Math.round(d/PASO));
+      for(let k=0;k<n;k++){ const t=k/n; ruta.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t]); }
+    }
+    ruta.push(waypoints[waypoints.length-1]);
+    let i=0;
+    choSimTimer=setInterval(()=>{
+      if(i>=ruta.length){ detenerSimulacion(); speak('Prueba finalizada. Llegaste al final de la ruta.'); return; }
+      // Simular una actualización GPS en ese punto → dispara las voces reales
+      onGpsUpdate({coords:{latitude:ruta[i][0], longitude:ruta[i][1], accuracy:8}});
+      i++;
+    }, 220); // ~5 puntos/seg
+  }
+  function detenerSimulacion(){
+    choSimOn=false; if(choSimTimer){ clearInterval(choSimTimer); choSimTimer=null; }
+    actualizarBtnSim();
+    try{ window.speechSynthesis.cancel(); }catch(_){}
   }
   function botonChofer(id,bg,fg,icon,label){
     return '<button id="'+id+'" style="background:'+bg+';border:none;border-radius:14px;padding:16px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;min-height:84px;">'
@@ -3744,20 +3795,27 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       }
     }catch(e){ console.warn('[chofer] tx:', e); }
   }
-  function marcarPunto(tipo,colorIcon,emoji){
-    // Pone un marcador en el mapa donde está el camión
-    if(!lastTruckPos){ return; }
+  let marcadorEvento=null; // referencia al marcador de basura/combustible para poder quitarlo
+  function marcarPunto(tipo,colorIcon,emoji,persistente){
+    // Pone un marcador en el mapa donde está el camión (DEBAJO del camión)
+    if(!lastTruckPos){ return null; }
     try{
-      L.marker(lastTruckPos,{interactive:false,zIndexOffset:2000,icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,17],
+      const m=L.marker(lastTruckPos,{interactive:false,zIndexOffset:500,icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,17],
         html:'<div style="width:34px;height:34px;border-radius:50%;background:'+colorIcon+';border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.5);">'+emoji+'</div>'})}).addTo(map);
-    }catch(_){}
+      // El camión siempre encima
+      if(truckMarker){ try{ truckMarker.setZIndexOffset(2000); }catch(_){} }
+      if(persistente){ marcadorEvento=m; }
+      return m;
+    }catch(_){ return null; }
   }
+  function quitarMarcadorEvento(){ if(marcadorEvento){ try{ map.removeLayer(marcadorEvento); }catch(_){} marcadorEvento=null; } }
   // 1. CAPACIDAD MÁXIMA (basura llena) → marca, voz, botón brilla; 2º click = reanudar
   function accionLleno(){
     if(choferAccion.enCurso==='lleno'){
       // Ya estaba lleno → ahora reanuda
       confirmarChofer({titulo:'¿Ya descargaste?', mensaje:'Confirma que terminaste de botar la basura para volver a tu ruta.', textoOk:'Sí, volver a la ruta', colorOk:'#1F9D55', onOk:()=>{
         choferAccion.enCurso=null; tripPhase='ruta'; dumpCount=(dumpCount||0)+1;
+        quitarMarcadorEvento();
         const b=document.getElementById('choLleno'); if(b){ b.style.animation=''; b.style.background='#EF9F27'; }
         txChofer({status:'en_ruta', evento:'descarga_fin'});
         speak('Descarga completada. Regresa al punto donde quedaste y continúa tu ruta.');
@@ -3767,7 +3825,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }
     confirmarChofer({titulo:'Capacidad máxima', mensaje:'¿El camión está lleno? Se marcará tu posición y irás a botar la basura.', textoOk:'Sí, voy a botar', colorOk:'#EF9F27', onOk:()=>{
       choferAccion.enCurso='lleno'; tripPhase='vertedero';
-      marcarPunto('lleno','#EF9F27','🗑️');
+      marcarPunto('lleno','#EF9F27','🗑️',true);
       const b=document.getElementById('choLleno'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#F97316'; }
       txChofer({status:'vertedero', evento:'lleno'});
       speak('Posición marcada. Dirígete a botar la basura. Cuando termines, pulsa de nuevo el botón.');
@@ -3779,6 +3837,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(choferAccion.enCurso==='combustible'){
       confirmarChofer({titulo:'¿Ya pusiste combustible?', mensaje:'Confirma que terminaste para volver a tu ruta.', textoOk:'Sí, volver a la ruta', colorOk:'#1F9D55', onOk:()=>{
         choferAccion.enCurso=null; tripPhase='ruta'; fuelCount=(fuelCount||0)+1;
+        quitarMarcadorEvento();
         const b=document.getElementById('choCombustible'); if(b){ b.style.animation=''; b.style.background='#2F7DC2'; }
         txChofer({status:'en_ruta', evento:'combustible_fin'});
         speak('Listo. Regresa al punto donde quedaste y continúa tu ruta.');
@@ -3788,7 +3847,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }
     confirmarChofer({titulo:'Combustible', mensaje:'¿Vas a poner combustible? Se marcará tu posición.', textoOk:'Sí, voy a combustible', colorOk:'#2F7DC2', onOk:()=>{
       choferAccion.enCurso='combustible'; tripPhase='combustible';
-      marcarPunto('combustible','#2F7DC2','⛽');
+      marcarPunto('combustible','#2F7DC2','⛽',true);
       const b=document.getElementById('choCombustible'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#1E5C99'; }
       txChofer({status:'combustible', evento:'combustible'});
       speak('Posición marcada. Dirígete a poner combustible. Cuando termines, pulsa de nuevo el botón.');
