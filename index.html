@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.97 · 2026-06-20</div>
+    <div class="ver" style="padding-top:4px">v3.99 · 2026-06-20</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -515,7 +515,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.97 · 2026-06-20</div>
+<div class="ver-badge" id="verBadge">v3.99 · 2026-06-20</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3558,11 +3558,20 @@
   }
 
   function renderChoferInicio(){
+    console.log('[chofer] renderChoferInicio ejecutándose');
     const cam=document.getElementById('choCamion');
     const list=document.getElementById('choRutasList');
     const btn=document.getElementById('choStartBtn');
+    // Asignar el onclick SIEMPRE que el botón exista (antes de cualquier return)
+    if(btn){
+      btn.onclick=function(ev){ if(ev){ev.preventDefault();} console.log('[chofer] click Empezar'); try{ choferEmpezar(); }catch(err){ console.error('[chofer] ERROR:', err); } };
+      console.log('[chofer] onclick asignado al botón Empezar');
+    } else {
+      console.warn('[chofer] BOTÓN NO ENCONTRADO');
+    }
+    const exitBtn=document.getElementById('choExit');
+    if(exitBtn){ exitBtn.onclick=function(){ if(confirm('¿Salir de tu sesión?')) logout(); }; }
     const rutas=rutasDelChofer();
-    // camión: el de la primera ruta asignada
     let ficha=''; if(rutas.length){ ficha=rutas[0].r.camion||''; }
     if(cam)cam.textContent=ficha?('Camión '+ficha):'Sin camión asignado';
     if(!list)return;
@@ -3572,12 +3581,6 @@
       return;
     }
     if(btn)btn.style.display='';
-    // Asignar el onclick DIRECTAMENTE al botón (forma más robusta, sin delegación)
-    if(btn){
-      btn.onclick=function(ev){ if(ev){ev.preventDefault();} console.log('[chofer] click Empezar → llamando choferEmpezar'); try{ choferEmpezar(); }catch(err){ console.error('[chofer] ERROR en choferEmpezar:', err); } };
-    }
-    const exitBtn=document.getElementById('choExit');
-    if(exitBtn){ exitBtn.onclick=function(){ if(confirm('¿Salir de tu sesión?')) logout(); }; }
     list.innerHTML=rutas.map(o=>{
       const r=o.r; const km=r.wp?((decode(r.wp)||[]).length):0;
       return '<div class="cho-rcard"><div class="pin"><i class="ti ti-map-pin" aria-hidden="true"></i></div>'
@@ -3592,7 +3595,7 @@
     if(!rutas.length){ toast('No tienes rutas asignadas hoy'); return; }
     choferTurno.activo=true; choferTurno.rutaId=rutas[0].id;
     // Ocultar la pantalla de inicio del chofer → deja ver el MAPA de fondo
-    const sc=document.getElementById('choferScreen'); if(sc)sc.classList.add('hide');
+    const sc=document.getElementById('choferScreen'); if(sc){ sc.classList.add('hide'); sc.style.display='none'; }
     // Mostrar el mapa con la ruta del chofer
     document.body.classList.add('chofer-ruta-activa');
     mostrarMapaChofer(rutas[0].id);
