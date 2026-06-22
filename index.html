@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.99 · 2026-06-20</div>
+    <div class="ver" style="padding-top:4px">v4.00 · 2026-06-22</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -271,6 +271,30 @@
 #choferScreen .cho-bigbtn span{ font-size:19px; font-weight:600; }
 #choferScreen .cho-bigbtn.verde, #choferScreen .cho-bigbtn.verde i, #choferScreen .cho-bigbtn.verde span{ background:#1F9D55; color:#fff; }
 #choferScreen .cho-bigbtn.verde{ background:#1F9D55; }
+/* ===== MODO CHOFER EN RUTA: ocultar TODO el chrome del animador ===== */
+body.chofer-ruta-activa #panel,
+body.chofer-ruta-activa .shell-nav,
+body.chofer-ruta-activa .topbar,
+body.chofer-ruta-activa #gpsPanel,
+body.chofer-ruta-activa #gpsBtn{ display:none !important; }
+/* La tarjeta de próximo giro (turnCard) SÍ se muestra al chofer, reposicionada bajo su barra */
+body.chofer-ruta-activa #turnCard{ top:70px !important; }
+body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:1 !important; }
+/* Barra superior del chofer y botones de acción */
+#choBar{ box-sizing:border-box; }
+#choActs{ box-sizing:border-box; }
+#choActs button{ box-sizing:border-box; min-height:78px; }
+/* Responsive móvil */
+@media (max-width:640px){
+  #choBar{ padding:10px 12px !important; }
+  #choBar b{ font-size:15px !important; }
+  #choActs{ padding:8px !important; gap:8px !important; }
+  #choActs button{ padding:14px 6px !important; min-height:70px; border-radius:12px !important; }
+  #choActs button i{ font-size:28px !important; }
+  #choActs button span{ font-size:13px !important; }
+  #choferScreen .cho-view{ padding:14px; }
+  #choferScreen .cho-bigbtn{ padding:22px; }
+}
 </style>
 <!-- ===== PANTALLA DEL CHOFER ===== -->
 <div class="chofer-screen hide" id="choferScreen">
@@ -515,7 +539,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.99 · 2026-06-20</div>
+<div class="ver-badge" id="verBadge">v4.00 · 2026-06-22</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3601,19 +3625,40 @@
     mostrarMapaChofer(rutas[0].id);
   }
   function mostrarMapaChofer(rutaId){
-    // Asegurar que el contenedor del mapa sea visible y recalcular tamaño
+    // Ocultar el panel del admin (animador) — el chofer NO debe verlo
+    const panel=document.getElementById('panel'); if(panel)panel.style.display='none';
     const mapEl=document.getElementById('map'); if(mapEl)mapEl.style.zIndex='1';
     try{ map.invalidateSize(); }catch(_){}
-    // Limpiar capas previas y dibujar SOLO la ruta del chofer
+    // Limpiar capas de monitoreo previas
     try{ Object.keys(routeLayers||{}).forEach(id=>hideRouteLayer(id)); }catch(_){}
     const r=mgmtRutas[rutaId];
+    // Cargar la ruta en el MOTOR REAL de navegación (waypoints + instrucciones de giro)
     if(r&&r.wp){ const pts=decode(r.wp);
-      if(pts&&pts.length){ showRouteLayer(rutaId);
-        try{ map.fitBounds(L.latLngBounds(pts).pad(0.15)); }catch(_){}
+      if(pts&&pts.length){
+        try{
+          loadRoute(pts);                         // carga waypoints, dibuja, prepara animación
+          if(typeof buildInstructions==='function') buildInstructions();  // genera giros (80%/20%)
+          voiceOn=true;                           // activar avisos por voz
+          map.fitBounds(L.latLngBounds(pts).pad(0.12));
+        }catch(e){ console.error('[chofer] cargar ruta:', e); }
       }
     }
-    // Mostrar la barra superior del chofer y los botones de acción
+    // Barra superior + botones de acción del chofer
     montarBarraChofer(r);
+    // Arrancar el GPS real del teléfono (esto activa la voz: "Modo chofer activado",
+    // guía al punto de inicio, avisos de giro, trazado en vivo)
+    if(!('geolocation' in navigator)){ toast('Este teléfono no tiene GPS'); speak('Este teléfono no tiene GPS'); }
+    else if(location.protocol!=='https:' && location.hostname!=='localhost'){ toast('El GPS requiere conexión segura (HTTPS)'); }
+    else {
+      // Pedir posición una vez para forzar el diálogo de permiso, luego arrancar el watch
+      navigator.geolocation.getCurrentPosition(
+        ()=>{ try{ startGps(true); }catch(e){ console.error('[chofer] startGps:', e); } },
+        (err)=>{ let m='No se pudo activar el GPS'; if(err.code===1)m='Debes permitir el acceso a la ubicación'; toast(m); speak(m); },
+        {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+      );
+    }
+    // Mensaje de voz inicial para que el chofer sepa que la voz está presente
+    setTimeout(()=>{ try{ speak('Bienvenido. Dirígete al punto de inicio de la ruta '+((r&&r.nombre)||'')); }catch(_){} }, 1200);
   }
   function montarBarraChofer(r){
     let bar=document.getElementById('choBar');
