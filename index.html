@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.00 · 2026-06-22</div>
+    <div class="ver" style="padding-top:4px">v4.01 · 2026-06-22</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -277,6 +277,8 @@ body.chofer-ruta-activa .shell-nav,
 body.chofer-ruta-activa .topbar,
 body.chofer-ruta-activa #gpsPanel,
 body.chofer-ruta-activa #gpsBtn{ display:none !important; }
+body.chofer-ruta-activa .leaflet-control-zoom,
+body.chofer-ruta-activa .leaflet-control-attribution{ display:none !important; }
 /* La tarjeta de próximo giro (turnCard) SÍ se muestra al chofer, reposicionada bajo su barra */
 body.chofer-ruta-activa #turnCard{ top:70px !important; }
 body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:1 !important; }
@@ -539,7 +541,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.00 · 2026-06-22</div>
+<div class="ver-badge" id="verBadge">v4.01 · 2026-06-22</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3518,6 +3520,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       iniciarComoSupervisor(u);
     } else { // chofer
       try{localStorage.setItem('animador_role','chofer');}catch(_){}
+      try{localStorage.setItem('animador_chofer', JSON.stringify({code:u.code, name:(u.data&&u.data.name)||null}));}catch(_){}
       choferCode=u.code; choferName=u.data.name||null; currentUserRole='chofer';
       iniciarComoChofer(u);
     }
@@ -3625,39 +3628,37 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     mostrarMapaChofer(rutas[0].id);
   }
   function mostrarMapaChofer(rutaId){
+    console.log('[chofer] mostrarMapaChofer rutaId=', rutaId);
+    // PEDIR GPS PRIMERO (antes de todo, para que el permiso salga de inmediato)
+    if(!('geolocation' in navigator)){ toast('Este teléfono no tiene GPS'); speak('Este teléfono no tiene GPS'); }
+    else if(location.protocol!=='https:' && location.hostname!=='localhost'){ toast('El GPS requiere conexión segura HTTPS'); console.warn('[chofer] no HTTPS:', location.protocol); }
+    else {
+      console.log('[chofer] pidiendo permiso de ubicación…');
+      navigator.geolocation.getCurrentPosition(
+        (pos)=>{ console.log('[chofer] GPS OK', pos.coords.latitude, pos.coords.longitude); try{ startGps(true); }catch(e){ console.error('[chofer] startGps:', e); } },
+        (err)=>{ console.error('[chofer] GPS error code=', err.code, err.message); let m='No se pudo activar el GPS'; if(err.code===1)m='Debes permitir el acceso a la ubicación'; toast(m); speak(m); },
+        {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+      );
+    }
     // Ocultar el panel del admin (animador) — el chofer NO debe verlo
     const panel=document.getElementById('panel'); if(panel)panel.style.display='none';
     const mapEl=document.getElementById('map'); if(mapEl)mapEl.style.zIndex='1';
     try{ map.invalidateSize(); }catch(_){}
-    // Limpiar capas de monitoreo previas
     try{ Object.keys(routeLayers||{}).forEach(id=>hideRouteLayer(id)); }catch(_){}
     const r=mgmtRutas[rutaId];
     // Cargar la ruta en el MOTOR REAL de navegación (waypoints + instrucciones de giro)
     if(r&&r.wp){ const pts=decode(r.wp);
       if(pts&&pts.length){
         try{
-          loadRoute(pts);                         // carga waypoints, dibuja, prepara animación
-          if(typeof buildInstructions==='function') buildInstructions();  // genera giros (80%/20%)
-          voiceOn=true;                           // activar avisos por voz
+          loadRoute(pts);
+          if(typeof buildInstructions==='function') buildInstructions();
+          voiceOn=true;
           map.fitBounds(L.latLngBounds(pts).pad(0.12));
         }catch(e){ console.error('[chofer] cargar ruta:', e); }
-      }
-    }
+      } else { console.warn('[chofer] ruta sin puntos decodificables'); }
+    } else { console.warn('[chofer] ruta sin wp:', rutaId); }
     // Barra superior + botones de acción del chofer
     montarBarraChofer(r);
-    // Arrancar el GPS real del teléfono (esto activa la voz: "Modo chofer activado",
-    // guía al punto de inicio, avisos de giro, trazado en vivo)
-    if(!('geolocation' in navigator)){ toast('Este teléfono no tiene GPS'); speak('Este teléfono no tiene GPS'); }
-    else if(location.protocol!=='https:' && location.hostname!=='localhost'){ toast('El GPS requiere conexión segura (HTTPS)'); }
-    else {
-      // Pedir posición una vez para forzar el diálogo de permiso, luego arrancar el watch
-      navigator.geolocation.getCurrentPosition(
-        ()=>{ try{ startGps(true); }catch(e){ console.error('[chofer] startGps:', e); } },
-        (err)=>{ let m='No se pudo activar el GPS'; if(err.code===1)m='Debes permitir el acceso a la ubicación'; toast(m); speak(m); },
-        {enableHighAccuracy:true, timeout:15000, maximumAge:0}
-      );
-    }
-    // Mensaje de voz inicial para que el chofer sepa que la voz está presente
     setTimeout(()=>{ try{ speak('Bienvenido. Dirígete al punto de inicio de la ruta '+((r&&r.nombre)||'')); }catch(_){} }, 1200);
   }
   function montarBarraChofer(r){
@@ -3670,7 +3671,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     bar.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'
       +'<i class="ti ti-map-pin" style="font-size:22px;color:#85B7EB;"></i>'
       +'<div><b style="font-size:16px;">'+esc((r&&r.nombre)||'Ruta')+'</b><div style="font-size:12px;color:#85B7EB;">Sigue la línea de tu ruta</div></div></div>'
-      +'<div style="display:flex;align-items:center;gap:5px;background:#0C447C;padding:6px 10px;border-radius:8px;font-size:12px;color:#FAC775;"><i class="ti ti-bulb"></i> Activa</div>';
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<div style="display:flex;align-items:center;gap:5px;background:#0C447C;padding:6px 10px;border-radius:8px;font-size:12px;color:#FAC775;"><i class="ti ti-bulb"></i> Activa</div>'
+      +'<button id="choBarExit" style="width:40px;height:40px;border-radius:9px;background:#0C447C;border:none;color:#85B7EB;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-logout"></i></button>'
+      +'</div>';
+    const bx=document.getElementById('choBarExit'); if(bx)bx.onclick=function(){ if(confirm('¿Salir de tu turno?')) logout(); };
     let acts=document.getElementById('choActs');
     if(!acts){
       acts=document.createElement('div'); acts.id='choActs';
@@ -3744,7 +3749,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     monSetup();
   }
   function savedRole(){ try{return localStorage.getItem('animador_role');}catch(_){return null;} }
-  function logout(){ try{localStorage.removeItem('animador_role');}catch(_){ } const fin=()=>location.reload();
+  function logout(){ try{localStorage.removeItem('animador_role');}catch(_){ } try{localStorage.removeItem('animador_chofer');}catch(_){ } const fin=()=>location.reload();
     try{ const u=(window.firebase&&firebase.auth)?firebase.auth().currentUser:null; if(u&&!u.isAnonymous){ firebase.auth().signOut().then(fin,fin); return; } }catch(_){ }
     fin(); }
   function enterAdmApp(){
@@ -3847,6 +3852,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Auto-entra solo el maestro (sesión Firebase real). Los usuarios creados re-ingresan por seguridad.
     let savedUser=null; try{savedUser=localStorage.getItem('animador_user');}catch(_){}
     if(savedRole()==='adm' && savedUser==='maestro'){ readOnlyMode=false; currentUserRole='adm'; enterAdmApp(); }
+    else if(savedRole()==='chofer'){
+      // Restaurar sesión del chofer sin pedir login otra vez
+      let cho=null; try{ cho=JSON.parse(localStorage.getItem('animador_chofer')||'null'); }catch(_){}
+      if(cho&&cho.code){ choferCode=cho.code; choferName=cho.name||null; currentUserRole='chofer';
+        iniciarComoChofer({code:cho.code, data:{name:cho.name}});
+      } else { try{localStorage.removeItem('animador_role');}catch(_){} document.getElementById('admGate').classList.remove('hide'); }
+    }
     else { try{localStorage.removeItem('animador_role');}catch(_){} document.getElementById('admGate').classList.remove('hide'); }
     return true;
   }
