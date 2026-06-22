@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.03 · 2026-06-22</div>
+    <div class="ver" style="padding-top:4px">v4.04 · 2026-06-22</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -247,30 +247,59 @@
 </div>
 
 <style>
-/* Estilos de la pantalla del chofer — embebidos para no depender del CSS externo */
-#choferScreen .cho-view{ flex:1; display:flex; flex-direction:column; padding:18px; max-width:560px; margin:0 auto; width:100%; box-sizing:border-box; }
-#choferScreen .cho-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
-#choferScreen .cho-user{ display:flex; align-items:center; gap:12px; }
-#choferScreen .cho-ava{ width:48px; height:48px; border-radius:50%; background:#185FA5; display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0; }
-#choferScreen .cho-id b{ display:block; font-size:18px; font-weight:600; }
-#choferScreen .cho-id small{ display:block; font-size:13px; color:#85B7EB; }
+/* ============================================================
+   PANTALLA DEL CHOFER — diseño cálido, claro, para 50-60 años
+   ============================================================ */
+#choferScreen{ background:linear-gradient(170deg,#0A3D62 0%,#0C447C 55%,#06304F 100%) !important; }
+#choferScreen .cho-view{ flex:1; display:flex; flex-direction:column; padding:0; max-width:600px; margin:0 auto; width:100%; box-sizing:border-box; }
+/* Header cálido */
+#choferScreen .cho-top{ display:flex; align-items:flex-start; justify-content:space-between; padding:26px 22px 18px; }
+#choferScreen .cho-user{ display:flex; align-items:center; gap:14px; }
+#choferScreen .cho-ava{ width:54px; height:54px; border-radius:16px; background:linear-gradient(145deg,#2E7DF2,#185FA5); display:flex; align-items:center; justify-content:center; font-size:28px; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+#choferScreen .cho-id{ display:flex; flex-direction:column; }
+#choferScreen .cho-saludo{ font-size:13px; color:#9FC4E8; font-weight:500; letter-spacing:.2px; }
+#choferScreen .cho-id b{ display:block; font-size:23px; font-weight:700; color:#fff; line-height:1.15; letter-spacing:-.3px; }
+#choferScreen .cho-id small{ display:flex; align-items:center; gap:5px; font-size:13px; color:#9FC4E8; margin-top:3px; }
 #choferScreen .cho-topright{ display:flex; align-items:center; gap:8px; }
-#choferScreen .cho-screenlock{ display:flex; align-items:center; gap:5px; background:#0C447C; padding:7px 11px; border-radius:8px; font-size:12px; color:#FAC775; }
-#choferScreen .cho-screenlock.off{ color:#F09595; }
-#choferScreen .cho-exit{ width:38px; height:38px; border-radius:9px; background:#0C447C; border:none; color:#85B7EB; font-size:19px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-#choferScreen .cho-body{ flex:1; display:flex; flex-direction:column; gap:12px; }
-#choferScreen .cho-rcard{ background:#0C447C; border-radius:12px; padding:16px; display:flex; align-items:center; gap:12px; }
-#choferScreen .cho-rcard .pin{ width:42px; height:42px; border-radius:50%; background:#185FA5; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
-#choferScreen .cho-rcard .info b{ display:block; font-size:17px; font-weight:600; }
-#choferScreen .cho-rcard .info small{ display:block; font-size:13px; color:#85B7EB; margin-top:2px; }
-#choferScreen .cho-empty{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#85B7EB; gap:14px; padding:30px; }
-#choferScreen .cho-empty i{ font-size:64px; }
-#choferScreen .cho-empty span{ font-size:17px; }
-#choferScreen .cho-bigbtn{ border:none; border-radius:16px; padding:26px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; margin-top:16px; width:100%; }
-#choferScreen .cho-bigbtn i{ font-size:52px; }
-#choferScreen .cho-bigbtn span{ font-size:19px; font-weight:600; }
-#choferScreen .cho-bigbtn.verde, #choferScreen .cho-bigbtn.verde i, #choferScreen .cho-bigbtn.verde span{ background:#1F9D55; color:#fff; }
-#choferScreen .cho-bigbtn.verde{ background:#1F9D55; }
+#choferScreen .cho-screenlock{ display:none; }
+#choferScreen .cho-exit{ width:44px; height:44px; border-radius:13px; background:rgba(255,255,255,.1); border:none; color:#cfe2f5; font-size:21px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .15s; }
+#choferScreen .cho-exit:active{ background:rgba(255,255,255,.2); }
+/* Cuerpo: tarjetas de ruta */
+#choferScreen .cho-body{ flex:1; display:flex; flex-direction:column; gap:14px; padding:8px 18px 18px; overflow-y:auto; }
+#choferScreen .cho-section-label{ font-size:12px; font-weight:700; letter-spacing:1.2px; color:#7FB0DD; text-transform:uppercase; margin:6px 4px 2px; }
+#choferScreen .cho-rcard{ background:#fff; border-radius:20px; padding:18px; display:flex; align-items:center; gap:15px; cursor:pointer; border:3px solid transparent; transition:transform .12s, border-color .15s, box-shadow .15s; box-shadow:0 6px 20px rgba(0,0,0,.18); position:relative; }
+#choferScreen .cho-rcard:active{ transform:scale(.98); }
+#choferScreen .cho-rcard.sel{ border-color:#1F9D55; box-shadow:0 8px 26px rgba(31,157,85,.35); }
+#choferScreen .cho-rcard .pin{ width:54px; height:54px; border-radius:15px; background:linear-gradient(145deg,#34C36E,#1F9D55); display:flex; align-items:center; justify-content:center; font-size:27px; color:#fff; flex-shrink:0; }
+#choferScreen .cho-rcard .info{ flex:1; min-width:0; }
+#choferScreen .cho-rcard .info b{ display:block; font-size:19px; font-weight:700; color:#152B3C; line-height:1.2; letter-spacing:-.2px; }
+#choferScreen .cho-rcard .info small{ display:flex; align-items:center; gap:6px; font-size:14px; color:#6B8299; margin-top:4px; font-weight:500; }
+#choferScreen .cho-rcard .check{ width:30px; height:30px; border-radius:50%; border:2.5px solid #D4DEE7; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; transition:all .15s; }
+#choferScreen .cho-rcard.sel .check{ background:#1F9D55; border-color:#1F9D55; }
+#choferScreen .cho-rcard .check i{ font-size:18px; opacity:0; transition:opacity .15s; }
+#choferScreen .cho-rcard.sel .check i{ opacity:1; }
+/* Estado vacío */
+#choferScreen .cho-empty{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#9FC4E8; gap:16px; padding:50px 30px; }
+#choferScreen .cho-empty .ic{ width:90px; height:90px; border-radius:50%; background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; }
+#choferScreen .cho-empty .ic i{ font-size:46px; color:#7FB0DD; }
+#choferScreen .cho-empty b{ font-size:19px; color:#fff; font-weight:600; }
+#choferScreen .cho-empty span{ font-size:15px; max-width:260px; line-height:1.4; }
+/* Footer con botón Empezar */
+#choferScreen .cho-foot{ padding:16px 18px calc(18px + env(safe-area-inset-bottom,0)); }
+#choferScreen .cho-bigbtn{ border:none; border-radius:20px; padding:24px; display:flex; align-items:center; justify-content:center; gap:14px; cursor:pointer; width:100%; box-shadow:0 8px 28px rgba(31,157,85,.4); transition:transform .12s, opacity .15s; }
+#choferScreen .cho-bigbtn:active{ transform:scale(.98); }
+#choferScreen .cho-bigbtn.verde{ background:linear-gradient(145deg,#34C36E,#1F9D55); }
+#choferScreen .cho-bigbtn i{ font-size:34px; color:#fff; }
+#choferScreen .cho-bigbtn span{ font-size:22px; font-weight:700; color:#fff; letter-spacing:.2px; }
+#choferScreen .cho-bigbtn:disabled{ opacity:.45; box-shadow:none; }
+#choferScreen .cho-hint{ text-align:center; font-size:13px; color:#7FB0DD; margin-top:12px; }
+/* Pastilla "pantalla activa" reubicada en el header como mini-chip */
+#choferScreen .cho-chip{ display:inline-flex; align-items:center; gap:5px; background:rgba(250,199,117,.15); color:#FAC775; padding:5px 10px; border-radius:20px; font-size:12px; font-weight:600; margin-top:6px; }
+@media (max-width:380px){
+  #choferScreen .cho-id b{ font-size:21px; }
+  #choferScreen .cho-rcard .info b{ font-size:18px; }
+  #choferScreen .cho-bigbtn span{ font-size:20px; }
+}
 /* ===== MODO CHOFER EN RUTA: ocultar TODO el chrome del animador ===== */
 body.chofer-ruta-activa #panel,
 body.chofer-ruta-activa .shell-nav,
@@ -305,8 +334,12 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   <div class="cho-view" id="choInicio">
     <div class="cho-top">
       <div class="cho-user">
-        <div class="cho-ava"><i class="ti ti-user" aria-hidden="true"></i></div>
-        <div class="cho-id"><b id="choNombre">—</b><small id="choCamion">—</small></div>
+        <div class="cho-ava"><i class="ti ti-steering-wheel" aria-hidden="true"></i></div>
+        <div class="cho-id">
+          <span class="cho-saludo" id="choSaludo">Buenos días</span>
+          <b id="choNombre">—</b>
+          <small id="choCamion"><i class="ti ti-truck" aria-hidden="true"></i> —</small>
+        </div>
       </div>
       <div class="cho-topright">
         <div class="cho-screenlock" id="choLock"><i class="ti ti-bulb" aria-hidden="true"></i><span>Pantalla activa</span></div>
@@ -314,10 +347,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       </div>
     </div>
     <div class="cho-body" id="choRutasList"></div>
-    <button class="cho-bigbtn verde" id="choStartBtn">
-      <i class="ti ti-player-play" aria-hidden="true"></i>
-      <span>Empezar</span>
-    </button>
+    <div class="cho-foot" id="choFoot">
+      <button class="cho-bigbtn verde" id="choStartBtn">
+        <i class="ti ti-player-play" aria-hidden="true"></i>
+        <span>Empezar ruta</span>
+      </button>
+      <div class="cho-hint" id="choHint">Toca una ruta y luego Empezar</div>
+    </div>
   </div>
 </div>
 
@@ -542,7 +578,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.03 · 2026-06-22</div>
+<div class="ver-badge" id="verBadge">v4.04 · 2026-06-22</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -915,11 +951,14 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     markers.forEach(m=>map.removeLayer(m));markers=[];
     if(viewMode)return;
     waypoints.forEach((p,i)=>{
-      const m=L.marker(p,{draggable:true,
+      const editable = (currentUserRole!=='chofer');  // el chofer NO puede mover puntos
+      const m=L.marker(p,{draggable:editable,
         icon:L.divIcon({html:`<div class="wp-num">${i+1}</div>`,className:'',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(map);
-      m.on('drag',e=>{const ll=e.target.getLatLng();waypoints[i]=[ll.lat,ll.lng];drawBase();updateStats();resetAnim();});
-      m.on('dragend',()=>{buildInstructions();});
-      m.on('contextmenu',e=>{L.DomEvent.stopPropagation(e);L.DomEvent.preventDefault(e);if(!viewMode)openStopModalForWp(i);});
+      if(editable){
+        m.on('drag',e=>{const ll=e.target.getLatLng();waypoints[i]=[ll.lat,ll.lng];drawBase();updateStats();resetAnim();});
+        m.on('dragend',()=>{buildInstructions();});
+        m.on('contextmenu',e=>{L.DomEvent.stopPropagation(e);L.DomEvent.preventDefault(e);if(!viewMode)openStopModalForWp(i);});
+      }
       markers.push(m);
     });
     // Re-marcar como cumplidos los que ya lo estaban
@@ -970,7 +1009,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(!drawMode)return;
     waypoints.push([latlng.lat,latlng.lng]);renderMarkers();refresh();resetAnim();
   }
-  map.on('click',e=>addPoint(e.latlng));
+  map.on('click',e=>{ if(currentUserRole==='chofer')return; addPoint(e.latlng); });
   const drawBtn=document.getElementById('drawToggle');
   function setDrawMode(on){ drawMode=on;
     if(drawBtn){ drawBtn.classList.toggle('accent',on); drawBtn.textContent=on?'✏️ Editando trazado':'✏️ Editar trazado'; }
@@ -3594,35 +3633,52 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     return out;
   }
 
+  let choferRutaSel=null; // id de la ruta seleccionada por el chofer
   function renderChoferInicio(){
-    console.log('[chofer] renderChoferInicio ejecutándose');
     const cam=document.getElementById('choCamion');
     const list=document.getElementById('choRutasList');
     const btn=document.getElementById('choStartBtn');
-    // Asignar el onclick SIEMPRE que el botón exista (antes de cualquier return)
-    if(btn){
-      btn.onclick=function(ev){ if(ev){ev.preventDefault();} console.log('[chofer] click Empezar'); try{ choferEmpezar(); }catch(err){ console.error('[chofer] ERROR:', err); } };
-      console.log('[chofer] onclick asignado al botón Empezar');
-    } else {
-      console.warn('[chofer] BOTÓN NO ENCONTRADO');
-    }
+    const hint=document.getElementById('choHint');
+    const foot=document.getElementById('choFoot');
+    const sal=document.getElementById('choSaludo');
+    // Saludo según la hora
+    if(sal){ const h=new Date().getHours(); sal.textContent = h<12?'Buenos días':(h<19?'Buenas tardes':'Buenas noches'); }
     const exitBtn=document.getElementById('choExit');
     if(exitBtn){ exitBtn.onclick=function(){ if(confirm('¿Salir de tu sesión?')) logout(); }; }
     const rutas=rutasDelChofer();
     let ficha=''; if(rutas.length){ ficha=rutas[0].r.camion||''; }
-    if(cam)cam.textContent=ficha?('Camión '+ficha):'Sin camión asignado';
+    if(cam)cam.innerHTML='<i class="ti ti-truck" aria-hidden="true"></i> '+(ficha?('Camión '+esc(ficha)):'Sin camión asignado');
     if(!list)return;
     if(!rutas.length){
-      list.innerHTML='<div class="cho-empty"><i class="ti ti-calendar-off" aria-hidden="true"></i><span>No tienes rutas asignadas para hoy</span></div>';
-      if(btn)btn.style.display='none';
+      list.innerHTML='<div class="cho-empty"><div class="ic"><i class="ti ti-calendar-off" aria-hidden="true"></i></div>'
+        +'<b>No tienes rutas para hoy</b><span>Cuando te asignen una ruta, aparecerá aquí lista para empezar.</span></div>';
+      if(foot)foot.style.display='none';
       return;
     }
-    if(btn)btn.style.display='';
-    list.innerHTML=rutas.map(o=>{
-      const r=o.r; const km=r.wp?((decode(r.wp)||[]).length):0;
-      return '<div class="cho-rcard"><div class="pin"><i class="ti ti-map-pin" aria-hidden="true"></i></div>'
-        +'<div class="info"><b>'+esc(r.nombre||'Ruta')+'</b><small>'+esc(r.sector||'')+(r.freq&&r.freq.length?(' · '+r.freq.join(' ')):'')+'</small></div></div>';
+    if(foot)foot.style.display='';
+    // Auto-seleccionar si hay una sola ruta
+    if(rutas.length===1) choferRutaSel=rutas[0].id;
+    if(!rutas.some(o=>o.id===choferRutaSel)) choferRutaSel=null;
+    const label = rutas.length>1 ? '<div class="cho-section-label">Elige tu ruta de hoy</div>' : '<div class="cho-section-label">Tu ruta de hoy</div>';
+    list.innerHTML=label+rutas.map(o=>{
+      const r=o.r; const sel=(o.id===choferRutaSel);
+      const meta=[]; if(r.sector)meta.push(esc(r.sector));
+      return '<div class="cho-rcard'+(sel?' sel':'')+'" data-rid="'+esc(o.id)+'">'
+        +'<div class="pin"><i class="ti ti-map-pin" aria-hidden="true"></i></div>'
+        +'<div class="info"><b>'+esc(r.nombre||'Ruta')+'</b>'
+        +(meta.length?'<small><i class="ti ti-map-2" aria-hidden="true"></i> '+meta.join(' · ')+'</small>':'')+'</div>'
+        +'<div class="check"><i class="ti ti-check" aria-hidden="true"></i></div></div>';
     }).join('');
+    // Click en cada tarjeta = seleccionar
+    list.querySelectorAll('.cho-rcard').forEach(card=>{
+      card.onclick=function(){ choferRutaSel=card.getAttribute('data-rid'); renderChoferInicio(); };
+    });
+    // Botón Empezar: habilitado solo si hay ruta seleccionada
+    if(btn){
+      btn.disabled=!choferRutaSel;
+      btn.onclick=function(ev){ if(ev){ev.preventDefault();} if(!choferRutaSel)return; try{ choferEmpezar(); }catch(err){ console.error('[chofer] ERROR:', err); } };
+    }
+    if(hint){ hint.textContent = choferRutaSel ? 'Listo. Toca Empezar ruta' : (rutas.length>1?'Toca una ruta para elegirla':'Toca Empezar ruta'); }
   }
   // Estado del turno del chofer
   let choferTurno={activo:false, rutaId:null};
@@ -3631,18 +3687,20 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     try{
       if('speechSynthesis' in window){
         window.speechSynthesis.cancel();
-        const u=new SpeechSynthesisUtterance('Iniciando ruta');
-        u.lang='es-DO'; u.rate=1.0; u.volume=1.0;
+        const u=new SpeechSynthesisUtterance(' ');
+        u.lang='es-DO'; u.volume=0.01;
         window.speechSynthesis.speak(u);
       }
     }catch(_){}
     pedirWakeLock();
     const rutas=rutasDelChofer();
     if(!rutas.length){ toast('No tienes rutas asignadas hoy'); return; }
-    choferTurno.activo=true; choferTurno.rutaId=rutas[0].id;
+    // Usar la ruta que el chofer seleccionó (o la única disponible)
+    let rid=choferRutaSel; if(!rutas.some(o=>o.id===rid)) rid=rutas[0].id;
+    choferTurno.activo=true; choferTurno.rutaId=rid;
     const sc=document.getElementById('choferScreen'); if(sc){ sc.classList.add('hide'); sc.style.display='none'; }
     document.body.classList.add('chofer-ruta-activa');
-    mostrarMapaChofer(rutas[0].id);
+    mostrarMapaChofer(rid);
   }
   function mostrarMapaChofer(rutaId){
     console.log('[chofer] mostrarMapaChofer rutaId=', rutaId);
@@ -3676,7 +3734,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     } else { console.warn('[chofer] ruta sin wp:', rutaId); }
     // Barra superior + botones de acción del chofer
     montarBarraChofer(r);
-    setTimeout(()=>{ try{ speak('Bienvenido. Dirígete al punto de inicio de la ruta '+((r&&r.nombre)||'')); }catch(_){} }, 1200);
+    setTimeout(()=>{ try{ speak('Bienvenido. Diríjase al punto de inicio de la ruta'); }catch(_){} }, 1000);
   }
   function montarBarraChofer(r){
     let bar=document.getElementById('choBar');
@@ -3729,28 +3787,37 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function toggleSimulacion(){ if(choSimOn)detenerSimulacion(); else iniciarSimulacion(); }
   function iniciarSimulacion(){
     if(!waypoints || waypoints.length<2){ toast('Esta ruta no tiene trazado para simular'); return; }
+    // Pausar el GPS real para que NO mezcle la posición real con la simulada
+    try{ if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; } }catch(_){}
+    // Reiniciar trazado para empezar limpio desde el inicio de la ruta
+    realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={};
+    if(realLine){try{map.removeLayer(realLine);}catch(_){}realLine=null;}
+    if(realLineGlow){try{map.removeLayer(realLineGlow);}catch(_){}realLineGlow=null;}
     choSimOn=true; choSimIdx=0; actualizarBtnSim();
     speak('Iniciando prueba de la ruta. Escucha las indicaciones.');
     toast('Prueba en marcha · escucha las indicaciones');
-    // Generar puntos interpolados entre waypoints para un avance suave
-    const ruta=[]; const PASO=12; // metros entre puntos simulados
+    const ruta=[]; const PASO=12;
     for(let i=1;i<waypoints.length;i++){
       const a=waypoints[i-1], b=waypoints[i]; const d=haversine(a,b); const n=Math.max(1,Math.round(d/PASO));
       for(let k=0;k<n;k++){ const t=k/n; ruta.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t]); }
     }
     ruta.push(waypoints[waypoints.length-1]);
+    // Forzar que el simulador empiece "en el punto de inicio" (sin fase de llegada)
+    reachedStart=true;
     let i=0;
     choSimTimer=setInterval(()=>{
       if(i>=ruta.length){ detenerSimulacion(); speak('Prueba finalizada. Llegaste al final de la ruta.'); return; }
-      // Simular una actualización GPS en ese punto → dispara las voces reales
       onGpsUpdate({coords:{latitude:ruta[i][0], longitude:ruta[i][1], accuracy:8}});
       i++;
-    }, 220); // ~5 puntos/seg
+    }, 220);
   }
   function detenerSimulacion(){
     choSimOn=false; if(choSimTimer){ clearInterval(choSimTimer); choSimTimer=null; }
     actualizarBtnSim();
     try{ window.speechSynthesis.cancel(); }catch(_){}
+    toast('Prueba detenida');
+    // Reanudar el GPS real del teléfono
+    try{ if('geolocation' in navigator && watchId===null){ watchId=navigator.geolocation.watchPosition(onGpsUpdate,onGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000}); } }catch(_){}
   }
   function botonChofer(id,bg,fg,icon,label){
     return '<button id="'+id+'" style="background:'+bg+';border:none;border-radius:14px;padding:16px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;min-height:84px;">'
@@ -4561,7 +4628,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       // Detección de desviación
       const dRoute=minDistToRoute(p);
       const now=Date.now();
-      if(dRoute>DEVIATION_M){
+      if(dRoute>DEVIATION_M && reachedStart){
         if(!deviated){
           deviated=true;deviationStartIdx=nextWpIdx;
           // Registrar tramo saltado
