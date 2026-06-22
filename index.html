@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v3.96 · 2026-06-20</div>
+    <div class="ver" style="padding-top:4px">v3.97 · 2026-06-20</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -515,7 +515,7 @@
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v3.96 · 2026-06-20</div>
+<div class="ver-badge" id="verBadge">v3.97 · 2026-06-20</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3573,7 +3573,9 @@
     }
     if(btn)btn.style.display='';
     // Asignar el onclick DIRECTAMENTE al botón (forma más robusta, sin delegación)
-    if(btn){ btn.onclick=function(ev){ if(ev){ev.preventDefault();} choferEmpezar(); }; }
+    if(btn){
+      btn.onclick=function(ev){ if(ev){ev.preventDefault();} console.log('[chofer] click Empezar → llamando choferEmpezar'); try{ choferEmpezar(); }catch(err){ console.error('[chofer] ERROR en choferEmpezar:', err); } };
+    }
     const exitBtn=document.getElementById('choExit');
     if(exitBtn){ exitBtn.onclick=function(){ if(confirm('¿Salir de tu sesión?')) logout(); }; }
     list.innerHTML=rutas.map(o=>{
