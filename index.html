@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.07 · 2026-06-23</div>
+    <div class="ver" style="padding-top:4px">v4.08 · 2026-06-23</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -578,7 +578,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.07 · 2026-06-23</div>
+<div class="ver-badge" id="verBadge">v4.08 · 2026-06-23</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1789,8 +1789,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const monP=document.getElementById('monPanel'), monD=document.getElementById('monDash');
     const fb=document.getElementById('fbStatus');
     if(v==='monitor'){ if(editor)editor.style.display='none';
-      // Limpiar la capa de etapas del editor para que no quede pegada en el monitoreo
+      // Limpiar las capas del editor para que no queden pegadas en el monitoreo
       if(etapasLayer){ try{map.removeLayer(etapasLayer);}catch(_){} etapasLayer=null; }
+      if(baseLine){ try{map.removeLayer(baseLine);}catch(_){} baseLine=null; }
+      if(markers&&markers.length){ try{markers.forEach(m=>map.removeLayer(m));}catch(_){} markers=[]; }
+      if(startFlag){ try{map.removeLayer(startFlag);}catch(_){} startFlag=null; }
       if(monP)monP.classList.add('show'); if(monD)monD.classList.add('show');
       if(fb)fb.classList.add('br');
       subscribeUnits(); renderMonitor();
@@ -1814,8 +1817,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       if(name==='recursos'&&perm.indexOf('reportes')<0)name=perm[0];
     }
     curSec=name;
-    // Si salimos del editor de rutas, limpiar la capa de etapas del mapa
-    if(name!=='rutas' && typeof etapasLayer!=='undefined' && etapasLayer){ try{map.removeLayer(etapasLayer);}catch(_){} etapasLayer=null; }
+    // Si salimos del editor de rutas, limpiar las capas del editor del mapa
+    if(name!=='rutas'){
+      if(typeof etapasLayer!=='undefined' && etapasLayer){ try{map.removeLayer(etapasLayer);}catch(_){} etapasLayer=null; }
+      if(typeof baseLine!=='undefined' && baseLine){ try{map.removeLayer(baseLine);}catch(_){} baseLine=null; }
+      if(typeof markers!=='undefined' && markers && markers.length){ try{markers.forEach(m=>map.removeLayer(m));}catch(_){} markers=[]; }
+      if(typeof startFlag!=='undefined' && startFlag){ try{map.removeLayer(startFlag);}catch(_){} startFlag=null; }
+    }
     document.body.classList.add('adm-shell');
     // re-disparar animación de entrada
     document.body.classList.remove('sec-anim'); void document.body.offsetWidth; document.body.classList.add('sec-anim');
