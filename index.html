@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.05 · 2026-06-22</div>
+    <div class="ver" style="padding-top:4px">v4.06 · 2026-06-23</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -578,7 +578,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.05 · 2026-06-22</div>
+<div class="ver-badge" id="verBadge">v4.06 · 2026-06-23</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1148,9 +1148,15 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
           const newWps=linesToWaypoints(lines);
           if(newWps.length<2){toast('El archivo no tiene suficientes puntos');e.target.value='';return;}
           loadRoute(newWps);
-          // Registrar/actualizar la etapa activa con este trazado
-          if(!etapasEdit.length){ etapasEdit=[{nombre:'Etapa 1', wp:encode()}]; etapaActiva=0; }
-          else { if(!etapasEdit[etapaActiva])etapasEdit[etapaActiva]={nombre:'Etapa '+(etapaActiva+1),wp:''}; etapasEdit[etapaActiva].wp=encode(); }
+          // Registrar el KMZ importado en la etapa correspondiente
+          if(_etapaImportTarget!=null && etapasEdit[_etapaImportTarget]!==undefined){
+            etapasEdit[_etapaImportTarget].wp=encode(); _etapaImportTarget=null;
+          } else if(!etapasEdit.length){
+            etapasEdit=[{nombre:'Etapa 1', wp:encode()}];
+          } else {
+            // Importar sin target = reemplaza la etapa 1 (caso de ruta de una sola etapa)
+            etapasEdit[0].wp=encode();
+          }
           renderEtapas();
           // Limpiar guía azul si hubiera
           if(guideLayer){map.removeLayer(guideLayer);guideLayer=null;document.getElementById('guideToggle').disabled=true;}
@@ -1288,67 +1294,71 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(waypoints.length)map.fitBounds(L.latLngBounds(waypoints).pad(0.25));}
 
   // ===== SISTEMA DE ETAPAS (multi-KMZ) en el editor =====
-  // etapasEdit: array de {nombre, wp}. etapaActiva: índice de la etapa que se ve/edita.
-  let etapasEdit=[]; let etapaActiva=0;
+  // etapasEdit: array de {nombre, wp}. Todas se muestran juntas; no se editan en la app (se suben por KMZ).
+  let etapasEdit=[];
+  let _etapaImportTarget=null; // índice de etapa al que va el próximo KMZ importado
+  const ETAPA_COLORS=['#2E7DF2','#A855F7','#F59E0B','#EC4899','#06B6D4','#F97316','#14B8A6','#EF4444'];
+  let etapasLayer=null;
   function renderEtapas(){
     const box=document.getElementById('etapasList'); if(!box)return;
     if(!etapasEdit.length){
       box.innerHTML='<div style="font-size:12px;color:#8a93a0;padding:6px 2px;">Importa un KMZ para crear la Etapa 1. Puedes agregar más etapas.</div>';
+      if(etapasLayer){ try{map.removeLayer(etapasLayer);}catch(_){} etapasLayer=null; }
       return;
     }
     box.innerHTML=etapasEdit.map((et,i)=>{
       const pts=decode(et.wp||'')||[]; const km=(typeof kmOf==='function')?kmOf(pts).toFixed(2):'0';
-      const act=(i===etapaActiva);
-      return '<div class="etapa-row" data-i="'+i+'" style="display:flex;align-items:center;gap:8px;padding:10px;margin-bottom:6px;border-radius:10px;background:'+(act?'#0C447C':'#f4f6f8')+';border:1.5px solid '+(act?'#2E7DF2':'#d4dee7')+';cursor:pointer;">'
+      return '<div class="etapa-row" data-i="'+i+'" style="display:flex;align-items:center;gap:8px;padding:10px;margin-bottom:6px;border-radius:10px;background:#f4f6f8;border:1.5px solid #d4dee7;">'
         +'<div style="width:28px;height:28px;border-radius:7px;background:'+ETAPA_COLORS[i%ETAPA_COLORS.length]+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">'+(i+1)+'</div>'
-        +'<div style="flex:1;min-width:0;"><input class="etapa-nom" data-i="'+i+'" value="'+esc(et.nombre||('Etapa '+(i+1)))+'" style="width:100%;background:transparent;border:none;font-weight:600;font-size:14px;color:'+(act?'#fff':'#152B3C')+';outline:none;" placeholder="Nombre de la etapa"/>'
-        +'<div style="font-size:11px;color:'+(act?'#9FC4E8':'#6B8299')+';">'+pts.length+' puntos · '+km+' km</div></div>'
-        +'<button class="etapa-edit" data-i="'+i+'" title="Editar esta etapa en el mapa" style="background:transparent;border:none;cursor:pointer;font-size:16px;">✏️</button>'
+        +'<div style="flex:1;min-width:0;"><input class="etapa-nom" data-i="'+i+'" value="'+esc(et.nombre||('Etapa '+(i+1)))+'" style="width:100%;background:transparent;border:none;font-weight:600;font-size:14px;color:#152B3C;outline:none;" placeholder="Nombre de la etapa"/>'
+        +'<div style="font-size:11px;color:#6B8299;">'+pts.length+' puntos · '+km+' km</div></div>'
         +'<button class="etapa-del" data-i="'+i+'" title="Eliminar etapa" style="background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>'
         +'</div>';
     }).join('');
-    // Eventos
-    box.querySelectorAll('.etapa-row').forEach(row=>{
-      row.addEventListener('click',e=>{ if(e.target.closest('.etapa-del')||e.target.closest('.etapa-nom')||e.target.closest('.etapa-edit'))return;
-        activarEtapa(parseInt(row.getAttribute('data-i'),10)); });
-    });
     box.querySelectorAll('.etapa-nom').forEach(inp=>{
       inp.addEventListener('change',()=>{ const i=parseInt(inp.getAttribute('data-i'),10); etapasEdit[i].nombre=inp.value.trim()||('Etapa '+(i+1)); });
-      inp.addEventListener('click',e=>e.stopPropagation());
-    });
-    box.querySelectorAll('.etapa-edit').forEach(b=>{
-      b.addEventListener('click',e=>{ e.stopPropagation(); activarEtapa(parseInt(b.getAttribute('data-i'),10)); toast('Editando '+(etapasEdit[parseInt(b.getAttribute('data-i'),10)].nombre)); });
     });
     box.querySelectorAll('.etapa-del').forEach(b=>{
       b.addEventListener('click',e=>{ e.stopPropagation(); const i=parseInt(b.getAttribute('data-i'),10); eliminarEtapa(i); });
     });
-  }
-  function activarEtapa(i){
-    // Guardar lo que esté en el mapa en la etapa actual antes de cambiar
-    if(etapasEdit[etapaActiva]) etapasEdit[etapaActiva].wp=encode();
-    etapaActiva=i;
-    const pts=decode(etapasEdit[i].wp||'')||[];
-    if(pts.length)loadRoute(pts); else { waypoints=[]; renderMarkers(); refresh(); }
-    renderEtapas();
+    dibujarEtapasEnMapa();
   }
   function eliminarEtapa(i){
     if(etapasEdit.length<=1){ toast('Debe quedar al menos una etapa'); return; }
     etapasEdit.splice(i,1);
-    if(etapaActiva>=etapasEdit.length)etapaActiva=etapasEdit.length-1;
-    const pts=decode((etapasEdit[etapaActiva]||{}).wp||'')||[];
-    if(pts.length)loadRoute(pts); else { waypoints=[]; renderMarkers(); refresh(); }
+    // Renumerar nombres por defecto (solo los que tienen nombre genérico "Etapa N")
+    etapasEdit.forEach((et,idx)=>{ if(/^Etapa \d+$/.test(et.nombre||'')) et.nombre='Etapa '+(idx+1); });
     renderEtapas();
+    toast('Etapa eliminada');
   }
   function nuevaEtapaVacia(){
-    if(etapasEdit[etapaActiva]) etapasEdit[etapaActiva].wp=encode();
+    // Agregar una etapa nueva al FINAL e importar su KMZ
     etapasEdit.push({nombre:'Etapa '+(etapasEdit.length+1), wp:''});
-    etapaActiva=etapasEdit.length-1;
-    waypoints=[]; renderMarkers(); refresh();
-    renderEtapas();
-    toast('Importa el KMZ de la nueva etapa');
+    _etapaImportTarget=etapasEdit.length-1; // el KMZ que se importe irá a esta etapa
+    toast('Importa el KMZ de la Etapa '+(etapasEdit.length));
     document.getElementById('kmzInput').click();
   }
-  const ETAPA_COLORS=['#2E7DF2','#A855F7','#F59E0B','#EC4899','#06B6D4','#F97316','#14B8A6','#EF4444'];
+  // Dibuja TODAS las etapas juntas (misma ruta, mismo color verde) con etiqueta Etapa 1/2/3
+  function dibujarEtapasEnMapa(){
+    if(etapasLayer){ try{map.removeLayer(etapasLayer);}catch(_){} etapasLayer=null; }
+    if(!etapasEdit||!etapasEdit.length)return;
+    const g=L.layerGroup();
+    let allPts=[];
+    etapasEdit.forEach((et,i)=>{
+      const pts=decode(et.wp||'')||[]; if(pts.length<2)return;
+      allPts=allPts.concat(pts);
+      // Misma ruta = mismo color (verde). Borde oscuro + línea verde.
+      L.polyline(pts,{color:'#1A1814',weight:7,opacity:.55,interactive:false}).addTo(g);
+      L.polyline(pts,{color:'#27A35B',weight:4.5,opacity:.95,interactive:false}).addTo(g);
+      // Etiqueta de la etapa (con color identificador) en su punto medio
+      const mid=pts[Math.floor(pts.length/2)];
+      L.marker(mid,{interactive:false,zIndexOffset:900,icon:L.divIcon({className:'',iconSize:[0,0],html:'<span style="background:'+ETAPA_COLORS[i%ETAPA_COLORS.length]+';color:#fff;padding:3px 10px;border-radius:11px;font:700 11px sans-serif;white-space:nowrap;box-shadow:0 1px 5px rgba(0,0,0,.45);">'+esc(et.nombre||('Etapa '+(i+1)))+'</span>'})}).addTo(g);
+      // Marca de inicio de cada etapa
+      L.marker(pts[0],{interactive:false,zIndexOffset:800,icon:L.divIcon({className:'',iconSize:[14,14],iconAnchor:[7,7],html:'<div style="width:14px;height:14px;border-radius:50%;background:'+ETAPA_COLORS[i%ETAPA_COLORS.length]+';border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5);"></div>'})}).addTo(g);
+    });
+    g.addTo(map); etapasLayer=g;
+    if(allPts.length>1){ try{ map.fitBounds(L.latLngBounds(allPts).pad(0.15)); }catch(_){} }
+  }
   async function copy(text){try{await navigator.clipboard.writeText(text);return true;}
     catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
       document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy');}catch(_){}document.body.removeChild(ta);return ok;}}
@@ -1741,32 +1751,31 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(r && r.etapas && r.etapas.length){ etapasEdit=r.etapas.map((et,i)=>({nombre:et.nombre||('Etapa '+(i+1)), wp:et.wp||''})); }
     else if(r && r.wp){ etapasEdit=[{nombre:'Etapa 1', wp:r.wp}]; }
     else { etapasEdit=[]; }
-    etapaActiva=0;
+    _etapaImportTarget=null;
     renderEtapas();
   }
   function newRuta(){
     editingRutaId=null; rDaysSel=[];
-    etapasEdit=[]; etapaActiva=0;
+    etapasEdit=[]; _etapaImportTarget=null;
     populateRutaForm(null);
     if(waypoints&&waypoints.length){ playing=false; if(typeof animId!=='undefined'&&animId)cancelAnimationFrame(animId); waypoints=[]; renderMarkers(); resetAnim(); refresh(); }
+    if(etapasLayer){ try{map.removeLayer(etapasLayer);}catch(_){} etapasLayer=null; }
     toast('Listo para una ruta nueva');
   }
   function saveRuta(){
     if(!fbDb){ toast('Sin conexión a Firebase'); return; }
-    if(waypoints.length<2){ toast('Traza o importa el recorrido primero'); return; }
-    // Sincronizar la etapa activa con lo que está en el mapa
-    if(etapasEdit.length){ if(!etapasEdit[etapaActiva])etapasEdit[etapaActiva]={nombre:'Etapa '+(etapaActiva+1),wp:''}; etapasEdit[etapaActiva].wp=encode(); }
-    else { etapasEdit=[{nombre:'Etapa 1', wp:encode()}]; etapaActiva=0; }
+    // Validar que haya al menos una etapa con trazado
+    const etapasValidas=etapasEdit.filter(et=>{ const p=decode(et.wp||'')||[]; return p.length>=2; });
+    if(!etapasValidas.length){ toast('Importa al menos un KMZ (una etapa) primero'); return; }
     const id=editingRutaId||('r'+Date.now().toString(36));
     const prev=mgmtRutas[id]||{};
     const supCode=document.getElementById('rSup').value||null;
     let supAccess=prev.supAccess||null, supActive=(prev.supActive!==undefined?prev.supActive:true);
     if(supCode){ if(!supAccess)supAccess=String(Math.floor(1000+Math.random()*9000)); } else { supAccess=null; }
-    // Construir array de etapas para Firebase (filtrar las que tengan trazado válido)
-    const etapasOut=etapasEdit.filter(et=>{ const p=decode(et.wp||'')||[]; return p.length>=2; })
-      .map((et,i)=>({ nombre:et.nombre||('Etapa '+(i+1)), wp:et.wp }));
+    // Construir array de etapas en orden (filtrar las que tengan trazado válido)
+    const etapasOut=etapasValidas.map((et,i)=>({ nombre:et.nombre||('Etapa '+(i+1)), wp:et.wp }));
     const data={ nombre:(document.getElementById('rNombre').value||'').trim()||'(sin nombre)', sector:(document.getElementById('rSector').value||'').trim()||null, camion:document.getElementById('rCamion').value||null,
-      wp:etapasOut.length?etapasOut[0].wp:encode(), // compatibilidad: wp = etapa 1
+      wp:etapasOut[0].wp, // compatibilidad: wp = etapa 1
       etapas:etapasOut.length>1?etapasOut:null,      // solo si hay más de una etapa
       freq:rDaysSel.slice(), choferCode:document.getElementById('rChofer').value||null,
       supCode:supCode, supAccess:supAccess, supActive:supActive, createdAt:prev.createdAt||Date.now() };
@@ -2161,22 +2170,32 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }
   }
   function showRouteLayer(id){ const r=mgmtRutas[id]; if(!r||routeLayers[id])return;
-    const pts=decode(r.wp||''); if(!pts||pts.length<2)return;
-    // semáforo del día: completada=verde sólido · programada hoy sin transitar=rojo · otras=color propio
     const _n=new Date(); const _hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const done=r.viajes&&r.viajes[_hoy]&&Object.keys(r.viajes[_hoy]).length;
     const g=L.layerGroup(); const w=routeWeights();
     const col=done?'#27A35B':routeColor(id);
-    // Halo de contraste debajo
-    const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.6,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
-    // Línea principal sólida (el verde de avance lo pinta el trail en vivo encima)
-    const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
-    addDirArrows(pts, '#FFFFFF', id);
-    // Marcadores discretos: A (inicio) y B (fin)
-    const fin=pts[pts.length-1];
-    L.marker(pts[0],{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:'<div class="route-dot ini">🚩</div>'})}).addTo(g);
-    L.marker(fin,{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:'<div class="route-dot fin">🏁</div>'})}).addTo(g);
-    L.marker(pts[0],{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
+    const ETAPA_C=['#2E7DF2','#A855F7','#F59E0B','#EC4899','#06B6D4','#F97316','#14B8A6','#EF4444'];
+    // Si la ruta tiene etapas, dibujarlas TODAS (misma ruta, mismo color) con etiquetas
+    const tieneEtapas = r.etapas && r.etapas.length>1;
+    const segmentos = tieneEtapas ? r.etapas.map(e=>decode(e.wp||'')) : [decode(r.wp||'')];
+    let primerPunto=null, ultimoPunto=null;
+    segmentos.forEach((pts,si)=>{
+      if(!pts||pts.length<2)return;
+      if(!primerPunto)primerPunto=pts[0]; ultimoPunto=pts[pts.length-1];
+      const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.6,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
+      const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
+      addDirArrows(pts, '#FFFFFF', id+'_'+si);
+      if(tieneEtapas){
+        // Etiqueta de cada etapa en su punto medio
+        const et=r.etapas[si]; const mid=pts[Math.floor(pts.length/2)];
+        L.marker(mid,{interactive:false,zIndexOffset:850,icon:L.divIcon({className:'',iconSize:[0,0],html:'<span style="background:'+ETAPA_C[si%ETAPA_C.length]+';color:#fff;padding:3px 9px;border-radius:10px;font:700 11px sans-serif;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.45);">'+((et&&et.nombre)||('Etapa '+(si+1))).replace(/</g,'&lt;')+'</span>'})}).addTo(g);
+      }
+    });
+    if(primerPunto){
+      L.marker(primerPunto,{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:'<div class="route-dot ini">🚩</div>'})}).addTo(g);
+      L.marker(ultimoPunto,{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:'<div class="route-dot fin">🏁</div>'})}).addTo(g);
+      L.marker(primerPunto,{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
+    }
     g.addTo(map); routeLayers[id]=g; }
   function adjustRouteWeights(){ const w=routeWeights(); Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l._wbase&&l.setStyle){ if(l._wbase==='out')l.setStyle({weight:w.out}); else if(l._wbase==='flow')l.setStyle({weight:Math.max(2,w.main-1.5)}); else l.setStyle({weight:w.main}); } }); }); Object.keys(liveTrails).forEach(id=>{ if(liveTrails[id].setStyle)liveTrails[id].setStyle({weight:w.main+1.6}); }); }
   map.on('zoomend',adjustRouteWeights);
