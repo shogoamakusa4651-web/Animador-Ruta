@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.10 · 2026-06-23</div>
+    <div class="ver" style="padding-top:4px">v4.11 · 2026-06-23</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -578,7 +578,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.10 · 2026-06-23</div>
+<div class="ver-badge" id="verBadge">v4.11 · 2026-06-23</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3866,11 +3866,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       if(i===idxActiva)return; // la activa se dibuja con drawBase (rayada roja)
       const pts=decode(et.wp||''); if(!pts||pts.length<2)return;
       const col=NEUT[i%NEUT.length];
-      // Etapas en espera: color PLANO, más apagado, sin rayas
-      L.polyline(pts,{color:'#1A1814',weight:6,opacity:.4,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
-      L.polyline(pts,{color:col,weight:3.5,opacity:.6,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+      // Etapas en espera: color PLANO pero BIEN VISIBLE (borde blanco + color sólido grueso)
+      L.polyline(pts,{color:'#FFFFFF',weight:8,opacity:.85,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+      L.polyline(pts,{color:col,weight:5,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
       const mid=pts[Math.floor(pts.length/2)];
-      L.marker(mid,{interactive:false,zIndexOffset:700,icon:L.divIcon({className:'',iconSize:[0,0],html:'<span style="background:'+col+';opacity:.85;color:#fff;padding:2px 8px;border-radius:9px;font:600 10px sans-serif;white-space:nowrap;">'+esc(et.nombre||('Etapa '+(i+1)))+'</span>'})}).addTo(g);
+      L.marker(mid,{interactive:false,zIndexOffset:700,icon:L.divIcon({className:'',iconSize:[0,0],html:'<span style="background:'+col+';color:#fff;padding:3px 10px;border-radius:10px;font:700 11px sans-serif;white-space:nowrap;box-shadow:0 1px 5px rgba(0,0,0,.5);">'+esc(et.nombre||('Etapa '+(i+1)))+'</span>'})}).addTo(g);
+      // Marca de inicio de la etapa en espera
+      L.marker(pts[0],{interactive:false,zIndexOffset:690,icon:L.divIcon({className:'',iconSize:[16,16],iconAnchor:[8,8],html:'<div style="width:16px;height:16px;border-radius:50%;background:'+col+';border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5);"></div>'})}).addTo(g);
     });
     g.addTo(map); etapasEsperaLayer=g;
   }
@@ -3886,9 +3888,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={};
         // Dibujar las otras etapas (en espera, planas) detrás de la activa
         dibujarEtapasEspera(idx);
-        // Encuadrar TODAS las etapas juntas
-        let all=[]; choferTurno.etapas.forEach(e=>{ const p=decode(e.wp||'')||[]; all=all.concat(p); });
-        if(all.length>1)map.fitBounds(L.latLngBounds(all).pad(0.12)); else map.fitBounds(L.latLngBounds(pts).pad(0.12));
+        // Vista inicial: mostrar la RUTA COMPLETA (panorama), no pegado al camión
+        followOn=false;
+        setTimeout(()=>centrarVistaChofer(), 300);
       }catch(e){ console.error('[chofer] cargar etapa:', e); }
     }
     _finEtapaAvisado=false;
@@ -3957,41 +3959,58 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       document.body.appendChild(sim);
       sim.onclick=toggleSimulacion;
     }
+    // Botón CENTRAR (debajo del de simulación) — encuadra ruta completa + camión
+    let cen=document.getElementById('choCentrarBtn');
+    if(!cen){
+      cen=document.createElement('button'); cen.id='choCentrarBtn';
+      cen.style.cssText='position:fixed;top:120px;right:10px;z-index:6500;width:46px;height:46px;background:#fff;border:2px solid #042C53;color:#042C53;border-radius:12px;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);';
+      cen.innerHTML='<i class="ti ti-focus-2"></i>';
+      cen.title='Centrar la ruta';
+      document.body.appendChild(cen);
+      cen.onclick=centrarVistaChofer;
+    }
     actualizarBtnSim();
     let acts=document.getElementById('choActs');
     if(!acts){
       acts=document.createElement('div'); acts.id='choActs';
-      acts.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:6000;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;font-family:-apple-system,Segoe UI,sans-serif;';
+      acts.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:6000;display:flex;flex-direction:column;gap:8px;padding:10px;font-family:-apple-system,Segoe UI,sans-serif;';
       document.body.appendChild(acts);
     }
-    acts.innerHTML=
-       botonChofer('choLleno','#EF9F27','#412402','ti-trash','Capacidad máxima')
+    const sig=choferTurno.etapaIdx+1;
+    const hayProxima = choferTurno.totalEtapas>1 && (sig<choferTurno.totalEtapas);
+    const nomSig=(choferTurno.etapas[sig]&&choferTurno.etapas[sig].nombre)||('Etapa '+(sig+1));
+    let html='';
+    // Fila 1 (si aplica): Continuar a la próxima etapa, ancho completo
+    if(hayProxima){
+      html+='<button id="choProxEtapa" style="background:#1F9D55;color:#fff;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 3px 12px rgba(31,157,85,.35);"><i class="ti ti-arrow-right-circle" style="font-size:22px;"></i> Continuar a '+esc(nomSig)+'</button>';
+    }
+    // Fila 2: los 4 botones de acción en grilla 2x2
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+      +botonChofer('choLleno','#EF9F27','#412402','ti-trash','Capacidad máxima')
       +botonChofer('choCombustible','#2F7DC2','#fff','ti-gas-station','Combustible')
       +botonChofer('choReporte','#E24B4A','#fff','ti-alert-triangle','Reporte')
-      +botonChofer('choObstaculo','#8B5CF6','#fff','ti-barrier-block','Obstáculo');
-    // Asignar acciones con confirmación
+      +botonChofer('choObstaculo','#8B5CF6','#fff','ti-barrier-block','Obstáculo')
+      +'</div>';
+    acts.innerHTML=html;
     bindChofBtn('choLleno', ()=>accionLleno());
     bindChofBtn('choCombustible', ()=>accionCombustible());
     bindChofBtn('choReporte', ()=>accionAlerta('reporte','Reporte de avería o urgencia'));
     bindChofBtn('choObstaculo', ()=>accionAlerta('obstaculo','Obstáculo que impide la ruta'));
-    // Botón "Continuar a la próxima etapa" (solo si hay más etapas por delante)
-    montarBotonProximaEtapa();
+    if(hayProxima){ const cp=document.getElementById('choProxEtapa'); if(cp)cp.onclick=function(){
+      confirmarChofer({titulo:'Continuar a la próxima etapa', mensaje:'¿Quieres adelantar a '+esc(nomSig)+' ahora? Se avisará al centro de control.', textoOk:'Sí, continuar', colorOk:'#1F9D55', onOk:()=>{ avanzarEtapaChofer(true); }}); }; }
   }
-  function montarBotonProximaEtapa(){
-    let cont=document.getElementById('choProxEtapa');
-    const hayProxima = choferTurno.totalEtapas>1 && (choferTurno.etapaIdx+1<choferTurno.totalEtapas);
-    if(!hayProxima){ if(cont)cont.remove(); return; }
-    if(!cont){
-      cont=document.createElement('button'); cont.id='choProxEtapa';
-      cont.style.cssText='position:fixed;bottom:106px;left:10px;right:10px;z-index:6000;background:#1F9D55;color:#fff;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 4px 14px rgba(31,157,85,.4);font-family:-apple-system,Segoe UI,sans-serif;';
-      document.body.appendChild(cont);
-    }
-    const sig=choferTurno.etapaIdx+1;
-    const nomSig=(choferTurno.etapas[sig]&&choferTurno.etapas[sig].nombre)||('Etapa '+(sig+1));
-    cont.innerHTML='<i class="ti ti-arrow-right-circle" style="font-size:22px;"></i> Continuar a '+esc(nomSig);
-    cont.onclick=function(){
-      confirmarChofer({titulo:'Continuar a la próxima etapa', mensaje:'¿Quieres adelantar a '+esc(nomSig)+' ahora? Se avisará al centro de control.', textoOk:'Sí, continuar', colorOk:'#1F9D55', onOk:()=>{ avanzarEtapaChofer(true); }});
-    };
+  function montarBotonProximaEtapa(){ /* integrado en montarBarraChofer */ }
+  // Encuadra la vista para mostrar TODA la ruta (todas las etapas) + la posición del camión
+  function centrarVistaChofer(){
+    let pts=[];
+    // Todos los puntos de todas las etapas
+    if(choferTurno.etapas&&choferTurno.etapas.length){
+      choferTurno.etapas.forEach(e=>{ const p=decode(e.wp||'')||[]; pts=pts.concat(p); });
+    } else if(waypoints&&waypoints.length){ pts=waypoints.slice(); }
+    // Incluir la posición del camión si existe
+    if(lastTruckPos)pts.push(lastTruckPos);
+    if(pts.length>=2){ try{ map.fitBounds(L.latLngBounds(pts).pad(0.15)); }catch(_){} }
+    else if(pts.length===1){ try{ map.setView(pts[0],15); }catch(_){} }
   }
   // ===== SIMULACIÓN DE RUTA (para probar las indicaciones de voz sin salir a la calle) =====
   let choSimOn=false, choSimTimer=null;
