@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.04 · 2026-06-22</div>
+    <div class="ver" style="padding-top:4px">v4.05 · 2026-06-22</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -578,7 +578,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.04 · 2026-06-22</div>
+<div class="ver-badge" id="verBadge">v4.05 · 2026-06-22</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -639,6 +639,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       <button class="btn guide-toggle" id="guideToggle" disabled title="Mostrar/ocultar guía">👁</button>
     </div>
     <input type="file" id="kmzInput" accept=".kmz,.kml" style="display:none">
+    <!-- Lista de etapas (multi-KMZ) -->
+    <div id="etapasBox" style="margin-top:12px;">
+      <div id="etapasList"></div>
+      <button class="btn" id="addEtapaBtn" style="width:100%;margin-top:8px;border:1.5px dashed #2E7DF2;color:#2E7DF2;background:transparent;">＋ Agregar etapa (otro KMZ)</button>
+    </div>
   </div>
 
   <!-- Ruta -->
@@ -1120,6 +1125,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
 
   document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('kmzInput').click());
+  { const ab=document.getElementById('addEtapaBtn'); if(ab)ab.addEventListener('click',nuevaEtapaVacia); }
   document.getElementById('kmzInput').addEventListener('change',async e=>{
     const f=e.target.files[0];if(!f)return;
     try{
@@ -1142,6 +1148,10 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
           const newWps=linesToWaypoints(lines);
           if(newWps.length<2){toast('El archivo no tiene suficientes puntos');e.target.value='';return;}
           loadRoute(newWps);
+          // Registrar/actualizar la etapa activa con este trazado
+          if(!etapasEdit.length){ etapasEdit=[{nombre:'Etapa 1', wp:encode()}]; etapaActiva=0; }
+          else { if(!etapasEdit[etapaActiva])etapasEdit[etapaActiva]={nombre:'Etapa '+(etapaActiva+1),wp:''}; etapasEdit[etapaActiva].wp=encode(); }
+          renderEtapas();
           // Limpiar guía azul si hubiera
           if(guideLayer){map.removeLayer(guideLayer);guideLayer=null;document.getElementById('guideToggle').disabled=true;}
           // Reset de referencias y disparar modal automático para generar el Word
@@ -1276,6 +1286,69 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function loadRoute(pts){playing=false;if(animId)cancelAnimationFrame(animId);
     waypoints=pts.slice();renderMarkers();refresh();resetAnim();
     if(waypoints.length)map.fitBounds(L.latLngBounds(waypoints).pad(0.25));}
+
+  // ===== SISTEMA DE ETAPAS (multi-KMZ) en el editor =====
+  // etapasEdit: array de {nombre, wp}. etapaActiva: índice de la etapa que se ve/edita.
+  let etapasEdit=[]; let etapaActiva=0;
+  function renderEtapas(){
+    const box=document.getElementById('etapasList'); if(!box)return;
+    if(!etapasEdit.length){
+      box.innerHTML='<div style="font-size:12px;color:#8a93a0;padding:6px 2px;">Importa un KMZ para crear la Etapa 1. Puedes agregar más etapas.</div>';
+      return;
+    }
+    box.innerHTML=etapasEdit.map((et,i)=>{
+      const pts=decode(et.wp||'')||[]; const km=(typeof kmOf==='function')?kmOf(pts).toFixed(2):'0';
+      const act=(i===etapaActiva);
+      return '<div class="etapa-row" data-i="'+i+'" style="display:flex;align-items:center;gap:8px;padding:10px;margin-bottom:6px;border-radius:10px;background:'+(act?'#0C447C':'#f4f6f8')+';border:1.5px solid '+(act?'#2E7DF2':'#d4dee7')+';cursor:pointer;">'
+        +'<div style="width:28px;height:28px;border-radius:7px;background:'+ETAPA_COLORS[i%ETAPA_COLORS.length]+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">'+(i+1)+'</div>'
+        +'<div style="flex:1;min-width:0;"><input class="etapa-nom" data-i="'+i+'" value="'+esc(et.nombre||('Etapa '+(i+1)))+'" style="width:100%;background:transparent;border:none;font-weight:600;font-size:14px;color:'+(act?'#fff':'#152B3C')+';outline:none;" placeholder="Nombre de la etapa"/>'
+        +'<div style="font-size:11px;color:'+(act?'#9FC4E8':'#6B8299')+';">'+pts.length+' puntos · '+km+' km</div></div>'
+        +'<button class="etapa-edit" data-i="'+i+'" title="Editar esta etapa en el mapa" style="background:transparent;border:none;cursor:pointer;font-size:16px;">✏️</button>'
+        +'<button class="etapa-del" data-i="'+i+'" title="Eliminar etapa" style="background:transparent;border:none;cursor:pointer;font-size:16px;">🗑️</button>'
+        +'</div>';
+    }).join('');
+    // Eventos
+    box.querySelectorAll('.etapa-row').forEach(row=>{
+      row.addEventListener('click',e=>{ if(e.target.closest('.etapa-del')||e.target.closest('.etapa-nom')||e.target.closest('.etapa-edit'))return;
+        activarEtapa(parseInt(row.getAttribute('data-i'),10)); });
+    });
+    box.querySelectorAll('.etapa-nom').forEach(inp=>{
+      inp.addEventListener('change',()=>{ const i=parseInt(inp.getAttribute('data-i'),10); etapasEdit[i].nombre=inp.value.trim()||('Etapa '+(i+1)); });
+      inp.addEventListener('click',e=>e.stopPropagation());
+    });
+    box.querySelectorAll('.etapa-edit').forEach(b=>{
+      b.addEventListener('click',e=>{ e.stopPropagation(); activarEtapa(parseInt(b.getAttribute('data-i'),10)); toast('Editando '+(etapasEdit[parseInt(b.getAttribute('data-i'),10)].nombre)); });
+    });
+    box.querySelectorAll('.etapa-del').forEach(b=>{
+      b.addEventListener('click',e=>{ e.stopPropagation(); const i=parseInt(b.getAttribute('data-i'),10); eliminarEtapa(i); });
+    });
+  }
+  function activarEtapa(i){
+    // Guardar lo que esté en el mapa en la etapa actual antes de cambiar
+    if(etapasEdit[etapaActiva]) etapasEdit[etapaActiva].wp=encode();
+    etapaActiva=i;
+    const pts=decode(etapasEdit[i].wp||'')||[];
+    if(pts.length)loadRoute(pts); else { waypoints=[]; renderMarkers(); refresh(); }
+    renderEtapas();
+  }
+  function eliminarEtapa(i){
+    if(etapasEdit.length<=1){ toast('Debe quedar al menos una etapa'); return; }
+    etapasEdit.splice(i,1);
+    if(etapaActiva>=etapasEdit.length)etapaActiva=etapasEdit.length-1;
+    const pts=decode((etapasEdit[etapaActiva]||{}).wp||'')||[];
+    if(pts.length)loadRoute(pts); else { waypoints=[]; renderMarkers(); refresh(); }
+    renderEtapas();
+  }
+  function nuevaEtapaVacia(){
+    if(etapasEdit[etapaActiva]) etapasEdit[etapaActiva].wp=encode();
+    etapasEdit.push({nombre:'Etapa '+(etapasEdit.length+1), wp:''});
+    etapaActiva=etapasEdit.length-1;
+    waypoints=[]; renderMarkers(); refresh();
+    renderEtapas();
+    toast('Importa el KMZ de la nueva etapa');
+    document.getElementById('kmzInput').click();
+  }
+  const ETAPA_COLORS=['#2E7DF2','#A855F7','#F59E0B','#EC4899','#06B6D4','#F97316','#14B8A6','#EF4444'];
   async function copy(text){try{await navigator.clipboard.writeText(text);return true;}
     catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
       document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy');}catch(_){}document.body.removeChild(ta);return ok;}}
@@ -1664,9 +1737,16 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     rDaysSel=r&&r.freq?r.freq.slice():[];
     document.querySelectorAll('#rDays button').forEach(b=>b.classList.toggle('on',rDaysSel.includes(b.dataset.d)));
     const t=document.getElementById('rutaFormTitle'); if(t)t.textContent=r?('Editando: '+(r.nombre||'ruta')):'Nueva ruta';
+    // Reconstruir etapas: si la ruta tiene etapas[], usarlas; si no, una sola etapa con wp
+    if(r && r.etapas && r.etapas.length){ etapasEdit=r.etapas.map((et,i)=>({nombre:et.nombre||('Etapa '+(i+1)), wp:et.wp||''})); }
+    else if(r && r.wp){ etapasEdit=[{nombre:'Etapa 1', wp:r.wp}]; }
+    else { etapasEdit=[]; }
+    etapaActiva=0;
+    renderEtapas();
   }
   function newRuta(){
     editingRutaId=null; rDaysSel=[];
+    etapasEdit=[]; etapaActiva=0;
     populateRutaForm(null);
     if(waypoints&&waypoints.length){ playing=false; if(typeof animId!=='undefined'&&animId)cancelAnimationFrame(animId); waypoints=[]; renderMarkers(); resetAnim(); refresh(); }
     toast('Listo para una ruta nueva');
@@ -1674,17 +1754,25 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function saveRuta(){
     if(!fbDb){ toast('Sin conexión a Firebase'); return; }
     if(waypoints.length<2){ toast('Traza o importa el recorrido primero'); return; }
+    // Sincronizar la etapa activa con lo que está en el mapa
+    if(etapasEdit.length){ if(!etapasEdit[etapaActiva])etapasEdit[etapaActiva]={nombre:'Etapa '+(etapaActiva+1),wp:''}; etapasEdit[etapaActiva].wp=encode(); }
+    else { etapasEdit=[{nombre:'Etapa 1', wp:encode()}]; etapaActiva=0; }
     const id=editingRutaId||('r'+Date.now().toString(36));
     const prev=mgmtRutas[id]||{};
     const supCode=document.getElementById('rSup').value||null;
     let supAccess=prev.supAccess||null, supActive=(prev.supActive!==undefined?prev.supActive:true);
     if(supCode){ if(!supAccess)supAccess=String(Math.floor(1000+Math.random()*9000)); } else { supAccess=null; }
+    // Construir array de etapas para Firebase (filtrar las que tengan trazado válido)
+    const etapasOut=etapasEdit.filter(et=>{ const p=decode(et.wp||'')||[]; return p.length>=2; })
+      .map((et,i)=>({ nombre:et.nombre||('Etapa '+(i+1)), wp:et.wp }));
     const data={ nombre:(document.getElementById('rNombre').value||'').trim()||'(sin nombre)', sector:(document.getElementById('rSector').value||'').trim()||null, camion:document.getElementById('rCamion').value||null,
-      wp:encode(), freq:rDaysSel.slice(), choferCode:document.getElementById('rChofer').value||null,
+      wp:etapasOut.length?etapasOut[0].wp:encode(), // compatibilidad: wp = etapa 1
+      etapas:etapasOut.length>1?etapasOut:null,      // solo si hay más de una etapa
+      freq:rDaysSel.slice(), choferCode:document.getElementById('rChofer').value||null,
       supCode:supCode, supAccess:supAccess, supActive:supActive, createdAt:prev.createdAt||Date.now() };
     fbDb.ref('rutas/'+id).update(data); editingRutaId=id;
     const t=document.getElementById('rutaFormTitle'); if(t)t.textContent='Editando: '+data.nombre;
-    toast(supCode?('Ruta guardada · código sup '+supAccess):'Ruta guardada ✓');
+    toast(etapasOut.length>1?('Ruta guardada · '+etapasOut.length+' etapas ✓'):(supCode?('Ruta guardada · código sup '+supAccess):'Ruta guardada ✓'));
   }
   function setAdmView(v){
     const editor=document.getElementById('panel');
