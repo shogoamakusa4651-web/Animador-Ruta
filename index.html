@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.08 · 2026-06-23</div>
+    <div class="ver" style="padding-top:4px">v4.09 · 2026-06-23</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -578,7 +578,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.08 · 2026-06-23</div>
+<div class="ver-badge" id="verBadge">v4.09 · 2026-06-23</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1964,9 +1964,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     Object.keys(live).forEach(id=>{ const t=live[id]||{}; if(t.ts&&(Date.now()-t.ts)>20*60*1000)alerts.push({sev:2,tx:esc((rutas[id]||{}).nombre||id)+' en curso · <b>sin señal hace '+Math.round((Date.now()-t.ts)/60000)+' min</b>',act:'Monitorear',go:'mon',id:id}); });
     // Alertas enviadas por choferes (reporte de avería/urgencia, obstáculo)
     if(window._alertasChofer){ Object.keys(window._alertasChofer).forEach(k=>{ const a=window._alertasChofer[k]; if(!a||a.atendida)return;
-      const etq=a.tipo==='reporte'?'Avería / urgencia':'Obstáculo en ruta';
       const rn=(rutas[a.rutaId]||{}).nombre||'';
-      alerts.push({sev:2,tx:'<b>'+esc(etq)+'</b> · chofer '+esc(a.chofer||'')+(rn?(' · '+esc(rn)):''),act:'Atender',go:'alertaChofer',id:k}); }); }
+      if(a.tipo==='adelanto_etapa'){
+        alerts.push({sev:1,tx:'<b>Adelantó de etapa</b> · chofer '+esc(a.chofer||'')+(rn?(' · '+esc(rn)):'')+(a.etapaHacia?(' → etapa '+esc(String(a.etapaHacia))):''),act:'Ver',go:'alertaChofer',id:k});
+      } else {
+        const etq=a.tipo==='reporte'?'Avería / urgencia':'Obstáculo en ruta';
+        alerts.push({sev:2,tx:'<b>'+esc(etq)+'</b> · chofer '+esc(a.chofer||'')+(rn?(' · '+esc(rn)):''),act:'Atender',go:'alertaChofer',id:k});
+      } }); }
     alerts.sort((a,b)=>b.sev-a.sev);
     const parts=[];
     if(cumplim!=null)parts.push({w:.45,v:cumplim,lab:'Rutas',c:'#CF9A4A'});
@@ -3800,7 +3804,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(hint){ hint.textContent = choferRutaSel ? 'Listo. Toca Empezar ruta' : (rutas.length>1?'Toca una ruta para elegirla':'Toca Empezar ruta'); }
   }
   // Estado del turno del chofer
-  let choferTurno={activo:false, rutaId:null};
+  let choferTurno={activo:false, rutaId:null, etapas:[], etapaIdx:0, totalEtapas:1};
   function choferEmpezar(){
     // DESBLOQUEO DE VOZ iOS: hablar AHORA mismo, en el toque directo (Safari lo exige)
     try{
@@ -3840,20 +3844,71 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     try{ map.invalidateSize(); }catch(_){}
     try{ Object.keys(routeLayers||{}).forEach(id=>hideRouteLayer(id)); }catch(_){}
     const r=mgmtRutas[rutaId];
-    // Cargar la ruta en el MOTOR REAL de navegación (waypoints + instrucciones de giro)
-    if(r&&r.wp){ const pts=decode(r.wp);
-      if(pts&&pts.length){
-        try{
-          loadRoute(pts);
-          if(typeof buildInstructions==='function') buildInstructions();
-          voiceOn=true;
-          map.fitBounds(L.latLngBounds(pts).pad(0.12));
-        }catch(e){ console.error('[chofer] cargar ruta:', e); }
-      } else { console.warn('[chofer] ruta sin puntos decodificables'); }
-    } else { console.warn('[chofer] ruta sin wp:', rutaId); }
+    // Preparar las etapas de la ruta (si tiene etapas[], usarlas; si no, una sola con wp)
+    if(r && r.etapas && r.etapas.length){ choferTurno.etapas=r.etapas.slice(); }
+    else if(r && r.wp){ choferTurno.etapas=[{nombre:'Etapa 1', wp:r.wp}]; }
+    else { choferTurno.etapas=[]; }
+    choferTurno.etapaIdx=0; choferTurno.totalEtapas=choferTurno.etapas.length;
+    // Cargar la primera etapa en el motor de navegación
+    cargarEtapaChofer(0, r);
     // Barra superior + botones de acción del chofer
     montarBarraChofer(r);
     setTimeout(()=>{ try{ speak('Bienvenido. Diríjase al punto de inicio de la ruta'); }catch(_){} }, 1000);
+  }
+  // Carga la etapa N de la ruta del chofer en el motor de navegación
+  function cargarEtapaChofer(idx, r){
+    r=r||mgmtRutas[choferTurno.rutaId];
+    const et=choferTurno.etapas[idx]; if(!et)return;
+    const pts=decode(et.wp||'');
+    if(pts&&pts.length){
+      try{
+        loadRoute(pts);
+        if(typeof buildInstructions==='function') buildInstructions();
+        voiceOn=true;
+        // Reiniciar el avance para la nueva etapa
+        nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={};
+        map.fitBounds(L.latLngBounds(pts).pad(0.12));
+      }catch(e){ console.error('[chofer] cargar etapa:', e); }
+    }
+    _finEtapaAvisado=false; // permitir detectar el fin de esta etapa
+  }
+  let _finEtapaAvisado=false;
+  // Avanza a la siguiente etapa (automático al terminar, o manual con el botón)
+  function avanzarEtapaChofer(manual){
+    const sig=choferTurno.etapaIdx+1;
+    if(sig>=choferTurno.totalEtapas){
+      // Era la última etapa → ruta completa
+      speak('Has completado toda la ruta. Buen trabajo.');
+      toast('Ruta completada');
+      txChofer({status:'completada', evento:'ruta_fin'});
+      return;
+    }
+    // Si fue manual (adelantó), avisar al centro de control (no frena)
+    if(manual){ txChofer({evento:'adelanto_etapa', alerta:'adelanto_etapa', etapaDesde:choferTurno.etapaIdx+1, etapaHacia:sig+1}); }
+    choferTurno.etapaIdx=sig;
+    const r=mgmtRutas[choferTurno.rutaId];
+    const nomEtapa=(choferTurno.etapas[sig]&&choferTurno.etapas[sig].nombre)||('Etapa '+(sig+1));
+    cargarEtapaChofer(sig, r);
+    montarBarraChofer(r); // refrescar barra con el número de etapa nuevo
+    speak('Continúa a la '+nomEtapa+'. Diríjase a su punto de inicio.');
+    toast('Ahora: '+nomEtapa);
+    txChofer({status:'en_ruta', evento:'etapa_inicio', etapa:sig+1});
+  }
+  // Detecta si el chofer llegó al final de la etapa actual (por avance secuencial de waypoints)
+  function chequearFinEtapa(){
+    if(!choferTurno.activo || !choferTurno.totalEtapas)return;
+    if(_finEtapaAvisado)return;
+    if(!waypoints || waypoints.length<2)return;
+    // Terminó cuando alcanzó (en orden) el último waypoint de la etapa
+    if(nextWpIdx>=waypoints.length-1 && reachedStart){
+      _finEtapaAvisado=true;
+      if(choferTurno.etapaIdx+1<choferTurno.totalEtapas){
+        speak('Completaste esta etapa.');
+        setTimeout(()=>avanzarEtapaChofer(false), 1500); // arranca la siguiente sola
+      } else {
+        avanzarEtapaChofer(false); // última etapa → completa la ruta
+      }
+    }
   }
   function montarBarraChofer(r){
     let bar=document.getElementById('choBar');
@@ -3862,9 +3917,12 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:6000;background:#042C53;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:-apple-system,Segoe UI,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.4);';
       document.body.appendChild(bar);
     }
+    const hayEtapas=choferTurno.totalEtapas>1;
+    const nomEt=(choferTurno.etapas[choferTurno.etapaIdx]&&choferTurno.etapas[choferTurno.etapaIdx].nombre)||('Etapa '+(choferTurno.etapaIdx+1));
+    const subtit = hayEtapas ? (esc(nomEt)+' · '+(choferTurno.etapaIdx+1)+' de '+choferTurno.totalEtapas) : 'Sigue la línea de tu ruta';
     bar.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'
       +'<i class="ti ti-map-pin" style="font-size:22px;color:#85B7EB;"></i>'
-      +'<div><b style="font-size:16px;">'+esc((r&&r.nombre)||'Ruta')+'</b><div style="font-size:12px;color:#85B7EB;">Sigue la línea de tu ruta</div></div></div>'
+      +'<div><b style="font-size:16px;">'+esc((r&&r.nombre)||'Ruta')+'</b><div style="font-size:12px;color:#85B7EB;">'+subtit+'</div></div></div>'
       +'<div style="display:flex;align-items:center;gap:8px;">'
       +'<div style="display:flex;align-items:center;gap:5px;background:#0C447C;padding:6px 10px;border-radius:8px;font-size:12px;color:#FAC775;"><i class="ti ti-bulb"></i> Activa</div>'
       +'<button id="choBarExit" style="width:40px;height:40px;border-radius:9px;background:#0C447C;border:none;color:#85B7EB;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-logout"></i></button>'
@@ -3895,6 +3953,24 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     bindChofBtn('choCombustible', ()=>accionCombustible());
     bindChofBtn('choReporte', ()=>accionAlerta('reporte','Reporte de avería o urgencia'));
     bindChofBtn('choObstaculo', ()=>accionAlerta('obstaculo','Obstáculo que impide la ruta'));
+    // Botón "Continuar a la próxima etapa" (solo si hay más etapas por delante)
+    montarBotonProximaEtapa();
+  }
+  function montarBotonProximaEtapa(){
+    let cont=document.getElementById('choProxEtapa');
+    const hayProxima = choferTurno.totalEtapas>1 && (choferTurno.etapaIdx+1<choferTurno.totalEtapas);
+    if(!hayProxima){ if(cont)cont.remove(); return; }
+    if(!cont){
+      cont=document.createElement('button'); cont.id='choProxEtapa';
+      cont.style.cssText='position:fixed;bottom:106px;left:10px;right:10px;z-index:6000;background:#1F9D55;color:#fff;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 4px 14px rgba(31,157,85,.4);font-family:-apple-system,Segoe UI,sans-serif;';
+      document.body.appendChild(cont);
+    }
+    const sig=choferTurno.etapaIdx+1;
+    const nomSig=(choferTurno.etapas[sig]&&choferTurno.etapas[sig].nombre)||('Etapa '+(sig+1));
+    cont.innerHTML='<i class="ti ti-arrow-right-circle" style="font-size:22px;"></i> Continuar a '+esc(nomSig);
+    cont.onclick=function(){
+      confirmarChofer({titulo:'Continuar a la próxima etapa', mensaje:'¿Quieres adelantar a '+esc(nomSig)+' ahora? Se avisará al centro de control.', textoOk:'Sí, continuar', colorOk:'#1F9D55', onOk:()=>{ avanzarEtapaChofer(true); }});
+    };
   }
   // ===== SIMULACIÓN DE RUTA (para probar las indicaciones de voz sin salir a la calle) =====
   let choSimOn=false, choSimTimer=null;
@@ -3977,6 +4053,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       if(extra && extra.alerta){
         fbDb.ref('alertas_chofer').push(Object.assign({tipo:extra.alerta, chofer:choferName||choferCode, rutaId:choferTurno.rutaId||null,
           lat:lastTruckPos?lastTruckPos[0]:null, lng:lastTruckPos?lastTruckPos[1]:null,
+          etapaHacia:extra.etapaHacia||null, etapaDesde:extra.etapaDesde||null,
           fecha:new Date().toISOString(), atendida:false}));
       }
     }catch(e){ console.warn('[chofer] tx:', e); }
@@ -4743,6 +4820,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 
       // Anuncios de voz inteligentes
       announceTurnIfNeeded();
+
+      // Chofer multi-etapa: detectar si terminó la etapa actual para avanzar a la siguiente
+      try{ if(currentUserRole==='chofer') chequearFinEtapa(); }catch(_){}
 
       // Detección de desviación
       const dRoute=minDistToRoute(p);
