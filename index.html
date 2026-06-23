@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.09 · 2026-06-23</div>
+    <div class="ver" style="padding-top:4px">v4.10 · 2026-06-23</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -578,7 +578,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.09 · 2026-06-23</div>
+<div class="ver-badge" id="verBadge">v4.10 · 2026-06-23</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1297,7 +1297,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   // etapasEdit: array de {nombre, wp}. Todas se muestran juntas; no se editan en la app (se suben por KMZ).
   let etapasEdit=[];
   let _etapaImportTarget=null; // índice de etapa al que va el próximo KMZ importado
-  const ETAPA_COLORS=['#2E7DF2','#A855F7','#F59E0B','#EC4899','#06B6D4','#F97316','#14B8A6','#EF4444'];
+  const ETAPA_COLORS=['#3B6CA8','#5B7387','#A08043','#5C7A6B','#7A6A8C','#4F7C8C','#8C6D5B','#6B7A4F'];
   let etapasLayer=null;
   function renderEtapas(){
     const box=document.getElementById('etapasList'); if(!box)return;
@@ -2190,7 +2190,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const done=r.viajes&&r.viajes[_hoy]&&Object.keys(r.viajes[_hoy]).length;
     const g=L.layerGroup(); const w=routeWeights();
     const col=done?'#27A35B':routeColor(id);
-    const ETAPA_C=['#2E7DF2','#A855F7','#F59E0B','#EC4899','#06B6D4','#F97316','#14B8A6','#EF4444'];
+    const ETAPA_C=['#3B6CA8','#5B7387','#A08043','#5C7A6B','#7A6A8C','#4F7C8C','#8C6D5B','#6B7A4F'];
     // Si la ruta tiene etapas, dibujarlas TODAS (misma ruta, mismo color) con etiquetas
     const tieneEtapas = r.etapas && r.etapas.length>1;
     const segmentos = tieneEtapas ? r.etapas.map(e=>decode(e.wp||'')) : [decode(r.wp||'')];
@@ -3856,6 +3856,24 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     setTimeout(()=>{ try{ speak('Bienvenido. Diríjase al punto de inicio de la ruta'); }catch(_){} }, 1000);
   }
   // Carga la etapa N de la ruta del chofer en el motor de navegación
+  let etapasEsperaLayer=null;
+  function dibujarEtapasEspera(idxActiva){
+    if(etapasEsperaLayer){ try{map.removeLayer(etapasEsperaLayer);}catch(_){} etapasEsperaLayer=null; }
+    if(!choferTurno.etapas || choferTurno.etapas.length<2)return;
+    const g=L.layerGroup();
+    const NEUT=['#3B6CA8','#5B7387','#A08043','#5C7A6B','#7A6A8C','#4F7C8C','#8C6D5B','#6B7A4F'];
+    choferTurno.etapas.forEach((et,i)=>{
+      if(i===idxActiva)return; // la activa se dibuja con drawBase (rayada roja)
+      const pts=decode(et.wp||''); if(!pts||pts.length<2)return;
+      const col=NEUT[i%NEUT.length];
+      // Etapas en espera: color PLANO, más apagado, sin rayas
+      L.polyline(pts,{color:'#1A1814',weight:6,opacity:.4,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+      L.polyline(pts,{color:col,weight:3.5,opacity:.6,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+      const mid=pts[Math.floor(pts.length/2)];
+      L.marker(mid,{interactive:false,zIndexOffset:700,icon:L.divIcon({className:'',iconSize:[0,0],html:'<span style="background:'+col+';opacity:.85;color:#fff;padding:2px 8px;border-radius:9px;font:600 10px sans-serif;white-space:nowrap;">'+esc(et.nombre||('Etapa '+(i+1)))+'</span>'})}).addTo(g);
+    });
+    g.addTo(map); etapasEsperaLayer=g;
+  }
   function cargarEtapaChofer(idx, r){
     r=r||mgmtRutas[choferTurno.rutaId];
     const et=choferTurno.etapas[idx]; if(!et)return;
@@ -3865,12 +3883,15 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         loadRoute(pts);
         if(typeof buildInstructions==='function') buildInstructions();
         voiceOn=true;
-        // Reiniciar el avance para la nueva etapa
         nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={};
-        map.fitBounds(L.latLngBounds(pts).pad(0.12));
+        // Dibujar las otras etapas (en espera, planas) detrás de la activa
+        dibujarEtapasEspera(idx);
+        // Encuadrar TODAS las etapas juntas
+        let all=[]; choferTurno.etapas.forEach(e=>{ const p=decode(e.wp||'')||[]; all=all.concat(p); });
+        if(all.length>1)map.fitBounds(L.latLngBounds(all).pad(0.12)); else map.fitBounds(L.latLngBounds(pts).pad(0.12));
       }catch(e){ console.error('[chofer] cargar etapa:', e); }
     }
-    _finEtapaAvisado=false; // permitir detectar el fin de esta etapa
+    _finEtapaAvisado=false;
   }
   let _finEtapaAvisado=false;
   // Avanza a la siguiente etapa (automático al terminar, o manual con el botón)
