@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.12 · 2026-06-23</div>
+    <div class="ver" style="padding-top:4px">v4.13 · 2026-06-23</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.12 · 2026-06-23</div>
+<div class="ver-badge" id="verBadge">v4.13 · 2026-06-23</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -4014,6 +4014,78 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
   function montarBotonProximaEtapa(){ /* integrado en montarBarraChofer */ }
   // Encuadra la vista para mostrar TODA la ruta (todas las etapas) + la posición del camión
+  // ===== GUÍA AL DESTINO con OpenRouteService (ruta de manejo real por calles) =====
+  const ORS_KEY='eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImEwOTMxZTE2OTUwZjRkN2Y4ZjI5ODU0NWM4ZWE2N2NlIiwiaCI6Im11cm11cjY0In0=';
+  let guiaLayer=null, guiaSteps=[], guiaStepIdx=0, guiaActiva=false, guiaDestino=null, guiaTipo=null, guiaPidiendo=false;
+  // Pide a ORS la ruta de manejo desde 'desde' hasta 'hasta' [lat,lng]
+  async function pedirRutaORS(desde, hasta){
+    const url='https://api.openrouteservice.org/v2/directions/driving-car/geojson';
+    const body={ coordinates:[[desde[1],desde[0]],[hasta[1],hasta[0]]], language:'es', instructions:true };
+    const r=await fetch(url,{method:'POST',headers:{'Authorization':ORS_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok) throw new Error('ORS '+r.status);
+    return await r.json();
+  }
+  // Inicia la guía hacia un destino [lat,lng]. tipo: 'inicio' | 'regreso'
+  async function iniciarGuiaDestino(destino, tipo){
+    if(!destino || !lastTruckPos)return;
+    const dist=haversine(lastTruckPos,destino);
+    // Si ya está cerca, no hace falta guía por calles
+    if(dist<=100){ guiaActiva=false; limpiarGuia(); return; }
+    if(guiaPidiendo)return; guiaPidiendo=true;
+    guiaTipo=tipo; guiaDestino=destino;
+    try{
+      const geo=await pedirRutaORS(lastTruckPos, destino);
+      const feat=geo&&geo.features&&geo.features[0]; if(!feat)throw new Error('sin ruta');
+      const coords=feat.geometry.coordinates.map(c=>[c[1],c[0]]); // a [lat,lng]
+      const steps=(feat.properties&&feat.properties.segments&&feat.properties.segments[0]&&feat.properties.segments[0].steps)||[];
+      limpiarGuia();
+      // Dibujar la ruta de aproximación: halo blanco + azul punteada animada
+      const g=L.layerGroup();
+      L.polyline(coords,{color:'#FFFFFF',weight:9,opacity:.8,lineCap:'round',interactive:false}).addTo(g);
+      L.polyline(coords,{color:'#2E7DF2',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g);
+      L.polyline(coords,{color:'#fff',weight:3,opacity:.9,dashArray:'2,14',className:'route-flow',interactive:false}).addTo(g);
+      g.addTo(map); guiaLayer=g;
+      guiaSteps=steps; guiaStepIdx=0; guiaActiva=true;
+      const destTxt = tipo==='regreso' ? 'al punto donde quedaste' : 'al punto de inicio';
+      speak('Te voy a guiar '+destTxt+'. Sigue la línea azul.');
+      // Encuadrar la ruta de aproximación
+      try{ map.fitBounds(L.latLngBounds(coords).pad(0.2)); }catch(_){}
+    }catch(e){
+      console.warn('[ORS] no se pudo trazar guía:', e);
+      // Fallback: guía simple por línea recta (lo que ya existía)
+      guiaActiva=false;
+    }
+    guiaPidiendo=false;
+  }
+  function limpiarGuia(){ if(guiaLayer){ try{map.removeLayer(guiaLayer);}catch(_){} guiaLayer=null; } guiaSteps=[]; guiaStepIdx=0; }
+  function detenerGuia(){ guiaActiva=false; guiaDestino=null; guiaTipo=null; limpiarGuia(); }
+  // Se llama en cada update GPS mientras la guía está activa
+  function actualizarGuia(p){
+    if(!guiaActiva || !guiaDestino)return;
+    const dDest=haversine(p,guiaDestino);
+    // Llegó al destino de la guía
+    if(dDest<=30){
+      const wasRegreso=(guiaTipo==='regreso');
+      detenerGuia();
+      if(wasRegreso){ speak('Llegaste al punto donde quedaste. Continúa tu ruta.'); }
+      else { reachedStart=true; speak('Llegó al punto de inicio, comienza la ruta'); const sg=document.getElementById('startGuide'); if(sg)sg.classList.remove('show'); }
+      return;
+    }
+    // Anunciar el próximo paso de manejo (giro) según cercanía
+    if(guiaSteps.length && guiaStepIdx<guiaSteps.length){
+      const st=guiaSteps[guiaStepIdx];
+      // st.way_points indica índices; usamos la instrucción y distancia
+      if(st && st.distance!=null){
+        // Anuncio simple: cuando faltan ~30m para el paso, decir la instrucción
+        if(!st._dicho && st.instruction){
+          speak(st.instruction);
+          st._dicho=true;
+          guiaStepIdx++;
+        }
+      }
+    }
+  }
+
   function centrarVistaChofer(){
     let pts=[];
     // Todos los puntos de todas las etapas
@@ -4125,6 +4197,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }catch(_){ return null; }
   }
   function quitarMarcadorEvento(){ if(marcadorEvento){ try{ map.removeLayer(marcadorEvento); }catch(_){} marcadorEvento=null; } }
+  let puntoParada=null; // punto donde el chofer paró la ruta para ir a botar/combustible
   // 1. CAPACIDAD MÁXIMA (basura llena) → marca, voz, botón brilla; 2º click = reanudar
   function accionLleno(){
     if(choferAccion.enCurso==='lleno'){
@@ -4134,13 +4207,16 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         quitarMarcadorEvento();
         const b=document.getElementById('choLleno'); if(b){ b.style.animation=''; b.style.background='#EF9F27'; }
         txChofer({status:'en_ruta', evento:'descarga_fin'});
-        speak('Descarga completada. Regresa al punto donde quedaste y continúa tu ruta.');
+        speak('Descarga completada. Te guío de regreso al punto donde quedaste.');
         toast('De vuelta a la ruta');
+        // Guiar de regreso al punto donde paró (por calles reales)
+        if(puntoParada){ iniciarGuiaDestino(puntoParada,'regreso'); }
       }});
       return;
     }
     confirmarChofer({titulo:'Capacidad máxima', mensaje:'¿El camión está lleno? Se marcará tu posición y irás a botar la basura.', textoOk:'Sí, voy a botar', colorOk:'#EF9F27', onOk:()=>{
       choferAccion.enCurso='lleno'; tripPhase='vertedero';
+      puntoParada=lastTruckPos?lastTruckPos.slice():null; // recordar dónde paró
       marcarPunto('lleno','#EF9F27','🗑️',true);
       const b=document.getElementById('choLleno'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#F97316'; }
       txChofer({status:'vertedero', evento:'lleno'});
@@ -4156,13 +4232,15 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         quitarMarcadorEvento();
         const b=document.getElementById('choCombustible'); if(b){ b.style.animation=''; b.style.background='#2F7DC2'; }
         txChofer({status:'en_ruta', evento:'combustible_fin'});
-        speak('Listo. Regresa al punto donde quedaste y continúa tu ruta.');
+        speak('Listo. Te guío de regreso al punto donde quedaste.');
         toast('De vuelta a la ruta');
+        if(puntoParada){ iniciarGuiaDestino(puntoParada,'regreso'); }
       }});
       return;
     }
     confirmarChofer({titulo:'Combustible', mensaje:'¿Vas a poner combustible? Se marcará tu posición.', textoOk:'Sí, voy a combustible', colorOk:'#2F7DC2', onOk:()=>{
       choferAccion.enCurso='combustible'; tripPhase='combustible';
+      puntoParada=lastTruckPos?lastTruckPos.slice():null;
       marcarPunto('combustible','#2F7DC2','⛽',true);
       const b=document.getElementById('choCombustible'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#1E5C99'; }
       txChofer({status:'combustible', evento:'combustible'});
@@ -4825,13 +4903,19 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       if(!b.contains(p))map.panTo(p,{animate:true,duration:.6});
     }
 
-    // Guía al punto de inicio (punto de encuentro) como un GPS normal
+    // Guía al punto de inicio (punto de encuentro) con ruta de manejo real (ORS)
     if(waypoints.length && !reachedStart){
       const dStart=haversine(p,waypoints[0]);
       const g=document.getElementById('startGuide');
-      if(dStart>25){ if(g){ const tx=g.querySelector('.sg-tx'); if(tx)tx.textContent='🚩 Dirígete al punto de inicio · '+(dStart<1000?Math.round(dStart)+' m':(dStart/1000).toFixed(1)+' km'); g.classList.add('show'); } }
-      else { reachedStart=true; if(g)g.classList.remove('show'); speak('Llegó al punto de inicio, comienza la ruta'); }
+      if(dStart>25){
+        if(g){ const tx=g.querySelector('.sg-tx'); if(tx)tx.textContent='🚩 Dirígete al punto de inicio · '+(dStart<1000?Math.round(dStart)+' m':(dStart/1000).toFixed(1)+' km'); g.classList.add('show'); }
+        // Activar guía ORS una sola vez si está lejos
+        if(dStart>100 && !guiaActiva && !guiaPidiendo && currentUserRole==='chofer'){ iniciarGuiaDestino(waypoints[0],'inicio'); }
+      }
+      else { reachedStart=true; if(g)g.classList.remove('show'); detenerGuia(); speak('Llegó al punto de inicio, comienza la ruta'); }
     }
+    // Actualizar la guía activa (giros por voz, detección de llegada)
+    if(guiaActiva){ actualizarGuia(p); }
 
     // Auto-cumplimiento de waypoints — SOLO después de llegar al punto de inicio (obliga el orden)
     if(waypoints.length && reachedStart){
