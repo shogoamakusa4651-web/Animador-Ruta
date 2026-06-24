@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.13 · 2026-06-23</div>
+    <div class="ver" style="padding-top:4px">v4.14 · 2026-06-23</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.13 · 2026-06-23</div>
+<div class="ver-badge" id="verBadge">v4.14 · 2026-06-23</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -838,6 +838,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   let tripPhase='ruta', kmRuta=0, kmVertedero=0, dumpPath=[], dumpLine=null, dumpCount=0;
   let kmCombustible=0, fuelPath=[], fuelLine=null, fuelCount=0;
   let nextWpIdx=0, doneWps=new Set();
+  let _wpCerca={}; // registro de waypoints donde el camión ya estuvo cerca (para marcar tras pasar)
   let followOn=true, voiceOn=true;
   let lastVoiceAnnounce={};   // {wpIdx: {early:true, mid:true, imminent:true}}
   let lastDeviationAt=0, lastTruckPos=null, lastAccuracy=null;
@@ -3899,7 +3900,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         if(typeof buildInstructions==='function') buildInstructions();
         voiceOn=true;
         nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={};
-        // Dibujar las otras etapas (en espera, planas) detrás de la activa
+        _wpCerca={};
+        limpiarProgresoVerde();
         dibujarEtapasEspera(idx);
         // Vista inicial: mostrar la RUTA COMPLETA (panorama), no pegado al camión
         followOn=false;
@@ -4046,8 +4048,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       L.polyline(coords,{color:'#fff',weight:3,opacity:.9,dashArray:'2,14',className:'route-flow',interactive:false}).addTo(g);
       g.addTo(map); guiaLayer=g;
       guiaSteps=steps; guiaStepIdx=0; guiaActiva=true;
-      const destTxt = tipo==='regreso' ? 'al punto donde quedaste' : 'al punto de inicio';
-      speak('Te voy a guiar '+destTxt+'. Sigue la línea azul.');
+      const destTxt = tipo==='regreso' ? 'al punto donde quedaste' : (tipo==='reintegro' ? 'de vuelta a tu ruta' : 'al punto de inicio');
+      speak('Te voy a guiar '+destTxt+'. Sigue la línea azul.','nav');
       // Encuadrar la ruta de aproximación
       try{ map.fitBounds(L.latLngBounds(coords).pad(0.2)); }catch(_){}
     }catch(e){
@@ -4058,6 +4060,33 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     guiaPidiendo=false;
   }
   function limpiarGuia(){ if(guiaLayer){ try{map.removeLayer(guiaLayer);}catch(_){} guiaLayer=null; } guiaSteps=[]; guiaStepIdx=0; }
+  let marcadorPerdida=null;
+  function marcarPuntoPerdida(pt){
+    if(!pt)return;
+    if(marcadorPerdida){ try{map.removeLayer(marcadorPerdida);}catch(_){} marcadorPerdida=null; }
+    marcadorPerdida=L.marker(pt,{interactive:false,zIndexOffset:1100,icon:L.divIcon({className:'',iconSize:[0,0],html:
+      '<div style="transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;"><div style="width:40px;height:40px;border-radius:50% 50% 50% 4px;background:#E24B4A;transform:rotate(45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);border:3px solid #fff;"><span style="transform:rotate(-45deg);font-size:18px;">↩️</span></div><div style="margin-top:5px;background:#E24B4A;color:#fff;font:700 11px sans-serif;padding:3px 9px;border-radius:14px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.5);">VUELVE AQUÍ</div></div>'})}).addTo(map);
+  }
+  function quitarMarcadorPerdida(){ if(marcadorPerdida){ try{map.removeLayer(marcadorPerdida);}catch(_){} marcadorPerdida=null; } }
+  // Mejora la instrucción de ORS: distingue giro real de seguir una calle curva
+  function limpiarInstruccion(txt){
+    if(!txt)return txt;
+    let t=txt.trim();
+    // ORS suele decir "Gire ligeramente a la..." o "Manténgase a la..." en curvas → eso NO es doblar
+    const curvaSuave=/ligeramente|mantén|manteng|keep|slight/i.test(t);
+    if(curvaSuave){
+      if(/derecha|right/i.test(t)) return 'Continúa por la vía, hacia la derecha';
+      if(/izquierda|left/i.test(t)) return 'Continúa por la vía, hacia la izquierda';
+      return 'Continúa por la vía';
+    }
+    // Giro real: simplificar a lenguaje claro
+    if(/gire a la derecha|turn right|doble a la derecha/i.test(t)) return 'Dobla a la derecha';
+    if(/gire a la izquierda|turn left|doble a la izquierda/i.test(t)) return 'Dobla a la izquierda';
+    if(/continúe recto|siga recto|continue straight|head/i.test(t)) return 'Sigue recto';
+    if(/rotonda|roundabout/i.test(t)) return t; // las rotondas se dejan como vienen
+    if(/llega|destino|arrive|destination/i.test(t)) return 'Estás llegando a tu destino';
+    return t;
+  }
   function detenerGuia(){ guiaActiva=false; guiaDestino=null; guiaTipo=null; limpiarGuia(); }
   // Se llama en cada update GPS mientras la guía está activa
   function actualizarGuia(p){
@@ -4065,20 +4094,19 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const dDest=haversine(p,guiaDestino);
     // Llegó al destino de la guía
     if(dDest<=30){
-      const wasRegreso=(guiaTipo==='regreso');
+      const t=guiaTipo;
       detenerGuia();
-      if(wasRegreso){ speak('Llegaste al punto donde quedaste. Continúa tu ruta.'); }
-      else { reachedStart=true; speak('Llegó al punto de inicio, comienza la ruta'); const sg=document.getElementById('startGuide'); if(sg)sg.classList.remove('show'); }
+      if(t==='regreso'){ speak('Llegaste al punto donde quedaste. Continúa tu ruta.','nav'); }
+      else if(t==='reintegro'){ quitarMarcadorPerdida(); deviated=false; speak('Regresaste a tu ruta. Continúa.','nav'); }
+      else { reachedStart=true; speak('Llegó al punto de inicio, comienza la ruta','nav'); const sg=document.getElementById('startGuide'); if(sg)sg.classList.remove('show'); }
       return;
     }
     // Anunciar el próximo paso de manejo (giro) según cercanía
     if(guiaSteps.length && guiaStepIdx<guiaSteps.length){
       const st=guiaSteps[guiaStepIdx];
-      // st.way_points indica índices; usamos la instrucción y distancia
       if(st && st.distance!=null){
-        // Anuncio simple: cuando faltan ~30m para el paso, decir la instrucción
         if(!st._dicho && st.instruction){
-          speak(st.instruction);
+          speak(limpiarInstruccion(st.instruction),'nav');
           st._dicho=true;
           guiaStepIdx++;
         }
@@ -4217,6 +4245,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     confirmarChofer({titulo:'Capacidad máxima', mensaje:'¿El camión está lleno? Se marcará tu posición y irás a botar la basura.', textoOk:'Sí, voy a botar', colorOk:'#EF9F27', onOk:()=>{
       choferAccion.enCurso='lleno'; tripPhase='vertedero';
       puntoParada=lastTruckPos?lastTruckPos.slice():null; // recordar dónde paró
+      detenerGuia(); // ORS no guía al vertedero, el chofer sabe dónde botar
       marcarPunto('lleno','#EF9F27','🗑️',true);
       const b=document.getElementById('choLleno'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#F97316'; }
       txChofer({status:'vertedero', evento:'lleno'});
@@ -4241,6 +4270,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     confirmarChofer({titulo:'Combustible', mensaje:'¿Vas a poner combustible? Se marcará tu posición.', textoOk:'Sí, voy a combustible', colorOk:'#2F7DC2', onOk:()=>{
       choferAccion.enCurso='combustible'; tripPhase='combustible';
       puntoParada=lastTruckPos?lastTruckPos.slice():null;
+      detenerGuia(); // ORS no guía a la bomba, el chofer sabe dónde
       marcarPunto('combustible','#2F7DC2','⛽',true);
       const b=document.getElementById('choCombustible'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#1E5C99'; }
       txChofer({status:'combustible', evento:'combustible'});
@@ -4707,12 +4737,20 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     return min;
   }
 
-  function speak(text){
+  let _voiceBusyUntil=0; // hasta cuándo está hablando una indicación de navegación (alta prioridad)
+  function speak(text, prio){
+    // prio: 'nav' (giros, alta prioridad) | 'estado' (punto cumplido, baja) | undefined (normal)
     if(!voiceOn || !('speechSynthesis' in window))return;
+    const ahora=Date.now();
+    // Un anuncio de ESTADO no interrumpe una indicación de navegación en curso
+    if(prio==='estado' && ahora<_voiceBusyUntil) return;
     try{
-      window.speechSynthesis.cancel();
+      // Navegación y normal sí cortan lo anterior; estado solo habla si no hay nav sonando
+      if(prio!=='estado') window.speechSynthesis.cancel();
       const u=new SpeechSynthesisUtterance(text);
       u.lang='es-DO';u.rate=1.0;u.pitch=1.0;u.volume=1.0;
+      // Estimar duración para bloquear interrupciones de estado (~95ms por carácter)
+      if(prio==='nav'){ _voiceBusyUntil=ahora+Math.max(2500, text.length*95); }
       window.speechSynthesis.speak(u);
       lastTurnAnnouncementText=text;
     }catch(_){}
@@ -4742,7 +4780,22 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       const el=mk.getElement()?.querySelector('.wp-num');
       if(el)el.classList.add('wp-done');
     }
+    dibujarProgresoVerde();
   }
+  // Dibuja en VERDE el tramo de la ruta ya recorrido (waypoints cumplidos en orden)
+  let progresoVerdeLine=null;
+  function dibujarProgresoVerde(){
+    if(!waypoints.length)return;
+    // Tomar los waypoints cumplidos consecutivos desde 0
+    let hasta=-1;
+    for(let i=0;i<waypoints.length;i++){ if(doneWps.has(i))hasta=i; else break; }
+    if(hasta<1){ return; }
+    const tramo=waypoints.slice(0,hasta+1);
+    if(progresoVerdeLine){ progresoVerdeLine.setLatLngs(tramo); }
+    else { progresoVerdeLine=L.polyline(tramo,{color:'#1F9D55',weight:7,opacity:.95,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map);
+      progresoVerdeLine.bringToFront(); }
+  }
+  function limpiarProgresoVerde(){ if(progresoVerdeLine){ try{map.removeLayer(progresoVerdeLine);}catch(_){} progresoVerdeLine=null; } }
 
   function updateGpsPanel(){
     const total=waypoints.length;
@@ -4810,7 +4863,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       // Solo aviso al entrar a zona densa (una vez por zona)
       const zone=densityZones.find(z=>nextWpIdx===z.startIdx);
       if(zone && !lastVoiceAnnounce['densEnter'+zone.startIdx]){
-        speak('Entrando a zona de giros continuos, atento al mapa');
+        speak('Entrando a zona de giros continuos, atento al mapa','nav');
         lastVoiceAnnounce['densEnter'+zone.startIdx]=true;
       }
       return;
@@ -4835,14 +4888,14 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       }else{
         msg='En '+Math.round(d)+' metros, '+(ins.text.toLowerCase());
       }
-      speak(msg);ann.early=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
+      speak(msg,'nav');ann.early=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
     }
     if(pct>=0.8 && !ann.mid && d>=10){
       let msg;
       if(stopHere)msg='Prepárese, parada en '+Math.round(d)+' metros';
       else if(ins.type==='end')msg='Prepárese, final del recorrido en '+Math.round(d)+' metros';
       else msg='Prepárese, '+(ins.dir==='right'?'derecha':(ins.dir==='left'?'izquierda':'recto'))+' en '+Math.round(d)+' metros';
-      speak(msg);ann.mid=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
+      speak(msg,'nav');ann.mid=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
     }
     if(pct>=0.95 && !ann.imminent && d>=5){
       let msg;
@@ -4850,11 +4903,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       else if(ins.type==='end')msg='Prepárese, está llegando al final';
       else if(ins.dir==='straight')msg='Continúe recto';
       else msg='Prepárese para doblar a la '+(ins.dir==='right'?'derecha':'izquierda');
-      speak(msg);ann.imminent=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
+      speak(msg,'nav');ann.imminent=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
     }
     // Tramo largo (>400m): aviso intermedio neutro
     if(totalTramo>400 && pct>=0.45 && pct<=0.55 && !ann.midStraight){
-      speak('Continúe recto, próximo punto en '+Math.round(d)+' metros');
+      speak('Continúe recto, próximo punto en '+Math.round(d)+' metros','nav');
       ann.midStraight=true;lastVoiceAnnounce[nextWpIdx]=ann;
     }
   }
@@ -4917,10 +4970,26 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Actualizar la guía activa (giros por voz, detección de llegada)
     if(guiaActiva){ actualizarGuia(p); }
 
-    // Auto-cumplimiento de waypoints — SOLO después de llegar al punto de inicio (obliga el orden)
+    // Auto-cumplimiento de waypoints — SOLO después de llegar al inicio (obliga el orden)
+    // Se marca DESPUÉS de pasar el punto (registra cercanía, confirma al avanzar al siguiente)
     if(waypoints.length && reachedStart){
       for(let i=nextWpIdx;i<Math.min(nextWpIdx+3,waypoints.length);i++){
-        if(haversine(p,waypoints[i])<=WP_REACH_M){
+        const dWp=haversine(p,waypoints[i]);
+        // Registrar que estuvo cerca del punto (entró al radio)
+        if(dWp<=WP_REACH_M){ _wpCerca[i]=true; }
+        let yaPaso=false;
+        if(i+1<waypoints.length){
+          // Confirma el punto SI estuvo cerca antes Y ahora ya se acerca al siguiente (dobló y siguió)
+          const dSig=haversine(p,waypoints[i+1]);
+          const dWpSig=haversine(waypoints[i],waypoints[i+1])||1;
+          if(_wpCerca[i] && dSig < dWpSig*0.7){ yaPaso=true; }
+          // O está muy pegado al punto (paso directo)
+          else if(dWp<=8){ yaPaso=true; }
+        } else {
+          // Último punto: basta con llegar cerca
+          if(dWp<=WP_REACH_M)yaPaso=true;
+        }
+        if(yaPaso){
           for(let j=nextWpIdx;j<=i;j++)markWaypointDone(j);
           // Si había desviación y volvió → reconocimiento
           if(deviated){
@@ -4936,7 +5005,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
           nextWpIdx=i+1;
           // Confirmación de cumplimiento solo en zonas no densas
           if(!instructions[i]?.inDensity){
-            if(nextWpIdx<waypoints.length)speak('Punto '+(i+1)+' cumplido');
+            if(nextWpIdx<waypoints.length)speak('Punto '+(i+1)+' cumplido','estado');
           }
           // Si era una parada → marcar atendida
           const stopOnWp=stops.find(s=>s.wpIdx===i);
@@ -4949,7 +5018,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         if(s.wpIdx===null && !s.attended){
           if(haversine(p,[s.lat,s.lng])<=20){
             s.attended=true;s.attendedAt=new Date().toISOString();
-            speak((s.type==='critical'?'Punto crítico':'Punto de atención')+' atendido');
+            speak((s.type==='critical'?'Punto crítico':'Punto de atención')+' atendido','estado');
             renderStops();
           }
         }
@@ -4969,10 +5038,19 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
           deviated=true;deviationStartIdx=nextWpIdx;
           // Registrar tramo saltado
           skippedSegments.push({from:Math.max(0,nextWpIdx-1),to:nextWpIdx,distance:0,resolved:false});
-          showAlert('Se salió de la ruta planeada');
-          speak('Se ha salido de la ruta planeada');
+          showAlert('Te saliste de la ruta · te guío de vuelta');
+          speak('Te saliste de la ruta. Te voy a guiar de regreso.','nav');
           redrawSkippedSegments();
           lastDeviationAt=now;
+          // RE-INTEGRACIÓN: marcar el punto donde se perdió y guiarlo de vuelta con ORS
+          marcarPuntoPerdida(waypoints[nextWpIdx]);
+          if(currentUserRole==='chofer' && !guiaActiva && !guiaPidiendo){
+            iniciarGuiaDestino(waypoints[nextWpIdx],'reintegro');
+          }
+        } else if(currentUserRole==='chofer' && !guiaActiva && !guiaPidiendo && (now-lastDeviationAt)>8000){
+          // Si sigue fuera y la guía ya terminó/no está, recalcular hacia el punto de retorno
+          lastDeviationAt=now;
+          iniciarGuiaDestino(waypoints[nextWpIdx],'reintegro');
         }
       }
 
