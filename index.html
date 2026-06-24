@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.11 · 2026-06-23</div>
+    <div class="ver" style="padding-top:4px">v4.12 · 2026-06-23</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -312,6 +312,13 @@ body.chofer-ruta-activa .leaflet-control-attribution{ display:none !important; }
 body.chofer-ruta-activa #turnCard{ top:70px !important; }
 body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:1 !important; }
 @keyframes choPulse{ 0%{ box-shadow:0 0 0 0 rgba(249,115,22,.7); } 70%{ box-shadow:0 0 0 14px rgba(249,115,22,0); } 100%{ box-shadow:0 0 0 0 rgba(249,115,22,0); } }
+/* Marcador de INICIO grande para el chofer */
+.cho-inicio-wrap{ position:relative; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; }
+.cho-inicio-pulse{ position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); width:30px; height:30px; border-radius:50%; background:rgba(31,157,85,.45); animation:choInicioPulse 1.6s infinite; }
+@keyframes choInicioPulse{ 0%{ transform:translateX(-50%) scale(.6); opacity:.9; } 100%{ transform:translateX(-50%) scale(2.6); opacity:0; } }
+.cho-inicio-pin{ width:46px; height:46px; border-radius:50% 50% 50% 4px; background:linear-gradient(145deg,#34C36E,#1F9D55); transform:rotate(45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.5); border:3px solid #fff; }
+.cho-inicio-pin i{ transform:rotate(-45deg); font-size:24px; color:#fff; }
+.cho-inicio-lbl{ margin-top:7px; background:#1F9D55; color:#fff; font:800 12px -apple-system,Segoe UI,sans-serif; padding:4px 11px; border-radius:20px; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,.5); letter-spacing:.5px; }
 /* Barra superior del chofer y botones de acción */
 #choBar{ box-sizing:border-box; }
 #choActs{ box-sizing:border-box; }
@@ -578,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.11 · 2026-06-23</div>
+<div class="ver-badge" id="verBadge">v4.12 · 2026-06-23</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -979,7 +986,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       g.addTo(map); baseLine=g;
     }
     if(waypoints.length>=1){
-      startFlag=L.marker(waypoints[0],{icon:L.divIcon({html:'<div class="route-flag ini">🚩</div>',className:'',iconSize:[30,30],iconAnchor:[15,15]}),interactive:false,zIndexOffset:800}).addTo(map);
+      if(currentUserRole==='chofer'){
+        // Marcador GRANDE y muy visible para el chofer, con texto "INICIO AQUÍ"
+        startFlag=L.marker(waypoints[0],{interactive:false,zIndexOffset:1200,icon:L.divIcon({className:'',iconSize:[0,0],html:
+          '<div class="cho-inicio-wrap"><div class="cho-inicio-pulse"></div><div class="cho-inicio-pin"><i class="ti ti-flag-3"></i></div><div class="cho-inicio-lbl">INICIO AQUÍ</div></div>'})}).addTo(map);
+      } else {
+        startFlag=L.marker(waypoints[0],{icon:L.divIcon({html:'<div class="route-flag ini">🚩</div>',className:'',iconSize:[30,30],iconAnchor:[15,15]}),interactive:false,zIndexOffset:800}).addTo(map);
+      }
     }
     if(baseEnd){map.removeLayer(baseEnd);baseEnd=null;}
     if(waypoints.length>1){
@@ -4798,12 +4811,12 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         if(dumpPath.length>=2){ if(!dumpLine)dumpLine=L.polyline(dumpPath,{color:'#B0843C',weight:5,opacity:.9,dashArray:'8 6',interactive:false}).addTo(map); else dumpLine.setLatLngs(dumpPath); } }
       else if(tripPhase==='combustible'){ fuelPath.push(p);
         if(fuelPath.length>=2){ if(!fuelLine)fuelLine=L.polyline(fuelPath,{color:'#2F7DC2',weight:5,opacity:.9,dashArray:'8 6',interactive:false}).addTo(map); else fuelLine.setLatLngs(fuelPath); } }
-      if(realPath.length>=2){
+      if(realPath.length>=2 && currentUserRole!=='chofer'){
         if(!realLineGlow){
           realLineGlow=L.polyline(realPath,{color:'#27A35B',weight:11,opacity:.22,interactive:false}).addTo(map);
           realLine=L.polyline(realPath,{color:'#27A35B',weight:5,opacity:.97,interactive:false}).addTo(map);
         }else{realLineGlow.setLatLngs(realPath);realLine.setLatLngs(realPath);}
-        document.getElementById('exportReal').disabled=false;
+        const er=document.getElementById('exportReal'); if(er)er.disabled=false;
       }
     }
 
@@ -4820,8 +4833,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       else { reachedStart=true; if(g)g.classList.remove('show'); speak('Llegó al punto de inicio, comienza la ruta'); }
     }
 
-    // Auto-cumplimiento de waypoints
-    if(waypoints.length){
+    // Auto-cumplimiento de waypoints — SOLO después de llegar al punto de inicio (obliga el orden)
+    if(waypoints.length && reachedStart){
       for(let i=nextWpIdx;i<Math.min(nextWpIdx+3,waypoints.length);i++){
         if(haversine(p,waypoints[i])<=WP_REACH_M){
           for(let j=nextWpIdx;j<=i;j++)markWaypointDone(j);
