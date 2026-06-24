@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.14 · 2026-06-23</div>
+    <div class="ver" style="padding-top:4px">v4.15 · 2026-06-23</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.14 · 2026-06-23</div>
+<div class="ver-badge" id="verBadge">v4.15 · 2026-06-23</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -851,6 +851,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   let lastStraightAnnounceAt=-1;
   const WP_REACH_M=15;
   const DEVIATION_M=60;
+  let _preDesvioAvisado=0; // timestamp del último preaviso de salida
   const DEVIATION_COOLDOWN=15000;
 
   // ===== PARADAS (críticas/atención) =====
@@ -3841,6 +3842,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
   function mostrarMapaChofer(rutaId){
     console.log('[chofer] mostrarMapaChofer rutaId=', rutaId);
+    // Vincular con las variables que usa el motor de reportes/calificación
+    currentRutaId=rutaId; currentRuta=mgmtRutas[rutaId]||null; tripStartedAt=new Date().toISOString();
+    dumpCount=0; fuelCount=0; kmRuta=0; kmVertedero=0; kmCombustible=0;
     // PEDIR GPS PRIMERO (antes de todo, para que el permiso salga de inmediato)
     if(!('geolocation' in navigator)){ toast('Este teléfono no tiene GPS'); speak('Este teléfono no tiene GPS'); }
     else if(location.protocol!=='https:' && location.hostname!=='localhost'){ toast('El GPS requiere conexión segura HTTPS'); console.warn('[chofer] no HTTPS:', location.protocol); }
@@ -3915,10 +3919,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function avanzarEtapaChofer(manual){
     const sig=choferTurno.etapaIdx+1;
     if(sig>=choferTurno.totalEtapas){
-      // Era la última etapa → ruta completa
-      speak('Has completado toda la ruta. Buen trabajo.');
+      // Era la última etapa → RUTA COMPLETA: generar reporte + calificación + alimentar centro de control
+      speak('Has completado toda la ruta. Buen trabajo.','nav');
       toast('Ruta completada');
       txChofer({status:'completada', evento:'ruta_fin'});
+      detenerGuia(); limpiarProgresoVerde();
+      try{ showRating(); }catch(e){ console.error('[chofer] showRating:', e); }
+      choferTurno.activo=false;
       return;
     }
     // Si fue manual (adelantó), avisar al centro de control (no frena)
@@ -4869,46 +4876,34 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       return;
     }
     const d=haversine(lastTruckPos,waypoints[nextWpIdx]);
-    const totalTramo=ins.distFromPrev||100;
-    const recorrido=Math.max(0,totalTramo-d);
-    const pct=totalTramo>0?recorrido/totalTramo:1;
     const stopHere=stops.find(s=>s.wpIdx===nextWpIdx);
-    const key=stopHere?'stop':(ins.deadEnd?'deadend':'turn');
     const ann=lastVoiceAnnounce[nextWpIdx]||{};
-    // Distancias mínimas entre avisos (segundos asumiendo 7m/s = 25km/h)
-    // Tope mínimo de 15m del punto
-    if(pct>=0.2 && !ann.early && d>=15){
+    const dir = ins.dir==='right'?'derecha':(ins.dir==='left'?'izquierda':'recto');
+    // === AVISOS POR DISTANCIA FIJA AL GIRO (no por porcentaje) ===
+    // PREAVISO a ~65m: "Prepárese para doblar a la derecha" (con metraje, una vez)
+    if(d<=70 && d>35 && !ann.pre){
       let msg;
-      if(stopHere){
-        msg='En '+Math.round(d)+' metros, '+(stopHere.type==='critical'?'punto crítico':'punto de atención')+(stopHere.note?', '+stopHere.note:'');
-      }else if(ins.deadEnd){
-        msg='En '+Math.round(d)+' metros, calle sin salida. Prepare reversa o vuelta en U';
-      }else if(ins.type==='end'){
-        msg='En '+Math.round(d)+' metros, final del recorrido';
-      }else{
-        msg='En '+Math.round(d)+' metros, '+(ins.text.toLowerCase());
-      }
-      speak(msg,'nav');ann.early=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
+      if(stopHere) msg='En 60 metros, '+(stopHere.type==='critical'?'punto crítico':'punto de atención')+(stopHere.note?', '+stopHere.note:'');
+      else if(ins.deadEnd) msg='En 60 metros, calle sin salida, prepare vuelta';
+      else if(ins.type==='end') msg='En 60 metros, final del recorrido';
+      else if(ins.dir==='straight') msg='Continúe recto';
+      else msg='Prepárese para doblar a la '+dir;
+      speak(msg,'nav'); ann.pre=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
     }
-    if(pct>=0.8 && !ann.mid && d>=10){
+    // AVISO DE GIRO a ~22m: "Dobla a la derecha" (CORTO, sin metraje)
+    if(d<=25 && !ann.now){
       let msg;
-      if(stopHere)msg='Prepárese, parada en '+Math.round(d)+' metros';
-      else if(ins.type==='end')msg='Prepárese, final del recorrido en '+Math.round(d)+' metros';
-      else msg='Prepárese, '+(ins.dir==='right'?'derecha':(ins.dir==='left'?'izquierda':'recto'))+' en '+Math.round(d)+' metros';
-      speak(msg,'nav');ann.mid=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
+      if(stopHere) msg=(stopHere.type==='critical'?'Punto crítico ahora':'Punto de atención ahora');
+      else if(ins.deadEnd) msg='Calle sin salida, dé la vuelta';
+      else if(ins.type==='end') msg='Llegando al final';
+      else if(ins.dir==='straight') msg='Siga recto';
+      else msg='Dobla a la '+dir;
+      speak(msg,'nav'); ann.now=true; ann.pre=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
     }
-    if(pct>=0.95 && !ann.imminent && d>=5){
-      let msg;
-      if(stopHere)msg='Prepárese para parar ahora';
-      else if(ins.type==='end')msg='Prepárese, está llegando al final';
-      else if(ins.dir==='straight')msg='Continúe recto';
-      else msg='Prepárese para doblar a la '+(ins.dir==='right'?'derecha':'izquierda');
-      speak(msg,'nav');ann.imminent=true;lastVoiceAnnounce[nextWpIdx]=ann;return;
-    }
-    // Tramo largo (>400m): aviso intermedio neutro
-    if(totalTramo>400 && pct>=0.45 && pct<=0.55 && !ann.midStraight){
-      speak('Continúe recto, próximo punto en '+Math.round(d)+' metros','nav');
-      ann.midStraight=true;lastVoiceAnnounce[nextWpIdx]=ann;
+    // Tramo largo sin giros: un solo "siga recto" a media distancia
+    const totalTramo=ins.distFromPrev||100;
+    if(totalTramo>500 && d>120 && !ann.midStraight){
+      speak('Siga recto','nav'); ann.midStraight=true; lastVoiceAnnounce[nextWpIdx]=ann;
     }
   }
 
@@ -5033,26 +5028,34 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       // Detección de desviación
       const dRoute=minDistToRoute(p);
       const now=Date.now();
+      // PREAVISO TEMPRANO: apenas empieza a salirse (35m), avisar antes de perderse
+      if(dRoute>35 && dRoute<=DEVIATION_M && reachedStart && !deviated){
+        if(!_preDesvioAvisado || (now-_preDesvioAvisado)>6000){
+          _preDesvioAvisado=now;
+          speak('Te estás saliendo de la ruta','nav');
+          showAlert('Cuidado, te estás saliendo');
+        }
+      }
       if(dRoute>DEVIATION_M && reachedStart){
         if(!deviated){
           deviated=true;deviationStartIdx=nextWpIdx;
           // Registrar tramo saltado
           skippedSegments.push({from:Math.max(0,nextWpIdx-1),to:nextWpIdx,distance:0,resolved:false});
           showAlert('Te saliste de la ruta · te guío de vuelta');
-          speak('Te saliste de la ruta. Te voy a guiar de regreso.','nav');
+          speak('Te saliste de la ruta. Regresa, te voy a guiar.','nav');
           redrawSkippedSegments();
           lastDeviationAt=now;
-          // RE-INTEGRACIÓN: marcar el punto donde se perdió y guiarlo de vuelta con ORS
           marcarPuntoPerdida(waypoints[nextWpIdx]);
           if(currentUserRole==='chofer' && !guiaActiva && !guiaPidiendo){
             iniciarGuiaDestino(waypoints[nextWpIdx],'reintegro');
           }
         } else if(currentUserRole==='chofer' && !guiaActiva && !guiaPidiendo && (now-lastDeviationAt)>8000){
-          // Si sigue fuera y la guía ya terminó/no está, recalcular hacia el punto de retorno
           lastDeviationAt=now;
           iniciarGuiaDestino(waypoints[nextWpIdx],'reintegro');
         }
       }
+      // Resetear el preaviso cuando vuelve a estar dentro de la ruta
+      if(dRoute<=20 && _preDesvioAvisado){ _preDesvioAvisado=0; }
 
       // Detección de waypoint pasado de largo (sin cumplirlo)
       if(nextWpIdx<waypoints.length && lastTruckPos){
