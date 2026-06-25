@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.15 · 2026-06-23</div>
+    <div class="ver" style="padding-top:4px">v4.16 · 2026-06-25</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.15 · 2026-06-23</div>
+<div class="ver-badge" id="verBadge">v4.16 · 2026-06-25</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -640,16 +640,16 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 
   <!-- Paso 1: Trazado -->
   <div class="section edit-only">
-    <div class="section-title">1 · Trazado de la ruta</div>
+    <div class="section-title">1 · Trazado de la ruta (etapas)</div>
     <div class="guide-row">
-      <button class="btn accent" id="importBtn">📂 Importar KMZ/KML</button>
+      <button class="btn accent" id="importBtn" style="flex:1;">📂 Importar KMZ/KML (etapa)</button>
       <button class="btn guide-toggle" id="guideToggle" disabled title="Mostrar/ocultar guía">👁</button>
     </div>
     <input type="file" id="kmzInput" accept=".kmz,.kml" style="display:none">
     <!-- Lista de etapas (multi-KMZ) -->
     <div id="etapasBox" style="margin-top:12px;">
       <div id="etapasList"></div>
-      <button class="btn" id="addEtapaBtn" style="width:100%;margin-top:8px;border:1.5px dashed #2E7DF2;color:#2E7DF2;background:transparent;">＋ Agregar etapa (otro KMZ)</button>
+      <div style="font-size:11px;color:#8a93a0;margin-top:8px;text-align:center;">Cada KMZ que importes se agrega como una etapa nueva, en orden.</div>
     </div>
   </div>
 
@@ -1139,8 +1139,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     });
   }
 
-  document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('kmzInput').click());
-  { const ab=document.getElementById('addEtapaBtn'); if(ab)ab.addEventListener('click',nuevaEtapaVacia); }
+  document.getElementById('importBtn').addEventListener('click',()=>{ _etapaImportTarget=null; document.getElementById('kmzInput').click(); });
   document.getElementById('kmzInput').addEventListener('change',async e=>{
     const f=e.target.files[0];if(!f)return;
     try{
@@ -1148,43 +1147,31 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       const {lines,pts}=parseKML(text);
       if(!lines.length && !pts.length){toast('No encontré trazados en ese archivo');e.target.value='';return;}
 
-      // Contar puntos totales en líneas para mostrar al usuario
+      // Contar puntos totales en líneas
       let totalPts=0;lines.forEach(l=>totalPts+=l.length);
 
-      // Si hay líneas con suficientes puntos, ofrecer ambos modos
       if(totalPts>=2){
-        const mode=await chooseImportMode(totalPts);
-        if(mode==='auto'){
-          // Confirmar sobrescritura si ya hay waypoints
-          if(waypoints.length){
-            const ok=await confirmDialog('¿Reemplazar la ruta actual?','Se borrarán los '+waypoints.length+' puntos existentes y se cargará el trazado del archivo.','Sí, reemplazar');
-            if(!ok){e.target.value='';return;}
-          }
-          const newWps=linesToWaypoints(lines);
-          if(newWps.length<2){toast('El archivo no tiene suficientes puntos');e.target.value='';return;}
-          loadRoute(newWps);
-          // Registrar el KMZ importado en la etapa correspondiente
-          if(_etapaImportTarget!=null && etapasEdit[_etapaImportTarget]!==undefined){
-            etapasEdit[_etapaImportTarget].wp=encode(); _etapaImportTarget=null;
-          } else if(!etapasEdit.length){
-            etapasEdit=[{nombre:'Etapa 1', wp:encode()}];
-          } else {
-            // Importar sin target = reemplaza la etapa 1 (caso de ruta de una sola etapa)
-            etapasEdit[0].wp=encode();
-          }
-          renderEtapas();
-          // Limpiar guía azul si hubiera
-          if(guideLayer){map.removeLayer(guideLayer);guideLayer=null;document.getElementById('guideToggle').disabled=true;}
-          // Reset de referencias y disparar modal automático para generar el Word
-          routeRefs={start:'',end:'',title:''};
-          toast('Ruta trazada: '+newWps.length+' puntos ✓');
-        }else if(mode==='guide'){
-          showGuide(lines,pts);
-          toast('Propuesta cargada como guía ✓');
+        // SIEMPRE se carga el trazado como una ETAPA (auto). Sin preguntar reemplazar ni modo.
+        const newWps=linesToWaypoints(lines);
+        if(newWps.length<2){toast('El archivo no tiene suficientes puntos');e.target.value='';return;}
+        loadRoute(newWps);
+        // ¿A qué etapa va este KMZ?
+        if(_etapaImportTarget!=null && etapasEdit[_etapaImportTarget]!==undefined){
+          // Es una etapa que se acaba de crear con "Agregar etapa"
+          etapasEdit[_etapaImportTarget].wp=encode(); _etapaImportTarget=null;
+        } else if(!etapasEdit.length){
+          // Primer KMZ → Etapa 1
+          etapasEdit=[{nombre:'Etapa 1', wp:encode()}];
+        } else {
+          // Ya hay etapas y se usó "Importar" → AGREGAR como una etapa nueva al final (no reemplazar)
+          etapasEdit.push({nombre:'Etapa '+(etapasEdit.length+1), wp:encode()});
         }
-        // si mode===null, canceló: no hacemos nada
+        renderEtapas();
+        if(guideLayer){map.removeLayer(guideLayer);guideLayer=null;const gt=document.getElementById('guideToggle');if(gt)gt.disabled=true;}
+        routeRefs={start:'',end:'',title:''};
+        toast('Etapa '+etapasEdit.length+' cargada · '+newWps.length+' puntos ✓');
       }else{
-        // Solo puntos sueltos sin línea → mostrar como guía nomás
+        // Solo puntos sueltos sin línea
         showGuide(lines,pts);
         toast('Puntos cargados ✓');
       }
