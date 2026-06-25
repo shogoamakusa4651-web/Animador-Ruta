@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.17 · 2026-06-25</div>
+    <div class="ver" style="padding-top:4px">v4.18 · 2026-06-25</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -316,6 +316,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 .cho-inicio-wrap{ position:relative; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; }
 .cho-inicio-pulse{ position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); width:30px; height:30px; border-radius:50%; background:rgba(31,157,85,.45); animation:choInicioPulse 1.6s infinite; }
 @keyframes choInicioPulse{ 0%{ transform:translateX(-50%) scale(.6); opacity:.9; } 100%{ transform:translateX(-50%) scale(2.6); opacity:0; } }
+/* Rotación del mapa hacia el rumbo del camión (modo chofer) */
+body.chofer-mapa-rota .leaflet-map-pane{ transition:transform .5s ease-out; }
+body.chofer-mapa-rota #map{ overflow:hidden; }
+/* El mapa se agranda para que al rotar las esquinas vacías queden fuera de vista */
+body.chofer-mapa-rota .leaflet-tile-pane{ transform:scale(1.8); transform-origin:center center; }
+/* Contra-rotar marcadores/etiquetas para que queden legibles cuando el mapa rota */
+body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
 .cho-inicio-pin{ width:46px; height:46px; border-radius:50% 50% 50% 4px; background:linear-gradient(145deg,#34C36E,#1F9D55); transform:rotate(45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.5); border:3px solid #fff; }
 .cho-inicio-pin i{ transform:rotate(-45deg); font-size:24px; color:#fff; }
 .cho-inicio-lbl{ margin-top:7px; background:#1F9D55; color:#fff; font:800 12px -apple-system,Segoe UI,sans-serif; padding:4px 11px; border-radius:20px; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,.5); letter-spacing:.5px; }
@@ -585,7 +592,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.17 · 2026-06-25</div>
+<div class="ver-badge" id="verBadge">v4.18 · 2026-06-25</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -842,6 +849,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   let followOn=true, voiceOn=true;
   let lastVoiceAnnounce={};   // {wpIdx: {early:true, mid:true, imminent:true}}
   let lastDeviationAt=0, lastTruckPos=null, lastAccuracy=null;
+  let truckHeading=null;        // rumbo real del camión (grados), de las últimas posiciones GPS
+  let _headHist=[];             // historial corto de posiciones para calcular rumbo estable
   let deviated=false, deviationStartIdx=0;  // tramos rojos
   let skippedSegments=[];      // [{from, to, distance}]
   let wakeLock=null;
@@ -884,7 +893,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   const carIcon=L.divIcon({html:carSVG,className:'',iconSize:[36,36],iconAnchor:[18,18]});
 
   // Camioncito real del chofer (cyan, cabina recolectora)
-  const truckSVG=`<div class="truck-wrap"><svg width="40" height="40" viewBox="0 0 40 40">
+  const truckSVG=`<div class="truck-wrap cho-counter-rot"><svg width="40" height="40" viewBox="0 0 40 40">
     <ellipse cx="20" cy="34" rx="11" ry="2.8" fill="rgba(0,0,0,.5)"/>
     <rect x="10" y="14" width="20" height="16" rx="2" fill="#22d3ee" stroke="#fff" stroke-width="1.5"/>
     <rect x="11" y="6" width="18" height="9" rx="2" fill="#0891b2" stroke="#fff" stroke-width="1.5"/>
@@ -3895,6 +3904,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         voiceOn=true;
         nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={};
         _wpCerca={};
+        truckHeading=null; _headHist=[];
         limpiarProgresoVerde();
         dibujarEtapasEspera(idx);
         // Vista inicial: mostrar la RUTA COMPLETA (panorama), no pegado al camión
@@ -3916,6 +3926,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       detenerGuia(); limpiarProgresoVerde();
       try{ showRating(); }catch(e){ console.error('[chofer] showRating:', e); }
       choferTurno.activo=false;
+      detenerRotacionMapa();
       return;
     }
     // Si fue manual (adelantó), avisar al centro de control (no frena)
@@ -4493,6 +4504,42 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     let d=((b2-b1+540)%360)-180; // -180 a 180
     return d;
   }
+  // Promedio circular de rumbos (para suavizar el rumbo del camión)
+  function promedioRumbos(arr){
+    if(!arr||!arr.length)return null;
+    let x=0,y=0;
+    arr.forEach(a=>{ const r=a*Math.PI/180; x+=Math.cos(r); y+=Math.sin(r); });
+    let deg=Math.atan2(y/arr.length, x/arr.length)*180/Math.PI;
+    return (deg+360)%360;
+  }
+  // Calcula el giro (izquierda/derecha) desde la PERSPECTIVA REAL del camión:
+  // compara hacia dónde apunta el camión (rumbo real) con hacia dónde está el próximo punto.
+  function giroSegunRumbo(desde, hacia){
+    if(truckHeading==null || !desde || !hacia)return null; // sin rumbo confiable
+    const brgDestino=bearing(desde,hacia);
+    let d=((brgDestino-truckHeading+540)%360)-180; // -180 (izq) a +180 (der)
+    return d;
+  }
+  // Rota el mapa para que el rumbo del camión apunte hacia ARRIBA (como Waze)
+  let _mapaRotaOn=false, _ultimaRot=null;
+  function rotarMapaChofer(){
+    if(currentUserRole!=='chofer' || truckHeading==null)return;
+    const pane=document.querySelector('.leaflet-map-pane'); if(!pane)return;
+    if(!_mapaRotaOn){ document.body.classList.add('chofer-mapa-rota'); _mapaRotaOn=true; }
+    // Rotar el pane en sentido contrario al rumbo (para que "adelante" quede arriba)
+    const rot=-truckHeading;
+    // Evitar micro-ajustes (solo si cambió más de 5°)
+    if(_ultimaRot!=null && Math.abs(((rot-_ultimaRot+540)%360)-180)<5)return;
+    _ultimaRot=rot;
+    pane.style.transform='rotate('+rot.toFixed(1)+'deg)';
+    // Contra-rotar el ícono del camión y marcadores clave para que queden derechos
+    document.querySelectorAll('.cho-counter-rot').forEach(el=>{ el.style.transform='rotate('+truckHeading.toFixed(1)+'deg)'; });
+  }
+  function detenerRotacionMapa(){
+    if(!_mapaRotaOn)return;
+    const pane=document.querySelector('.leaflet-map-pane'); if(pane)pane.style.transform='';
+    document.body.classList.remove('chofer-mapa-rota'); _mapaRotaOn=false; _ultimaRot=null;
+  }
   function turnDirectionLabel(angle){
     const a=Math.abs(angle);
     if(a<15)return {dir:'straight',severity:'soft',label:'continúe recto'};
@@ -4872,7 +4919,18 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const d=haversine(lastTruckPos,waypoints[nextWpIdx]);
     const stopHere=stops.find(s=>s.wpIdx===nextWpIdx);
     const ann=lastVoiceAnnounce[nextWpIdx]||{};
-    const dir = ins.dir==='right'?'derecha':(ins.dir==='left'?'izquierda':'recto');
+    // === DIRECCIÓN DEL GIRO EN VIVO (perspectiva real del camión) ===
+    // Comparar el rumbo real del camión con la dirección hacia el punto SIGUIENTE al actual
+    let dirVivo=ins.dir; // respaldo: el precalculado del trazado
+    if(nextWpIdx+1<waypoints.length && truckHeading!=null){
+      const giro=giroSegunRumbo(waypoints[nextWpIdx], waypoints[nextWpIdx+1]);
+      if(giro!=null){
+        const ag=Math.abs(giro);
+        if(ag<18) dirVivo='straight';
+        else dirVivo = giro>0 ? 'right' : 'left';
+      }
+    }
+    const dir = dirVivo==='right'?'derecha':(dirVivo==='left'?'izquierda':'recto');
     // === AVISOS POR DISTANCIA FIJA AL GIRO (no por porcentaje) ===
     // PREAVISO a ~65m: "Prepárese para doblar a la derecha" (con metraje, una vez)
     if(d<=70 && d>35 && !ann.pre){
@@ -4880,7 +4938,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       if(stopHere) msg='En 60 metros, '+(stopHere.type==='critical'?'punto crítico':'punto de atención')+(stopHere.note?', '+stopHere.note:'');
       else if(ins.deadEnd) msg='En 60 metros, calle sin salida, prepare vuelta';
       else if(ins.type==='end') msg='En 60 metros, final del recorrido';
-      else if(ins.dir==='straight') msg='Continúe recto';
+      else if(dirVivo==='straight') msg='Continúe recto';
       else msg='Prepárese para doblar a la '+dir;
       speak(msg,'nav'); ann.pre=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
     }
@@ -4890,7 +4948,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       if(stopHere) msg=(stopHere.type==='critical'?'Punto crítico ahora':'Punto de atención ahora');
       else if(ins.deadEnd) msg='Calle sin salida, dé la vuelta';
       else if(ins.type==='end') msg='Llegando al final';
-      else if(ins.dir==='straight') msg='Siga recto';
+      else if(dirVivo==='straight') msg='Siga recto';
       else msg='Dobla a la '+dir;
       speak(msg,'nav'); ann.now=true; ann.pre=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
     }
@@ -4905,7 +4963,24 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const lat=pos.coords.latitude, lng=pos.coords.longitude, acc=pos.coords.accuracy||20;
     lastAccuracy=acc;
     const p=[lat,lng];
+    const prevPos=lastTruckPos;
     lastTruckPos=p;
+
+    // RUMBO REAL del camión: dirección entre posiciones recientes (si se movió lo suficiente)
+    // Preferir el rumbo del GPS si viene (heading), si no, calcularlo del movimiento
+    if(pos.coords.heading!=null && !isNaN(pos.coords.heading) && (pos.coords.speed==null || pos.coords.speed>0.5)){
+      truckHeading=pos.coords.heading;
+    } else if(prevPos){
+      const mov=haversine(prevPos,p);
+      if(mov>=4){ // se movió al menos 4m → rumbo confiable
+        _headHist.push(bearing(prevPos,p));
+        if(_headHist.length>3)_headHist.shift();
+        // Promedio circular simple del historial reciente
+        truckHeading=promedioRumbos(_headHist);
+      }
+    }
+    // Rotar el mapa hacia el rumbo (modo chofer, como Waze)
+    if(currentUserRole==='chofer' && choferTurno.activo){ try{ rotarMapaChofer(); }catch(_){} }
 
     // TRANSMISIÓN EN VIVO al centro de control (cada 4s) — solo chofer real, no simulación
     if(currentUserRole==='chofer' && choferTurno.activo && !choSimOn){
