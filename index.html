@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.16 · 2026-06-25</div>
+    <div class="ver" style="padding-top:4px">v4.17 · 2026-06-25</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.16 · 2026-06-25</div>
+<div class="ver-badge" id="verBadge">v4.17 · 2026-06-25</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3807,6 +3807,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
   // Estado del turno del chofer
   let choferTurno={activo:false, rutaId:null, etapas:[], etapaIdx:0, totalEtapas:1};
+  let _lastLiveTx=0; // throttle de transmisión de posición en vivo
   function choferEmpezar(){
     // DESBLOQUEO DE VOZ iOS: hablar AHORA mismo, en el toque directo (Safari lo exige)
     try{
@@ -3858,6 +3859,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     cargarEtapaChofer(0, r);
     // Barra superior + botones de acción del chofer
     montarBarraChofer(r);
+    // Anunciar al centro de control que este chofer inició su ruta (aparece en vivo)
+    setTimeout(()=>{ try{ txChofer({status:'en_ruta', evento:'inicio_turno', progress:0, etapa:1, totalEtapas:choferTurno.totalEtapas}); }catch(_){} }, 1500);
     setTimeout(()=>{ try{ speak('Bienvenido. Diríjase al punto de inicio de la ruta'); }catch(_){} }, 1000);
   }
   // Carga la etapa N de la ruta del chofer en el motor de navegación
@@ -4193,7 +4196,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Transmite un evento del chofer al canal live para el supervisor
     if(!fbDb || !choferCode) return;
     try{
-      const base={ chofer:choferName||choferCode, rutaId:choferTurno.rutaId||null, ts:Date.now() };
+      const base={ chofer:choferName||choferCode, code:choferCode||null, rutaId:choferTurno.rutaId||null,
+        route:(mgmtRutas[choferTurno.rutaId]||{}).nombre||null, name:choferName||null, ts:Date.now() };
       if(lastTruckPos){ base.lat=lastTruckPos[0]; base.lng=lastTruckPos[1]; }
       fbDb.ref('live/'+txId()).update(Object.assign(base, extra||{}));
       // Alertas persistentes (avería, obstáculo) en un nodo aparte para el supervisor
@@ -4346,7 +4350,10 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     monSetup();
   }
   function savedRole(){ try{return localStorage.getItem('animador_role');}catch(_){return null;} }
-  function logout(){ try{localStorage.removeItem('animador_role');}catch(_){ } try{localStorage.removeItem('animador_chofer');}catch(_){ } const fin=()=>location.reload();
+  function logout(){
+    // Si es chofer, avisar al centro de control que salió (quitar de en vivo)
+    try{ if(fbDb && choferCode && currentUserRole==='chofer'){ fbDb.ref('live/'+txId()).update({status:'offline', ts:Date.now()}); } }catch(_){ }
+    try{localStorage.removeItem('animador_role');}catch(_){ } try{localStorage.removeItem('animador_chofer');}catch(_){ } const fin=()=>location.reload();
     try{ const u=(window.firebase&&firebase.auth)?firebase.auth().currentUser:null; if(u&&!u.isAnonymous){ firebase.auth().signOut().then(fin,fin); return; } }catch(_){ }
     fin(); }
   function enterAdmApp(){
@@ -4899,6 +4906,17 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     lastAccuracy=acc;
     const p=[lat,lng];
     lastTruckPos=p;
+
+    // TRANSMISIÓN EN VIVO al centro de control (cada 4s) — solo chofer real, no simulación
+    if(currentUserRole==='chofer' && choferTurno.activo && !choSimOn){
+      const ahora=Date.now();
+      if(ahora-_lastLiveTx>=4000){
+        _lastLiveTx=ahora;
+        const prog = waypoints.length ? Math.round((doneWps.size/waypoints.length)*100) : 0;
+        txChofer({ status:(tripPhase==='vertedero'?'vertedero':(tripPhase==='combustible'?'combustible':'en_ruta')),
+          progress:prog, etapa:(choferTurno.etapaIdx+1), totalEtapas:choferTurno.totalEtapas, acc:Math.round(acc) });
+      }
+    }
 
     if(!truckMarker){
       truckMarker=L.marker(p,{icon:truckIcon,zIndexOffset:1500}).addTo(map);
