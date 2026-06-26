@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.18 · 2026-06-25</div>
+    <div class="ver" style="padding-top:4px">v4.19 · 2026-06-25</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -592,7 +592,7 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.18 · 2026-06-25</div>
+<div class="ver-badge" id="verBadge">v4.19 · 2026-06-25</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3750,7 +3750,22 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
     } }catch(e){ const lk=document.getElementById('choLock'); if(lk){lk.classList.add('off'); lk.querySelector('span').textContent='Mantén la pantalla'; } }
   }
   // reintentar wake lock al volver a la pestaña
-  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && currentUserRole==='chofer' && _wakeLock===null){ /* se repide al iniciar turno */ } });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible' && currentUserRole==='chofer'){
+      // Reactivar Wake Lock
+      try{ if(_wakeLock===null && choferTurno.activo) pedirWakeLock(); }catch(_){}
+      // SEÑAL SAGRADA: si el GPS se suspendió al bloquear, reactivarlo y transmitir de inmediato
+      try{
+        if(choferTurno.activo && !choSimOn){
+          if(watchId===null && 'geolocation' in navigator){
+            watchId=navigator.geolocation.watchPosition(onGpsUpdate,onGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+          }
+          // Forzar una transmisión inmediata con la última posición conocida
+          if(lastTruckPos){ _lastLiveTx=0; try{ txChofer({status:(choferPausado?'pausado':'en_ruta'), reanudado:true}); }catch(_){} }
+        }
+      }catch(_){}
+    }
+  });
 
   // Devuelve las rutas asignadas a este chofer, programadas para hoy
   function rutasDelChofer(){
@@ -3797,10 +3812,13 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
     list.innerHTML=label+rutas.map(o=>{
       const r=o.r; const sel=(o.id===choferRutaSel);
       const meta=[]; if(r.sector)meta.push(esc(r.sector));
-      return '<div class="cho-rcard'+(sel?' sel':'')+'" data-rid="'+esc(o.id)+'">'
-        +'<div class="pin"><i class="ti ti-map-pin" aria-hidden="true"></i></div>'
+      // ¿Esta ruta ya se completó hoy?
+      const hoy=(()=>{ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); })();
+      const completada = r.viajes && r.viajes[hoy] && Object.keys(r.viajes[hoy]).length>0;
+      return '<div class="cho-rcard'+(sel?' sel':'')+(completada?' done':'')+'" data-rid="'+esc(o.id)+'">'
+        +'<div class="pin" style="'+(completada?'background:linear-gradient(145deg,#34C36E,#1F9D55);':'')+'"><i class="ti ti-'+(completada?'check':'map-pin')+'" aria-hidden="true"></i></div>'
         +'<div class="info"><b>'+esc(r.nombre||'Ruta')+'</b>'
-        +(meta.length?'<small><i class="ti ti-map-2" aria-hidden="true"></i> '+meta.join(' · ')+'</small>':'')+'</div>'
+        +(completada?'<small style="color:#1F9D55;font-weight:700;"><i class="ti ti-circle-check"></i> Completada hoy · puedes hacerla otra vez</small>':(meta.length?'<small><i class="ti ti-map-2" aria-hidden="true"></i> '+meta.join(' · ')+'</small>':''))+'</div>'
         +'<div class="check"><i class="ti ti-check" aria-hidden="true"></i></div></div>';
     }).join('');
     // Click en cada tarjeta = seleccionar
@@ -3816,6 +3834,7 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
   }
   // Estado del turno del chofer
   let choferTurno={activo:false, rutaId:null, etapas:[], etapaIdx:0, totalEtapas:1};
+  let choferPausado=false; // ruta pausada (por autorización de supervisor / desvío permitido)
   let _lastLiveTx=0; // throttle de transmisión de posición en vivo
   function choferEmpezar(){
     // DESBLOQUEO DE VOZ iOS: hablar AHORA mismo, en el toque directo (Safari lo exige)
@@ -3970,10 +3989,12 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
       +'<i class="ti ti-map-pin" style="font-size:22px;color:#85B7EB;"></i>'
       +'<div><b style="font-size:16px;">'+esc((r&&r.nombre)||'Ruta')+'</b><div style="font-size:12px;color:#85B7EB;">'+subtit+'</div></div></div>'
       +'<div style="display:flex;align-items:center;gap:8px;">'
-      +'<div style="display:flex;align-items:center;gap:5px;background:#0C447C;padding:6px 10px;border-radius:8px;font-size:12px;color:#FAC775;"><i class="ti ti-bulb"></i> Activa</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;background:'+(choferPausado?'#7A5C12':'#0C447C')+';padding:6px 10px;border-radius:8px;font-size:12px;color:#FAC775;"><i class="ti ti-bulb"></i> '+(choferPausado?'En pausa':'Activa')+'</div>'
+      +'<button id="choBarPausa" style="width:40px;height:40px;border-radius:9px;background:'+(choferPausado?'#1F9D55':'#B0843C')+';border:none;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-'+(choferPausado?'player-play':'player-pause')+'"></i></button>'
       +'<button id="choBarExit" style="width:40px;height:40px;border-radius:9px;background:#0C447C;border:none;color:#85B7EB;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-logout"></i></button>'
       +'</div>';
     const bx=document.getElementById('choBarExit'); if(bx)bx.onclick=function(){ if(confirm('¿Salir de tu turno?')) logout(); };
+    const bp=document.getElementById('choBarPausa'); if(bp)bp.onclick=togglePausaChofer;
     // Botón de SIMULACIÓN (esquina superior derecha, flotante) para probar las indicaciones sin salir a la calle
     let sim=document.getElementById('choSimBtn');
     if(!sim){
@@ -4023,6 +4044,27 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
       confirmarChofer({titulo:'Continuar a la próxima etapa', mensaje:'¿Quieres adelantar a '+esc(nomSig)+' ahora? Se avisará al centro de control.', textoOk:'Sí, continuar', colorOk:'#1F9D55', onOk:()=>{ avanzarEtapaChofer(true); }}); }; }
   }
   function montarBotonProximaEtapa(){ /* integrado en montarBarraChofer */ }
+  // Pausar/reanudar la ruta (con confirmación para evitar miss-click)
+  function togglePausaChofer(){
+    if(!choferPausado){
+      confirmarChofer({titulo:'¿Pausar la ruta?', mensaje:'La ruta quedará en pausa. Úsala si necesitas desviarte o esperar autorización. No se contará como salida de ruta mientras esté pausada.', textoOk:'Sí, pausar', colorOk:'#B0843C', onOk:()=>{
+        choferPausado=true;
+        try{ window.speechSynthesis.cancel(); }catch(_){}
+        speak('Ruta en pausa.','nav');
+        toast('Ruta pausada');
+        txChofer({status:'pausado', evento:'pausa'});
+        const r=mgmtRutas[choferTurno.rutaId]; montarBarraChofer(r);
+      }});
+    } else {
+      confirmarChofer({titulo:'¿Reanudar la ruta?', mensaje:'Volverás a tu ruta y a las indicaciones.', textoOk:'Sí, reanudar', colorOk:'#1F9D55', onOk:()=>{
+        choferPausado=false;
+        speak('Reanudando la ruta.','nav');
+        toast('Ruta reanudada');
+        txChofer({status:'en_ruta', evento:'reanudar'});
+        const r=mgmtRutas[choferTurno.rutaId]; montarBarraChofer(r);
+      }});
+    }
+  }
   // Encuadra la vista para mostrar TODA la ruta (todas las etapas) + la posición del camión
   // ===== GUÍA AL DESTINO con OpenRouteService (ruta de manejo real por calles) =====
   const ORS_KEY='eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImEwOTMxZTE2OTUwZjRkN2Y4ZjI5ODU0NWM4ZWE2N2NlIiwiaCI6Im11cm11cjY0In0=';
@@ -4030,7 +4072,8 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
   // Pide a ORS la ruta de manejo desde 'desde' hasta 'hasta' [lat,lng]
   async function pedirRutaORS(desde, hasta){
     const url='https://api.openrouteservice.org/v2/directions/driving-car/geojson';
-    const body={ coordinates:[[desde[1],desde[0]],[hasta[1],hasta[0]]], language:'es', instructions:true };
+    // preference:'shortest' = ruta más corta/directa (como Waze), no la que evita giros
+    const body={ coordinates:[[desde[1],desde[0]],[hasta[1],hasta[0]]], language:'es', instructions:true, preference:'shortest', units:'m' };
     const r=await fetch(url,{method:'POST',headers:{'Authorization':ORS_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!r.ok) throw new Error('ORS '+r.status);
     return await r.json();
@@ -4966,32 +5009,32 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
     const prevPos=lastTruckPos;
     lastTruckPos=p;
 
+    // === TRANSMISIÓN EN VIVO — SAGRADA: primero de todo y blindada, nada la puede romper ===
+    if(currentUserRole==='chofer' && choferTurno.activo && !choSimOn){
+      try{
+        const ahora=Date.now();
+        if(ahora-_lastLiveTx>=4000){
+          _lastLiveTx=ahora;
+          const prog = waypoints.length ? Math.round((doneWps.size/waypoints.length)*100) : 0;
+          txChofer({ status:(tripPhase==='vertedero'?'vertedero':(tripPhase==='combustible'?'combustible':(choferPausado?'pausado':'en_ruta'))),
+            progress:prog, etapa:(choferTurno.etapaIdx+1), totalEtapas:choferTurno.totalEtapas, acc:Math.round(acc) });
+        }
+      }catch(_){}
+    }
+
     // RUMBO REAL del camión: dirección entre posiciones recientes (si se movió lo suficiente)
-    // Preferir el rumbo del GPS si viene (heading), si no, calcularlo del movimiento
     if(pos.coords.heading!=null && !isNaN(pos.coords.heading) && (pos.coords.speed==null || pos.coords.speed>0.5)){
       truckHeading=pos.coords.heading;
     } else if(prevPos){
       const mov=haversine(prevPos,p);
-      if(mov>=4){ // se movió al menos 4m → rumbo confiable
+      if(mov>=4){
         _headHist.push(bearing(prevPos,p));
         if(_headHist.length>3)_headHist.shift();
-        // Promedio circular simple del historial reciente
         truckHeading=promedioRumbos(_headHist);
       }
     }
     // Rotar el mapa hacia el rumbo (modo chofer, como Waze)
     if(currentUserRole==='chofer' && choferTurno.activo){ try{ rotarMapaChofer(); }catch(_){} }
-
-    // TRANSMISIÓN EN VIVO al centro de control (cada 4s) — solo chofer real, no simulación
-    if(currentUserRole==='chofer' && choferTurno.activo && !choSimOn){
-      const ahora=Date.now();
-      if(ahora-_lastLiveTx>=4000){
-        _lastLiveTx=ahora;
-        const prog = waypoints.length ? Math.round((doneWps.size/waypoints.length)*100) : 0;
-        txChofer({ status:(tripPhase==='vertedero'?'vertedero':(tripPhase==='combustible'?'combustible':'en_ruta')),
-          progress:prog, etapa:(choferTurno.etapaIdx+1), totalEtapas:choferTurno.totalEtapas, acc:Math.round(acc) });
-      }
-    }
 
     if(!truckMarker){
       truckMarker=L.marker(p,{icon:truckIcon,zIndexOffset:1500}).addTo(map);
@@ -5108,6 +5151,8 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
       // Detección de desviación
       const dRoute=minDistToRoute(p);
       const now=Date.now();
+      // Si la ruta está PAUSADA, no detectar desvío ni guiar (el chofer puede desviarse libremente)
+      if(choferPausado){ if(dRoute<=20 && _preDesvioAvisado){ _preDesvioAvisado=0; } return; }
       // PREAVISO TEMPRANO: apenas empieza a salirse (35m), avisar antes de perderse
       if(dRoute>35 && dRoute<=DEVIATION_M && reachedStart && !deviated){
         if(!_preDesvioAvisado || (now-_preDesvioAvisado)>6000){
@@ -5129,7 +5174,8 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
           if(currentUserRole==='chofer' && !guiaActiva && !guiaPidiendo){
             iniciarGuiaDestino(waypoints[nextWpIdx],'reintegro');
           }
-        } else if(currentUserRole==='chofer' && !guiaActiva && !guiaPidiendo && (now-lastDeviationAt)>8000){
+        } else if(currentUserRole==='chofer' && !guiaActiva && !guiaPidiendo && (now-lastDeviationAt)>30000){
+          // Recalcular como MUCHO cada 30s (no constante) para no saturar ni cortar la señal
           lastDeviationAt=now;
           iniciarGuiaDestino(waypoints[nextWpIdx],'reintegro');
         }
