@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.25 · 2026-06-26</div>
+    <div class="ver" style="padding-top:4px">v4.26 · 2026-06-26</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.25 · 2026-06-26</div>
+<div class="ver-badge" id="verBadge">v4.26 · 2026-06-26</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -966,6 +966,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function renderMarkers(){
     markers.forEach(m=>map.removeLayer(m));markers=[];
     if(viewMode)return;
+    // Los puntos numerados SOLO se ven en edición de rutas (admin). Para chofer y monitoreo: ocultos (solo la línea).
+    const ocultarPuntos = (currentUserRole==='chofer' || currentUserRole==='supervisor' || curSec==='monitoreo');
+    if(ocultarPuntos)return;
     waypoints.forEach((p,i)=>{
       const editable = (currentUserRole!=='chofer');  // el chofer NO puede mover puntos
       const m=L.marker(p,{draggable:editable,
@@ -2233,7 +2236,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(run)out.push(run); return out; }
   function updateLiveTrails(){ const live=liveByRuta();
     Object.keys(liveTrails).forEach(id=>{ if(!live[id]){ map.removeLayer(liveTrails[id]); delete liveTrails[id]; } });
-    Object.keys(live).forEach(id=>{ const r=mgmtRutas[id]; if(!r)return; const pts=decode(r.wp||''); if(!pts||pts.length<2)return; const t=live[id];
+    Object.keys(live).forEach(id=>{ const r=mgmtRutas[id]; if(!r)return; let pts=decode(r.wp||''); if(!pts||pts.length<2)return; pts=densificarRuta(pts,12); const t=live[id];
       let segs=null;
       if(t.cov){ const bits=covDec(t.cov,pts.length); segs=covSegs(pts,bits,true); }
       if(segs&&segs.length){ if(liveTrails[id]){ map.removeLayer(liveTrails[id]); }
@@ -3925,11 +3928,29 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     });
     g.addTo(map); etapasEsperaLayer=g;
   }
+  // Agrega puntos intermedios cada ~maxGap metros para detección fina (sin alterar el trazado)
+  function densificarRuta(pts, maxGap){
+    maxGap=maxGap||12;
+    if(!pts||pts.length<2)return pts;
+    const out=[pts[0]];
+    for(let i=1;i<pts.length;i++){
+      const a=pts[i-1], b=pts[i];
+      const d=haversine(a,b);
+      if(d>maxGap){
+        const n=Math.floor(d/maxGap);
+        for(let k=1;k<=n;k++){ const t=k/(n+1); out.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t]); }
+      }
+      out.push(b);
+    }
+    return out;
+  }
   function cargarEtapaChofer(idx, r){
     r=r||mgmtRutas[choferTurno.rutaId];
     const et=choferTurno.etapas[idx]; if(!et)return;
-    const pts=decode(et.wp||'');
+    let pts=decode(et.wp||'');
     if(pts&&pts.length){
+      // DENSIFICAR internamente para marcado fino y mejor detección de retornos (no altera el KMZ original)
+      pts=densificarRuta(pts, 12);
       try{
         loadRoute(pts);
         if(typeof buildInstructions==='function') buildInstructions();
@@ -4621,6 +4642,21 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     let d=((b2-b1+540)%360)-180; // -180 a 180
     return d;
   }
+  // Ángulo del giro alrededor del punto i, mirando ~radioM metros a cada lado (robusto con ruta densificada)
+  function anguloGiroEnPunto(i, radioM){
+    radioM=radioM||18;
+    if(i<=0 || i>=waypoints.length-1)return 0;
+    // Buscar un punto ANTES a ~radioM
+    let aIdx=i, accA=0;
+    while(aIdx>0 && accA<radioM){ accA+=haversine(waypoints[aIdx-1],waypoints[aIdx]); aIdx--; }
+    // Buscar un punto DESPUÉS a ~radioM
+    let bIdx=i, accB=0;
+    while(bIdx<waypoints.length-1 && accB<radioM){ accB+=haversine(waypoints[bIdx],waypoints[bIdx+1]); bIdx++; }
+    if(aIdx===i || bIdx===i)return 0;
+    const b1=bearing(waypoints[aIdx],waypoints[i]);
+    const b2=bearing(waypoints[i],waypoints[bIdx]);
+    return ((b2-b1+540)%360)-180;
+  }
   // Promedio circular de rumbos (para suavizar el rumbo del camión)
   function promedioRumbos(arr){
     if(!arr||!arr.length)return null;
@@ -4666,16 +4702,22 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 
   function detectDeadEnds(){
     deadEnds.clear();
-    // Calle sin salida: waypoint donde llegamos y devolvemos por casi el mismo camino
-    for(let i=1;i<waypoints.length-1;i++){
-      const a=angleAtWp(i);
-      if(Math.abs(a)>=150){
-        // Pero verificar que también la distancia anterior y siguiente sean similares
-        const dPrev=haversine(waypoints[i-1],waypoints[i]);
-        const dNext=haversine(waypoints[i],waypoints[i+1]);
-        if(dPrev>20 && dNext>20 && Math.min(dPrev,dNext)/Math.max(dPrev,dNext)>0.3){
-          deadEnds.add(i);
+    // Calle sin salida / retorno: punto con giro fuerte donde el trazado devuelve por el mismo camino
+    for(let i=2;i<waypoints.length-2;i++){
+      const a=anguloGiroEnPunto(i, 15);
+      if(Math.abs(a)>=140){
+        // Verificar que el camino de salida pasa CERCA del de entrada (es la misma calle de regreso)
+        // Comparar puntos antes y después del giro: deben estar próximos entre sí
+        let esRetorno=false;
+        const antes=waypoints[i-1], despues=waypoints[i+1];
+        if(haversine(antes,despues)<25){ esRetorno=true; } // entrada y salida casi en el mismo punto
+        else {
+          // O comparar tramos más amplios: el punto i-2 vs i+2
+          if(i-2>=0 && i+2<waypoints.length){
+            if(haversine(waypoints[i-2],waypoints[i+2])<35)esRetorno=true;
+          }
         }
+        if(esRetorno){ deadEnds.add(i); }
       }
     }
   }
@@ -5028,29 +5070,37 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       ann.deadAviso=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
     }
 
-    // === ¿El próximo punto es un GIRO REAL o solo seguir la vía? (perspectiva real del camión) ===
+    // === ¿El próximo punto es un GIRO REAL o solo seguir la vía? ===
+    // Con ruta densa, medir el ángulo entre el tramo de ANTES y el de DESPUÉS del punto, ~18m a cada lado
     let dirVivo='straight'; let esGiro=false; let anguloAbs=0;
-    if(nextWpIdx+1<waypoints.length){
-      let giro=null;
-      if(truckHeading!=null){ giro=giroSegunRumbo(waypoints[nextWpIdx], waypoints[nextWpIdx+1]); }
-      if(giro==null){ // sin rumbo: usar el ángulo del trazado
-        giro=angleAtWp(nextWpIdx);
+    {
+      const giroTraz = anguloGiroEnPunto(nextWpIdx, 18); // ángulo real del giro alrededor del punto
+      let giro=giroTraz;
+      // Si hay rumbo real del camión, usarlo para la perspectiva (izq/der correcto)
+      if(truckHeading!=null && nextWpIdx+1<waypoints.length){
+        const refIdx=Math.min(nextWpIdx+Math.max(1,Math.round(18/12)), waypoints.length-1);
+        const g2=giroSegunRumbo(waypoints[nextWpIdx], waypoints[refIdx]);
+        if(g2!=null)giro=g2;
       }
       if(giro!=null){
         anguloAbs=Math.abs(giro);
-        // <30° = seguir la vía (curva suave, NO es doblar). >=30° = giro real
         if(anguloAbs<30){ dirVivo='straight'; esGiro=false; }
         else { dirVivo = giro>0 ? 'right' : 'left'; esGiro=true; }
       }
     }
     const dir = dirVivo==='right'?'derecha':(dirVivo==='left'?'izquierda':'recto');
 
-    // Largo del tramo actual (del waypoint anterior al actual) para adaptar los avisos
-    const largoTramo = nextWpIdx>0 ? haversine(waypoints[nextWpIdx-1],waypoints[nextWpIdx]) : 200;
-    // Si el tramo es CORTO no caben dos avisos → solo el de doblar. Si es largo, preaviso + doblar.
-    const tramoCorto = largoTramo < 70;
-    const dPre = tramoCorto ? 0 : 55;   // distancia del preaviso (0 = no hay preaviso)
-    const dGiro = tramoCorto ? Math.min(28, largoTramo*0.5) : 20; // el "dobla" se da antes en calles cortas
+    // Con ruta densificada, medir la distancia al PRÓXIMO GIRO real (no al próximo punto denso)
+    // Buscar hacia atrás: ¿desde dónde venimos sin giros? = largo del tramo recto actual
+    let largoTramo=0;
+    { let k=nextWpIdx-1;
+      while(k>0 && Math.abs(angleAtWp(k))<30){ largoTramo+=haversine(waypoints[k],waypoints[k+1]); k--; if(largoTramo>300)break; }
+    }
+    if(largoTramo<=0)largoTramo=200;
+    // Calle corta = no caben dos avisos. Umbral 90m (cubre el caso de calle ~60m que solapaba)
+    const tramoCorto = largoTramo < 90;
+    const dPre = tramoCorto ? 0 : 55;
+    const dGiro = tramoCorto ? Math.min(25, Math.max(12, largoTramo*0.4)) : 20;
 
     // === 1. PREAVISO de GIRO (solo en tramos largos, con anticipación) ===
     if(esGiro && dPre>0 && d<=dPre+18 && d>dPre-18 && !ann.pre && !ann.now){
@@ -5065,7 +5115,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(esGiro && d<=dGiro && !ann.now){
       let msg;
       if(stopHere) msg=(stopHere.type==='critical'?'Punto crítico ahora':'Punto de atención ahora');
-      else if(ins.deadEnd) msg=(dirVivo==='right'?'Calle sin salida a la derecha, entre y devuélvase':(dirVivo==='left'?'Calle sin salida a la izquierda, entre y devuélvase':'Calle sin salida, entre y devuélvase'));
+      else if(ins.deadEnd) msg='Calle sin salida, entre y devuélvase';
       else if(ins.type==='end') msg='Llegando al final';
       else msg='Dobla a la '+dir;
       speak(msg,'nav'); ann.now=true; ann.pre=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
