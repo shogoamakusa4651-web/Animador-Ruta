@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.22 · 2026-06-26</div>
+    <div class="ver" style="padding-top:4px">v4.23 · 2026-06-26</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.22 · 2026-06-26</div>
+<div class="ver-badge" id="verBadge">v4.23 · 2026-06-26</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -4198,10 +4198,12 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function toggleSimulacion(){ if(choSimOn)detenerSimulacion(); else iniciarSimulacion(); }
   function iniciarSimulacion(){
     if(!waypoints || waypoints.length<2){ toast('Esta ruta no tiene trazado para simular'); return; }
+    // Guardar el estado REAL para restaurarlo al terminar (el animador es solo visual)
+    _simBackup={ nextWpIdx:nextWpIdx, reachedStart:reachedStart, done:[...doneWps] };
     // Pausar el GPS real para que NO mezcle la posición real con la simulada
     try{ if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; } }catch(_){}
     // Reiniciar trazado para empezar limpio desde el inicio de la ruta
-    realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={};
+    realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={}; _wpCerca={}; doneWps.clear(); limpiarProgresoVerde();
     if(realLine){try{map.removeLayer(realLine);}catch(_){}realLine=null;}
     if(realLineGlow){try{map.removeLayer(realLineGlow);}catch(_){}realLineGlow=null;}
     choSimOn=true; choSimIdx=0; actualizarBtnSim();
@@ -4227,9 +4229,19 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     actualizarBtnSim();
     try{ window.speechSynthesis.cancel(); }catch(_){}
     toast('Prueba detenida');
+    // RESTAURAR el estado REAL: borrar todo lo que el animador marcó (era solo visual)
+    nextWpIdx=0; doneWps.clear(); _wpCerca={}; reachedStart=false; deviated=false; lastVoiceAnnounce={};
+    limpiarProgresoVerde();
+    if(_simBackup){ // restaurar lo que había antes de la simulación
+      nextWpIdx=_simBackup.nextWpIdx; reachedStart=_simBackup.reachedStart;
+      (_simBackup.done||[]).forEach(i=>doneWps.add(i));
+      dibujarProgresoVerde();
+      _simBackup=null;
+    }
     // Reanudar el GPS real del teléfono
     try{ if('geolocation' in navigator && watchId===null){ watchId=navigator.geolocation.watchPosition(onGpsUpdate,onGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000}); } }catch(_){}
   }
+  let _simBackup=null;
   function botonChofer(id,bg,fg,icon,label){
     return '<button id="'+id+'" style="background:'+bg+';border:none;border-radius:14px;padding:16px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;min-height:84px;">'
       +'<i class="ti '+icon+'" style="font-size:32px;color:'+fg+';"></i>'
@@ -5003,12 +5015,14 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }
     // === 4. TRAMO RECTO LARGO: reafirmar "vas bien, sigue recto" cada ~250m (no dejar al chofer en silencio) ===
     const ahora=Date.now();
-    if(!esGiro && d>80){
-      if(!_ultimoRecto || (ahora-_ultimoRecto)>18000){ // cada 18s en recta larga
-        // Solo si lleva un rato sin oír nada
-        if(ahora-(_voiceBusyUntil-2500)>10000){
-          speak('Va bien, continúe recto','estado'); _ultimoRecto=ahora;
-        }
+    // "Va bien" SOLO en recta larga Y sin ningún giro en los próximos 2 waypoints
+    if(!esGiro && d>100){
+      let giroProximo=false;
+      for(let k=nextWpIdx;k<Math.min(nextWpIdx+2,waypoints.length-1);k++){
+        if(Math.abs(angleAtWp(k))>=30){ giroProximo=true; break; }
+      }
+      if(!giroProximo && ahora>=_voiceBusyUntil && (!_ultimoRecto || (ahora-_ultimoRecto)>20000)){
+        speak('Va bien, continúe recto','estado'); _ultimoRecto=ahora;
       }
     }
   }
