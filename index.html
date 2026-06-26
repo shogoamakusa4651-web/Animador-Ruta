@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.20 · 2026-06-25</div>
+    <div class="ver" style="padding-top:4px">v4.21 · 2026-06-26</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.20 · 2026-06-25</div>
+<div class="ver-badge" id="verBadge">v4.21 · 2026-06-26</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -4090,6 +4090,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         const loc=coords[Math.min(idx,coords.length-1)]||null;
         return { instruction:st.instruction, distance:st.distance, loc:loc, _dicho:false };
       });
+      // El primer paso es "diríjase al..." (la salida), no un giro real → no anunciarlo
+      if(steps.length) steps[0]._dicho=true;
       limpiarGuia();
       // Dibujar la ruta de aproximación: halo blanco + azul punteada animada
       const g=L.layerGroup();
@@ -4097,7 +4099,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       L.polyline(coords,{color:'#2E7DF2',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g);
       L.polyline(coords,{color:'#fff',weight:3,opacity:.9,dashArray:'2,14',className:'route-flow',interactive:false}).addTo(g);
       g.addTo(map); guiaLayer=g;
-      guiaSteps=steps; guiaStepIdx=0; guiaActiva=true;
+      guiaSteps=steps; guiaStepIdx=0; guiaActiva=true; _ultimoAnuncioGuia=Date.now();
       const destTxt = tipo==='regreso' ? 'al punto donde quedaste' : (tipo==='reintegro' ? 'de vuelta a tu ruta' : 'al punto de inicio');
       speak('Te voy a guiar '+destTxt+'. Sigue la línea azul.','nav');
       // Encuadrar la ruta de aproximación
@@ -4153,20 +4155,27 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }
     // Anunciar el próximo giro SOLO cuando el camión se acerca a él (no todos de golpe)
     if(guiaSteps.length){
-      // Buscar el primer paso no dicho que tenga ubicación
+      const ahora=Date.now();
+      // No anunciar dos giros con menos de 6 segundos de diferencia
+      if(ahora-_ultimoAnuncioGuia < 6000) return;
       for(let k=0;k<guiaSteps.length;k++){
         const st=guiaSteps[k];
         if(st._dicho || !st.loc || !st.instruction)continue;
         const dGiro=haversine(p, st.loc);
-        // Anunciar cuando esté a 50m o menos del punto del giro
-        if(dGiro<=50){
+        // Solo anunciar cuando esté CERCA del giro (entre 15 y 60m), no antes
+        if(dGiro<=60 && dGiro>=12){
           speak(limpiarInstruccion(st.instruction),'nav');
           st._dicho=true;
+          _ultimoAnuncioGuia=ahora;
+        } else if(dGiro<12){
+          // Ya pasó el giro sin anunciar (muy pegado): marcarlo dicho para no repetir
+          st._dicho=true;
         }
-        break; // solo evaluar el próximo giro pendiente, no los siguientes
+        break; // solo evaluar el próximo giro pendiente
       }
     }
   }
+  let _ultimoAnuncioGuia=0;
 
   function centrarVistaChofer(){
     let pts=[];
@@ -4256,6 +4265,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       const base={ chofer:choferName||choferCode, code:choferCode||null, rutaId:choferTurno.rutaId||null,
         route:(mgmtRutas[choferTurno.rutaId]||{}).nombre||null, name:choferName||null, ts:Date.now() };
       if(lastTruckPos){ base.lat=lastTruckPos[0]; base.lng=lastTruckPos[1]; }
+      // _idx y cov permiten al centro de control dibujar el TRAZADO REAL con el progreso (no una línea recta)
+      base._idx = (typeof nextWpIdx==='number')?nextWpIdx:null;
+      if(waypoints && waypoints.length && doneWps){ try{ base.cov=covEnc(doneWps,waypoints.length); }catch(_){} }
       fbDb.ref('live/'+txId()).update(Object.assign(base, extra||{}));
       // Alertas persistentes (avería, obstáculo) en un nodo aparte para el supervisor
       if(extra && extra.alerta){

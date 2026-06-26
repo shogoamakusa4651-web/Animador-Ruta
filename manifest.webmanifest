@@ -1,17 +1,25 @@
 {
   "name": "Animador de Ruta",
   "short_name": "Animador",
-  "description": "Gestión y monitoreo de rutas de recolección · La Vega",
+  "description": "Monitoreo de rutas de recolección - Ayuntamiento de La Vega",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F4F3F0",
-  "theme_color": "#2E2C27",
-  "lang": "es",
+  "background_color": "#042C53",
+  "theme_color": "#042C53",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
