@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.23 · 2026-06-26</div>
+    <div class="ver" style="padding-top:4px">v4.24 · 2026-06-26</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.23 · 2026-06-26</div>
+<div class="ver-badge" id="verBadge">v4.24 · 2026-06-26</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3883,6 +3883,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Anunciar al centro de control que este chofer inició su ruta (aparece en vivo)
     setTimeout(()=>{ try{ txChofer({status:'en_ruta', evento:'inicio_turno', progress:0, etapa:1, totalEtapas:choferTurno.totalEtapas}); }catch(_){} }, 1500);
     setTimeout(()=>{ try{ const nom=(choferName||'').trim().split(' ')[0]; speak('Bienvenido'+(nom?' '+nom:'')+', te voy a llevar a la ruta'); }catch(_){} }, 1200);
+    // Bloquear avisos de "va bien" durante los primeros 12s (para que no pisen el saludo)
+    _ultimoRecto=Date.now()+12000;
   }
   // Carga la etapa N de la ruta del chofer en el motor de navegación
   let etapasEsperaLayer=null;
@@ -4208,8 +4210,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(realLineGlow){try{map.removeLayer(realLineGlow);}catch(_){}realLineGlow=null;}
     choSimOn=true; choSimIdx=0; actualizarBtnSim();
     speak('Iniciando prueba de la ruta. Escucha las indicaciones.');
+    _ultimoRecto=Date.now()+10000; // no decir "va bien" en los primeros 10s de la prueba
     toast('Prueba en marcha · escucha las indicaciones');
-    const ruta=[]; const PASO=12;
+    const ruta=[]; const PASO=6; // pasos de 6m (más finos = movimiento suave y rumbo estable)
     for(let i=1;i<waypoints.length;i++){
       const a=waypoints[i-1], b=waypoints[i]; const d=haversine(a,b); const n=Math.max(1,Math.round(d/PASO));
       for(let k=0;k<n;k++){ const t=k/n; ruta.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t]); }
@@ -4218,11 +4221,12 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Forzar que el simulador empiece "en el punto de inicio" (sin fase de llegada)
     reachedStart=true;
     let i=0;
+    // 6m cada 300ms = 20 m/s ≈ 72 km/h (velocidad realista, da tiempo a que termine cada indicación)
     choSimTimer=setInterval(()=>{
       if(i>=ruta.length){ detenerSimulacion(); speak('Prueba finalizada. Llegaste al final de la ruta.'); return; }
       onGpsUpdate({coords:{latitude:ruta[i][0], longitude:ruta[i][1], accuracy:8}});
       i++;
-    }, 220);
+    }, 300);
   }
   function detenerSimulacion(){
     choSimOn=false; if(choSimTimer){ clearInterval(choSimTimer); choSimTimer=null; }
