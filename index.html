@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.24 · 2026-06-26</div>
+    <div class="ver" style="padding-top:4px">v4.25 · 2026-06-26</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.24 · 2026-06-26</div>
+<div class="ver-badge" id="verBadge">v4.25 · 2026-06-26</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2240,6 +2240,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         const g=L.layerGroup(); segs.forEach(s=>L.polyline(s,{color:'#27A35B',weight:routeWeights().main+1.6,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
         if(t.lat!=null&&t.lng!=null&&t._idx!=null&&pts[t._idx])L.polyline([pts[t._idx],[t.lat,t.lng]],{color:'#27A35B',weight:routeWeights().main+1.6,opacity:.55,dashArray:'4 6',interactive:false}).addTo(g);
         g.addTo(map); liveTrails[id]=g; return; }
+      // NO dibujar trail si el chofer aún no ha cumplido ningún punto (evita la línea recta desde su casa)
+      const empezo = (t.cov && covDec(t.cov,pts.length).some(b=>b)) || (t._idx!=null && t._idx>0) || (t.progress>0);
+      if(!empezo){ if(liveTrails[id]){ map.removeLayer(liveTrails[id]); delete liveTrails[id]; } return; }
       let done; if(t._idx!=null){ done=pts.slice(0,t._idx+1); if(t.lat!=null&&t.lng!=null)done=done.concat([[t.lat,t.lng]]); }
       else { const prog=Math.max(0,Math.min(100,t.progress||0)); const n=Math.max(1,Math.round(prog/100*(pts.length-1))); done=pts.slice(0,n+1); }
       if(done.length<2)done=[pts[0],pts[0]];
@@ -3882,9 +3885,24 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     montarBarraChofer(r);
     // Anunciar al centro de control que este chofer inició su ruta (aparece en vivo)
     setTimeout(()=>{ try{ txChofer({status:'en_ruta', evento:'inicio_turno', progress:0, etapa:1, totalEtapas:choferTurno.totalEtapas}); }catch(_){} }, 1500);
-    setTimeout(()=>{ try{ const nom=(choferName||'').trim().split(' ')[0]; speak('Bienvenido'+(nom?' '+nom:'')+', te voy a llevar a la ruta'); }catch(_){} }, 1200);
-    // Bloquear avisos de "va bien" durante los primeros 12s (para que no pisen el saludo)
-    _ultimoRecto=Date.now()+12000;
+    // Saludo inteligente: analiza si ya está en el inicio o lejos (para no solapar ni inventar)
+    setTimeout(()=>{
+      try{
+        const nom=(choferName||'').trim().split(' ')[0];
+        const saludo='Bienvenido'+(nom?' señor '+nom:'');
+        let resto='';
+        if(waypoints && waypoints.length && lastTruckPos){
+          const dIni=haversine(lastTruckPos, waypoints[0]);
+          if(dIni<=40) resto=', ya está en el punto de inicio. Comience la ruta cuando esté listo';
+          else resto=', diríjase al punto de inicio. Si necesita ayuda para llegar, active el asistente';
+        } else {
+          resto=', diríjase al punto de inicio';
+        }
+        speak(saludo+resto);
+      }catch(_){}
+    }, 3000);
+    // Bloquear avisos de "va bien" durante los primeros 15s (para que no pisen el saludo)
+    _ultimoRecto=Date.now()+15000;
   }
   // Carga la etapa N de la ruta del chofer en el motor de navegación
   let etapasEsperaLayer=null;
@@ -4023,7 +4041,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(hayProxima){
       html+='<button id="choProxEtapa" style="background:#1F9D55;color:#fff;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 3px 12px rgba(31,157,85,.35);"><i class="ti ti-arrow-right-circle" style="font-size:22px;"></i> Continuar a '+esc(nomSig)+'</button>';
     }
-    // Fila 2: los 4 botones de acción en grilla 2x2
+    // Fila ASISTENCIA: botón ancho para activar/desactivar la guía GPS (ORS) hacia inicio/reintegro
+    const asistOn = guiaActiva;
+    html+='<button id="choAsistGps" style="background:'+(asistOn?'#1F9D55':'#0C447C')+';color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">'
+      +'<i class="ti ti-'+(asistOn?'navigation-off':'navigation')+'" style="font-size:20px;"></i> '+(asistOn?'Desactivar asistente de llegada':'Activar asistente para llegar / reintegrarme')+'</button>';
+    // Fila: los 4 botones de acción en grilla 2x2
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
       +botonChofer('choLleno','#EF9F27','#412402','ti-trash','Capacidad máxima')
       +botonChofer('choCombustible','#2F7DC2','#fff','ti-gas-station','Combustible')
@@ -4035,10 +4057,31 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     bindChofBtn('choCombustible', ()=>accionCombustible());
     bindChofBtn('choReporte', ()=>accionAlerta('reporte','Reporte de avería o urgencia'));
     bindChofBtn('choObstaculo', ()=>accionAlerta('obstaculo','Obstáculo que impide la ruta'));
+    bindChofBtn('choAsistGps', ()=>toggleAsistenciaGps());
     if(hayProxima){ const cp=document.getElementById('choProxEtapa'); if(cp)cp.onclick=function(){
       confirmarChofer({titulo:'Continuar a la próxima etapa', mensaje:'¿Quieres adelantar a '+esc(nomSig)+' ahora? Se avisará al centro de control.', textoOk:'Sí, continuar', colorOk:'#1F9D55', onOk:()=>{ avanzarEtapaChofer(true); }}); }; }
   }
   function montarBotonProximaEtapa(){ /* integrado en montarBarraChofer */ }
+  // Activar/desactivar el asistente GPS (ORS). Al desactivar, resetea para tomar el nuevo punto al reactivar.
+  function toggleAsistenciaGps(){
+    if(guiaActiva){
+      detenerGuia();
+      speak('Asistente desactivado','nav');
+      toast('Asistente desactivado');
+      const r=mgmtRutas[choferTurno.rutaId]; montarBarraChofer(r);
+      return;
+    }
+    // Decidir destino: si aún no llegó al inicio → al inicio; si se salió → al punto de reintegro; si va normal → al próximo punto
+    let destino=null, tipo='inicio';
+    if(!reachedStart && waypoints.length){ destino=waypoints[0]; tipo='inicio'; }
+    else if(deviated && nextWpIdx<waypoints.length){ destino=waypoints[nextWpIdx]; tipo='reintegro'; }
+    else if(nextWpIdx<waypoints.length){ destino=waypoints[nextWpIdx]; tipo='reintegro'; }
+    if(!destino){ toast('No hay a dónde guiar'); return; }
+    if(!lastTruckPos){ toast('Esperando señal GPS…'); speak('Espera, buscando tu ubicación','nav'); return; }
+    toast('Calculando ruta…');
+    iniciarGuiaDestino(destino, tipo);
+    setTimeout(()=>{ const r=mgmtRutas[choferTurno.rutaId]; montarBarraChofer(r); }, 800);
+  }
   // Pausar/reanudar la ruta (con confirmación para evitar miss-click)
   function togglePausaChofer(){
     if(!choferPausado){
@@ -4978,6 +5021,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const stopHere=stops.find(s=>s.wpIdx===nextWpIdx);
     const ann=lastVoiceAnnounce[nextWpIdx]||{};
 
+    // ANTICIPAR calle sin salida: si el waypoint siguiente (o el actual) es deadEnd, avisar al entrar
+    const deadEndProx = isDeadEnd(nextWpIdx) || (nextWpIdx+1<waypoints.length && isDeadEnd(nextWpIdx+1));
+    if(deadEndProx && d<=60 && d>25 && !ann.deadAviso){
+      speak('Adelante hay calle sin salida. Entre, llegue al fondo y devuélvase','nav');
+      ann.deadAviso=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
+    }
+
     // === ¿El próximo punto es un GIRO REAL o solo seguir la vía? (perspectiva real del camión) ===
     let dirVivo='straight'; let esGiro=false; let anguloAbs=0;
     if(nextWpIdx+1<waypoints.length){
@@ -4995,20 +5045,27 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }
     const dir = dirVivo==='right'?'derecha':(dirVivo==='left'?'izquierda':'recto');
 
-    // === 1. PREAVISO de GIRO a ~70m (con anticipación, una vez) ===
-    if(esGiro && d<=75 && d>35 && !ann.pre){
+    // Largo del tramo actual (del waypoint anterior al actual) para adaptar los avisos
+    const largoTramo = nextWpIdx>0 ? haversine(waypoints[nextWpIdx-1],waypoints[nextWpIdx]) : 200;
+    // Si el tramo es CORTO no caben dos avisos → solo el de doblar. Si es largo, preaviso + doblar.
+    const tramoCorto = largoTramo < 70;
+    const dPre = tramoCorto ? 0 : 55;   // distancia del preaviso (0 = no hay preaviso)
+    const dGiro = tramoCorto ? Math.min(28, largoTramo*0.5) : 20; // el "dobla" se da antes en calles cortas
+
+    // === 1. PREAVISO de GIRO (solo en tramos largos, con anticipación) ===
+    if(esGiro && dPre>0 && d<=dPre+18 && d>dPre-18 && !ann.pre && !ann.now){
       let msg;
-      if(stopHere) msg='En 60 metros, '+(stopHere.type==='critical'?'punto crítico':'punto de atención');
-      else if(ins.deadEnd) msg='En 60 metros, calle sin salida. Prepárese para entrar y retornar';
-      else if(ins.type==='end') msg='En 60 metros, final del recorrido';
-      else msg='Prepárese para doblar a la '+dir+' en 60 metros';
+      if(stopHere) msg='En 50 metros, '+(stopHere.type==='critical'?'punto crítico':'punto de atención');
+      else if(ins.deadEnd) msg='Adelante, calle sin salida. Prepárese para entrar y devolverse';
+      else if(ins.type==='end') msg='En 50 metros, final del recorrido';
+      else msg='Prepárese para doblar a la '+dir;
       speak(msg,'nav'); ann.pre=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
     }
-    // === 2. GIRO ahora, a ~20m (corto y seco) ===
-    if(esGiro && d<=22 && !ann.now){
+    // === 2. GIRO ahora (corto y seco). En calle corta es el ÚNICO aviso ===
+    if(esGiro && d<=dGiro && !ann.now){
       let msg;
       if(stopHere) msg=(stopHere.type==='critical'?'Punto crítico ahora':'Punto de atención ahora');
-      else if(ins.deadEnd) msg='Entre y retorne';
+      else if(ins.deadEnd) msg=(dirVivo==='right'?'Calle sin salida a la derecha, entre y devuélvase':(dirVivo==='left'?'Calle sin salida a la izquierda, entre y devuélvase':'Calle sin salida, entre y devuélvase'));
       else if(ins.type==='end') msg='Llegando al final';
       else msg='Dobla a la '+dir;
       speak(msg,'nav'); ann.now=true; ann.pre=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
@@ -5017,31 +5074,34 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(!esGiro && anguloAbs>=15 && d<=50 && !ann.curva){
       speak('Continúe por la vía','nav'); ann.curva=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
     }
-    // === 4. TRAMO RECTO LARGO: reafirmar "vas bien, sigue recto" cada ~250m (no dejar al chofer en silencio) ===
+    // === 4. TRAMO RECTO LARGO: reafirmar "vas bien" — SOLO si el camión se está moviendo de verdad ===
     const ahora=Date.now();
-    // "Va bien" SOLO en recta larga Y sin ningún giro en los próximos 2 waypoints
-    if(!esGiro && d>100){
+    // Requisitos: ya inició ruta + se movió hace poco (rumbo fresco) + recta sin giros próximos
+    const seMueve = (_ultimoMovTs && (ahora-_ultimoMovTs)<6000);
+    if(!esGiro && d>100 && reachedStart && seMueve){
       let giroProximo=false;
       for(let k=nextWpIdx;k<Math.min(nextWpIdx+2,waypoints.length-1);k++){
         if(Math.abs(angleAtWp(k))>=30){ giroProximo=true; break; }
       }
-      if(!giroProximo && ahora>=_voiceBusyUntil && (!_ultimoRecto || (ahora-_ultimoRecto)>20000)){
+      if(!giroProximo && ahora>=_voiceBusyUntil && (!_ultimoRecto || (ahora-_ultimoRecto)>25000)){
         speak('Va bien, continúe recto','estado'); _ultimoRecto=ahora;
       }
     }
   }
   let _ultimoRecto=0;
+  let _ultimoMovTs=0; // última vez que el camión se movió de verdad (para no decir "va bien" parado)
   // Botón flotante de ASISTENCIA: el chofer lo pulsa cuando quiere que ORS lo guíe de vuelta
   function mostrarBotonAsistencia(mostrar){
     let b=document.getElementById('choAsistencia');
     if(mostrar){
       if(!b){
         b=document.createElement('button'); b.id='choAsistencia';
-        b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:150px;z-index:1300;background:#E24B4A;color:#fff;border:none;border-radius:30px;padding:14px 22px;font:800 15px -apple-system,Segoe UI,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:8px;cursor:pointer;';
+        b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:260px;z-index:6500;background:#E24B4A;color:#fff;border:none;border-radius:30px;padding:14px 22px;font:800 15px -apple-system,Segoe UI,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:8px;cursor:pointer;animation:choPulse 1.4s infinite;';
         b.innerHTML='<i class="ti ti-route"></i> Llévame de vuelta a la ruta';
         b.onclick=function(){
-          if(nextWpIdx<waypoints.length){ iniciarGuiaDestino(waypoints[nextWpIdx],'reintegro'); }
+          if(!guiaActiva && nextWpIdx<waypoints.length){ iniciarGuiaDestino(waypoints[nextWpIdx],'reintegro'); }
           mostrarBotonAsistencia(false);
+          const r=mgmtRutas[choferTurno.rutaId]; if(r)montarBarraChofer(r);
         };
         document.body.appendChild(b);
       }
@@ -5072,12 +5132,14 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // RUMBO REAL del camión: dirección entre posiciones recientes (si se movió lo suficiente)
     if(pos.coords.heading!=null && !isNaN(pos.coords.heading) && (pos.coords.speed==null || pos.coords.speed>0.5)){
       truckHeading=pos.coords.heading;
+      if(pos.coords.speed!=null && pos.coords.speed>0.8)_ultimoMovTs=Date.now();
     } else if(prevPos){
       const mov=haversine(prevPos,p);
       if(mov>=4){
         _headHist.push(bearing(prevPos,p));
         if(_headHist.length>3)_headHist.shift();
         truckHeading=promedioRumbos(_headHist);
+        _ultimoMovTs=Date.now(); // el camión se movió de verdad
       }
     }
     // Rotar el mapa hacia el rumbo (modo chofer, como Waze)
