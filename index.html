@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.19 · 2026-06-25</div>
+    <div class="ver" style="padding-top:4px">v4.20 · 2026-06-25</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -316,13 +316,6 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 .cho-inicio-wrap{ position:relative; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; }
 .cho-inicio-pulse{ position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); width:30px; height:30px; border-radius:50%; background:rgba(31,157,85,.45); animation:choInicioPulse 1.6s infinite; }
 @keyframes choInicioPulse{ 0%{ transform:translateX(-50%) scale(.6); opacity:.9; } 100%{ transform:translateX(-50%) scale(2.6); opacity:0; } }
-/* Rotación del mapa hacia el rumbo del camión (modo chofer) */
-body.chofer-mapa-rota .leaflet-map-pane{ transition:transform .5s ease-out; }
-body.chofer-mapa-rota #map{ overflow:hidden; }
-/* El mapa se agranda para que al rotar las esquinas vacías queden fuera de vista */
-body.chofer-mapa-rota .leaflet-tile-pane{ transform:scale(1.8); transform-origin:center center; }
-/* Contra-rotar marcadores/etiquetas para que queden legibles cuando el mapa rota */
-body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
 .cho-inicio-pin{ width:46px; height:46px; border-radius:50% 50% 50% 4px; background:linear-gradient(145deg,#34C36E,#1F9D55); transform:rotate(45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.5); border:3px solid #fff; }
 .cho-inicio-pin i{ transform:rotate(-45deg); font-size:24px; color:#fff; }
 .cho-inicio-lbl{ margin-top:7px; background:#1F9D55; color:#fff; font:800 12px -apple-system,Segoe UI,sans-serif; padding:4px 11px; border-radius:20px; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,.5); letter-spacing:.5px; }
@@ -592,7 +585,7 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.19 · 2026-06-25</div>
+<div class="ver-badge" id="verBadge">v4.20 · 2026-06-25</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -4090,7 +4083,13 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
       const geo=await pedirRutaORS(lastTruckPos, destino);
       const feat=geo&&geo.features&&geo.features[0]; if(!feat)throw new Error('sin ruta');
       const coords=feat.geometry.coordinates.map(c=>[c[1],c[0]]); // a [lat,lng]
-      const steps=(feat.properties&&feat.properties.segments&&feat.properties.segments[0]&&feat.properties.segments[0].steps)||[];
+      const stepsRaw=(feat.properties&&feat.properties.segments&&feat.properties.segments[0]&&feat.properties.segments[0].steps)||[];
+      // Asociar a cada paso la UBICACIÓN del giro (para anunciarlo solo cuando el camión se acerque)
+      const steps=stepsRaw.map(st=>{
+        const wp=st.way_points||[]; const idx=wp.length?wp[0]:0;
+        const loc=coords[Math.min(idx,coords.length-1)]||null;
+        return { instruction:st.instruction, distance:st.distance, loc:loc, _dicho:false };
+      });
       limpiarGuia();
       // Dibujar la ruta de aproximación: halo blanco + azul punteada animada
       const g=L.layerGroup();
@@ -4152,15 +4151,19 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
       else { reachedStart=true; speak('Llegó al punto de inicio, comienza la ruta','nav'); const sg=document.getElementById('startGuide'); if(sg)sg.classList.remove('show'); }
       return;
     }
-    // Anunciar el próximo paso de manejo (giro) según cercanía
-    if(guiaSteps.length && guiaStepIdx<guiaSteps.length){
-      const st=guiaSteps[guiaStepIdx];
-      if(st && st.distance!=null){
-        if(!st._dicho && st.instruction){
+    // Anunciar el próximo giro SOLO cuando el camión se acerca a él (no todos de golpe)
+    if(guiaSteps.length){
+      // Buscar el primer paso no dicho que tenga ubicación
+      for(let k=0;k<guiaSteps.length;k++){
+        const st=guiaSteps[k];
+        if(st._dicho || !st.loc || !st.instruction)continue;
+        const dGiro=haversine(p, st.loc);
+        // Anunciar cuando esté a 50m o menos del punto del giro
+        if(dGiro<=50){
           speak(limpiarInstruccion(st.instruction),'nav');
           st._dicho=true;
-          guiaStepIdx++;
         }
+        break; // solo evaluar el próximo giro pendiente, no los siguientes
       }
     }
   }
@@ -4565,23 +4568,15 @@ body.chofer-mapa-rota .leaflet-marker-icon .cho-rot-fix{ display:inline-block; }
   }
   // Rota el mapa para que el rumbo del camión apunte hacia ARRIBA (como Waze)
   let _mapaRotaOn=false, _ultimaRot=null;
+  // El mapa NO rota (rotar Leaflet con CSS deja áreas negras). Solo el camión apunta hacia donde va.
   function rotarMapaChofer(){
     if(currentUserRole!=='chofer' || truckHeading==null)return;
-    const pane=document.querySelector('.leaflet-map-pane'); if(!pane)return;
-    if(!_mapaRotaOn){ document.body.classList.add('chofer-mapa-rota'); _mapaRotaOn=true; }
-    // Rotar el pane en sentido contrario al rumbo (para que "adelante" quede arriba)
-    const rot=-truckHeading;
-    // Evitar micro-ajustes (solo si cambió más de 5°)
-    if(_ultimaRot!=null && Math.abs(((rot-_ultimaRot+540)%360)-180)<5)return;
-    _ultimaRot=rot;
-    pane.style.transform='rotate('+rot.toFixed(1)+'deg)';
-    // Contra-rotar el ícono del camión y marcadores clave para que queden derechos
+    // Rotar SOLO el ícono del camión para que apunte en la dirección de avance
     document.querySelectorAll('.cho-counter-rot').forEach(el=>{ el.style.transform='rotate('+truckHeading.toFixed(1)+'deg)'; });
   }
   function detenerRotacionMapa(){
-    if(!_mapaRotaOn)return;
-    const pane=document.querySelector('.leaflet-map-pane'); if(pane)pane.style.transform='';
-    document.body.classList.remove('chofer-mapa-rota'); _mapaRotaOn=false; _ultimaRot=null;
+    document.querySelectorAll('.cho-counter-rot').forEach(el=>{ el.style.transform=''; });
+    _mapaRotaOn=false; _ultimaRot=null;
   }
   function turnDirectionLabel(angle){
     const a=Math.abs(angle);
