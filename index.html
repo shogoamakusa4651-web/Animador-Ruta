@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.29 · 2026-06-26</div>
+    <div class="ver" style="padding-top:4px">v4.30 · 2026-06-26</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -312,6 +312,7 @@ body.chofer-ruta-activa .leaflet-control-attribution{ display:none !important; }
 body.chofer-ruta-activa #turnCard{ top:70px !important; }
 body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:1 !important; }
 @keyframes choPulse{ 0%{ box-shadow:0 0 0 0 rgba(249,115,22,.7); } 70%{ box-shadow:0 0 0 14px rgba(249,115,22,0); } 100%{ box-shadow:0 0 0 0 rgba(249,115,22,0); } }
+@keyframes alSlide{ from{ transform:translateY(-100%); opacity:0; } to{ transform:translateY(0); opacity:1; } }
 /* Marcador de INICIO grande para el chofer */
 .cho-inicio-wrap{ position:relative; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; }
 .cho-inicio-pulse{ position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); width:30px; height:30px; border-radius:50%; background:rgba(31,157,85,.45); animation:choInicioPulse 1.6s infinite; }
@@ -585,7 +586,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.29 · 2026-06-26</div>
+<div class="ver-badge" id="verBadge">v4.30 · 2026-06-26</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -1684,7 +1685,25 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
     // Alertas enviadas por choferes
     if(!window._alertasChoferSub){ window._alertasChoferSub=true;
-      fbDb.ref('alertas_chofer').on('value', s=>{ window._alertasChofer=s.val()||{}; if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); });
+      window._alertasVistas=window._alertasVistas||{};
+      fbDb.ref('alertas_chofer').on('value', s=>{
+        window._alertasChofer=s.val()||{};
+        // Detectar alertas NUEVAS sin atender → banner + sonido en cualquier sección
+        try{
+          const al=window._alertasChofer||{};
+          Object.keys(al).forEach(k=>{
+            const a=al[k];
+            if(!a || a.atendida)return;
+            if(!window._alertasVistas[k]){
+              window._alertasVistas[k]=true;
+              mostrarBannerAlerta(k, a);
+            }
+          });
+          // Limpiar banners de alertas ya atendidas
+          Object.keys(window._alertasVistas).forEach(k=>{ if(!al[k] || al[k].atendida){ quitarBannerAlerta(k); } });
+        }catch(_){}
+        if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio();
+      });
     }
   }
   function toggleUnits(){ const sp=document.getElementById('supPanel'); if(!sp)return;
@@ -1929,6 +1948,52 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       fbDb.ref('quejas/'+k+'/estado').set(act==='atender'?'atendida':'nuevo').then(()=>{ ov.classList.remove('show'); toast(act==='atender'?'Queja atendida ✓':'Queja reabierta'); if(typeof curSec!=='undefined'&&curSec==='reportes'&&repView==='quejas'&&typeof renderReportes==='function')renderReportes(); });
     }));
   }
+  // === BANNER GLOBAL DE ALERTAS (obstáculo/avería) — visible en CUALQUIER sección, con sonido ===
+  function bannerAlertasCont(){
+    let c=document.getElementById('alertaBannerCont');
+    if(!c){
+      c=document.createElement('div'); c.id='alertaBannerCont';
+      c.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;flex-direction:column;gap:0;pointer-events:none;';
+      document.body.appendChild(c);
+    }
+    return c;
+  }
+  function sonarAlerta(){
+    try{
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
+      [0,0.3,0.6].forEach(t=>{ const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type='square'; o.frequency.value=880; o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.001,ctx.currentTime+t); g.gain.exponentialRampToValueAtTime(0.25,ctx.currentTime+t+0.03);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.22);
+        o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.24); });
+    }catch(_){}
+  }
+  function tipoAlertaTxt(tipo){
+    if(tipo==='obstaculo')return {ic:'ti-barrier-block', t:'Obstáculo en la ruta'};
+    if(tipo==='reporte')return {ic:'ti-alert-triangle', t:'Avería o urgencia'};
+    if(tipo==='lleno')return {ic:'ti-trash', t:'Camión lleno'};
+    if(tipo==='combustible')return {ic:'ti-gas-station', t:'Necesita combustible'};
+    return {ic:'ti-bell', t:'Alerta del chofer'};
+  }
+  function mostrarBannerAlerta(key, a){
+    if(document.getElementById('alBan_'+key))return;
+    const c=bannerAlertasCont();
+    const info=tipoAlertaTxt(a.tipo);
+    const quien=(a.chofer||'Chofer')+(a.rutaNombre?(' · '+a.rutaNombre):'');
+    const b=document.createElement('div'); b.id='alBan_'+key;
+    b.style.cssText='pointer-events:auto;background:linear-gradient(90deg,#C0341F,#E24B4A);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 14px rgba(0,0,0,.45);border-bottom:2px solid #7d1d10;animation:alSlide .25s ease;';
+    b.innerHTML='<i class="ti '+info.ic+'" style="font-size:26px;flex-shrink:0;"></i>'
+      +'<div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:15px;">'+esc(info.t)+'</div>'
+      +'<div style="font-size:12.5px;opacity:.92;">'+esc(quien)+(a.ts?(' · '+fmtHace(a.ts)):'')+'</div></div>'
+      +'<button class="al-ver" style="background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;flex-shrink:0;">Ver</button>'
+      +'<button class="al-ok" style="background:#fff;color:#C0341F;border:none;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer;flex-shrink:0;">Atender</button>';
+    c.appendChild(b);
+    b.querySelector('.al-ver').onclick=()=>{ try{ if(a.lat&&a.lng){ if(typeof setSection==='function')setSection('monitoreo'); setTimeout(()=>{ try{ map.setView([a.lat,a.lng],17); }catch(_){} },300); } else if(typeof setSection==='function')setSection('inicio'); }catch(_){} };
+    b.querySelector('.al-ok').onclick=()=>{ try{ fbDb.ref('alertas_chofer/'+key+'/atendida').set(true); fbDb.ref('alertas_chofer/'+key+'/atendidaTs').set(Date.now()); }catch(_){} quitarBannerAlerta(key); };
+    sonarAlerta();
+  }
+  function quitarBannerAlerta(key){ const b=document.getElementById('alBan_'+key); if(b)b.remove(); }
+  function fmtHace(ts){ const s=Math.floor((Date.now()-ts)/1000); if(s<60)return 'hace '+s+'s'; const m=Math.floor(s/60); if(m<60)return 'hace '+m+' min'; return 'hace '+Math.floor(m/60)+' h'; }
   function buildInicio(){
     const host=document.getElementById('iniBody'); if(!host)return;
     const today=todayLetter();
@@ -2195,18 +2260,21 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function showRouteLayer(id){ const r=mgmtRutas[id]; if(!r||routeLayers[id])return;
     const _n=new Date(); const _hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const done=r.viajes&&r.viajes[_hoy]&&Object.keys(r.viajes[_hoy]).length;
+    // ¿Esta ruta está EN CURSO ahora (camión transmitiendo)?
+    const enCurso = (typeof liveByRuta==='function') ? !!liveByRuta()[id] : false;
     const g=L.layerGroup(); const w=routeWeights();
-    const col=done?'#27A35B':routeColor(id);
+    // Completada=verde. En curso=azul normal. No en curso=azul tenue (apagada).
+    const col = done ? '#27A35B' : (enCurso ? '#2E7DF2' : routeColor(id));
+    const opacidadMain = done ? 1 : (enCurso ? 1 : 0.45); // tenue si no está en curso
     const ETAPA_C=['#3B6CA8','#5B7387','#A08043','#5C7A6B','#7A6A8C','#4F7C8C','#8C6D5B','#6B7A4F'];
-    // Si la ruta tiene etapas, dibujarlas TODAS (misma ruta, mismo color) con etiquetas
     const tieneEtapas = r.etapas && r.etapas.length>1;
     const segmentos = tieneEtapas ? r.etapas.map(e=>decode(e.wp||'')) : [decode(r.wp||'')];
     let primerPunto=null, ultimoPunto=null;
     segmentos.forEach((pts,si)=>{
       if(!pts||pts.length<2)return;
       if(!primerPunto)primerPunto=pts[0]; ultimoPunto=pts[pts.length-1];
-      const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.6,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
-      const main=L.polyline(pts,{color:col,weight:w.main,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
+      const outl=L.polyline(pts,{color:'#1A1814',weight:w.out,opacity:.6*opacidadMain,lineCap:'round',lineJoin:'round',interactive:false}); outl._wbase='out'; outl.addTo(g);
+      const main=L.polyline(pts,{color:col,weight:w.main,opacity:opacidadMain,lineCap:'round',lineJoin:'round',interactive:false}); main._wbase='main'; main.addTo(g);
       addDirArrows(pts, '#FFFFFF', id+'_'+si);
       if(tieneEtapas){
         // Etiqueta de cada etapa en su punto medio
@@ -2219,7 +2287,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       L.marker(ultimoPunto,{interactive:false,keyboard:false,zIndexOffset:760,icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:'<div class="route-dot fin">🏁</div>'})}).addTo(g);
       L.marker(primerPunto,{interactive:false,keyboard:false,icon:L.divIcon({className:'route-label',html:'<span style="background:'+col+'">'+((r.nombre||'Ruta').replace(/</g,'&lt;'))+(done?' ✓':'')+'</span>',iconSize:[0,0]})}).addTo(g);
     }
-    g.addTo(map); routeLayers[id]=g; }
+    g.addTo(map); routeLayers[id]=g; routeLayers[id]._enCurso=enCurso; }
   function adjustRouteWeights(){ const w=routeWeights(); Object.keys(routeLayers).forEach(id=>{ routeLayers[id].eachLayer(l=>{ if(l._wbase&&l.setStyle){ if(l._wbase==='out')l.setStyle({weight:w.out}); else if(l._wbase==='flow')l.setStyle({weight:Math.max(2,w.main-1.5)}); else l.setStyle({weight:w.main}); } }); }); Object.keys(liveTrails).forEach(id=>{ if(liveTrails[id].setStyle)liveTrails[id].setStyle({weight:w.main+1.6}); }); }
   map.on('zoomend',adjustRouteWeights);
   function hideRouteLayer(id){ if(routeLayers[id]){map.removeLayer(routeLayers[id]);delete routeLayers[id];}
@@ -2237,20 +2305,28 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function updateLiveTrails(){ const live=liveByRuta();
     Object.keys(liveTrails).forEach(id=>{ if(!live[id]){ map.removeLayer(liveTrails[id]); delete liveTrails[id]; } });
     Object.keys(live).forEach(id=>{ const r=mgmtRutas[id]; if(!r)return; let pts=decode(r.wp||''); if(!pts||pts.length<2)return; pts=densificarRuta(pts,12); const t=live[id];
+      // El progreso verde se dibuja SOLO sobre el trazado real de la calle (nunca línea recta a la posición GPS).
       let segs=null;
       if(t.cov){ const bits=covDec(t.cov,pts.length); segs=covSegs(pts,bits,true); }
-      if(segs&&segs.length){ if(liveTrails[id]){ map.removeLayer(liveTrails[id]); }
-        const g=L.layerGroup(); segs.forEach(s=>L.polyline(s,{color:'#27A35B',weight:routeWeights().main+1.6,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
-        if(t.lat!=null&&t.lng!=null&&t._idx!=null&&pts[t._idx])L.polyline([pts[t._idx],[t.lat,t.lng]],{color:'#27A35B',weight:routeWeights().main+1.6,opacity:.55,dashArray:'4 6',interactive:false}).addTo(g);
-        g.addTo(map); liveTrails[id]=g; return; }
-      // NO dibujar trail si el chofer aún no ha cumplido ningún punto (evita la línea recta desde su casa)
-      const empezo = (t.cov && covDec(t.cov,pts.length).some(b=>b)) || (t._idx!=null && t._idx>0) || (t.progress>0);
+      else if(t._idx!=null && t._idx>0){ const bits=new Array(pts.length).fill(false); for(let q=0;q<=Math.min(t._idx,pts.length-1);q++)bits[q]=true; segs=covSegs(pts,bits,true); }
+      else if(t.progress>0){ const n=Math.max(1,Math.round((t.progress/100)*(pts.length-1))); const bits=new Array(pts.length).fill(false); for(let q=0;q<=n;q++)bits[q]=true; segs=covSegs(pts,bits,true); }
+      // Si no empezó, no dibujar nada (evita basura visual)
+      const empezo = (segs && segs.length);
       if(!empezo){ if(liveTrails[id]){ map.removeLayer(liveTrails[id]); delete liveTrails[id]; } return; }
-      let done; if(t._idx!=null){ done=pts.slice(0,t._idx+1); if(t.lat!=null&&t.lng!=null)done=done.concat([[t.lat,t.lng]]); }
-      else { const prog=Math.max(0,Math.min(100,t.progress||0)); const n=Math.max(1,Math.round(prog/100*(pts.length-1))); done=pts.slice(0,n+1); }
-      if(done.length<2)done=[pts[0],pts[0]];
-      if(liveTrails[id]&&liveTrails[id].setLatLngs)liveTrails[id].setLatLngs(done);
-      else { if(liveTrails[id])map.removeLayer(liveTrails[id]); liveTrails[id]=L.polyline(done,{color:'#27A35B',weight:routeWeights().main+1.6,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map); } });
+      if(liveTrails[id]){ map.removeLayer(liveTrails[id]); }
+      const g=L.layerGroup();
+      segs.forEach(s=>L.polyline(s,{color:'#27A35B',weight:routeWeights().main+1.6,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
+      g.addTo(map); liveTrails[id]=g; });
+    // Si una ruta visible cambió de estado (entró/salió de en-curso), redibujarla con el color correcto
+    try{
+      Object.keys(routeLayers).forEach(id=>{
+        const ahoraEnCurso=!!live[id];
+        if(routeLayers[id]._enCurso!==ahoraEnCurso){
+          hideRouteLayer(id); showRouteLayer(id);
+          if(routeLayers[id])routeLayers[id]._enCurso=ahoraEnCurso;
+        }
+      });
+    }catch(_){}
     // rutas que terminaron: rojo omitido SOLO si el viaje real registró omisiones
     const all=supLast||{};
     const _n2=new Date(); const _hoy2=_n2.getFullYear()+'-'+String(_n2.getMonth()+1).padStart(2,'0')+'-'+String(_n2.getDate()).padStart(2,'0');
@@ -3768,6 +3844,10 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
   // reintentar wake lock al volver a la pestaña
   document.addEventListener('visibilitychange',()=>{
+    // Al OCULTAR la app (va a WhatsApp, bloquea pantalla): guardar el progreso ya
+    if(document.visibilityState==='hidden' && currentUserRole==='chofer' && choferTurno.activo && !choSimOn){
+      try{ guardarProgresoChofer(); }catch(_){}
+    }
     if(document.visibilityState==='visible' && currentUserRole==='chofer'){
       // Reactivar Wake Lock
       try{ if(_wakeLock===null && choferTurno.activo) pedirWakeLock(); }catch(_){}
@@ -3902,12 +3982,17 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     else if(r && r.wp){ choferTurno.etapas=[{nombre:'Etapa 1', wp:r.wp}]; }
     else { choferTurno.etapas=[]; }
     choferTurno.etapaIdx=0; choferTurno.totalEtapas=choferTurno.etapas.length;
-    // Cargar la primera etapa en el motor de navegación
-    cargarEtapaChofer(0, r);
-    // Barra superior + botones de acción del chofer
-    montarBarraChofer(r);
-    // Anunciar al centro de control que este chofer inició su ruta (aparece en vivo)
-    setTimeout(()=>{ try{ txChofer({status:'en_ruta', evento:'inicio_turno', progress:0, etapa:1, totalEtapas:choferTurno.totalEtapas}); }catch(_){} }, 1500);
+    // RETOMAR AUTOMÁTICO: si hay progreso guardado de hoy, cargar la etapa donde quedó
+    restaurarProgresoChofer((hay)=>{
+      let etapaInicial=0;
+      if(hay && _progresoPend && _progresoPend.rutaId===rutaId){
+        etapaInicial=Math.min(_progresoPend.etapaIdx||0, Math.max(0,choferTurno.etapas.length-1));
+        choferTurno.etapaIdx=etapaInicial;
+      }
+      cargarEtapaChofer(etapaInicial, r);
+      montarBarraChofer(r);
+      setTimeout(()=>{ try{ txChofer({status:'en_ruta', evento:'inicio_turno', progress:0, etapa:etapaInicial+1, totalEtapas:choferTurno.totalEtapas}); }catch(_){} }, 1500);
+    });
     // Saludo inteligente: analiza si ya está en el inicio o lejos (para no solapar ni inventar)
     setTimeout(()=>{
       try{
@@ -3964,6 +4049,39 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }
     return out;
   }
+  // === MEMORIA DE RUTA EN FIREBASE (sobrevive a cerrar la app, WhatsApp, pantalla bloqueada) ===
+  function progresoRef(){ return (fbDb && choferCode) ? fbDb.ref('config/progreso/'+fbKey(choferCode)) : null; }
+  function guardarProgresoChofer(){
+    try{
+      const ref=progresoRef(); if(!ref || !choferTurno.activo)return;
+      const _n=new Date();
+      const hoyStr=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
+      ref.set({
+        rutaId: choferTurno.rutaId,
+        etapaIdx: choferTurno.etapaIdx,
+        nextWpIdx: nextWpIdx,
+        doneWps: Array.from(doneWps),
+        reachedStart: !!reachedStart,
+        dumpCount: dumpCount||0, fuelCount: fuelCount||0,
+        kmRuta: kmRuta||0, kmVertedero: kmVertedero||0,
+        tripStartedAt: tripStartedAt||null,
+        fecha: hoyStr, ts: Date.now()
+      });
+    }catch(_){}
+  }
+  function limpiarProgresoChofer(){ try{ const ref=progresoRef(); if(ref)ref.remove(); }catch(_){} }
+  function restaurarProgresoChofer(cb){
+    const ref=progresoRef(); if(!ref){ cb&&cb(false); return; }
+    ref.once('value').then(s=>{
+      const p=s.val();
+      const _n=new Date();
+      const hoyStr=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
+      // Solo retomar si es de HOY y la ruta sigue existiendo
+      if(!p || p.fecha!==hoyStr || !p.rutaId || !mgmtRutas[p.rutaId]){ cb&&cb(false); return; }
+      _progresoPend=p; cb&&cb(true);
+    }).catch(()=>{ cb&&cb(false); });
+  }
+  let _progresoPend=null;
   function cargarEtapaChofer(idx, r){
     r=r||mgmtRutas[choferTurno.rutaId];
     const et=choferTurno.etapas[idx]; if(!et)return;
@@ -3983,6 +4101,20 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         // Vista inicial: mostrar la RUTA COMPLETA (panorama), no pegado al camión
         followOn=false;
         setTimeout(()=>centrarVistaChofer(), 300);
+        // Si hay progreso guardado de HOY para esta etapa, RETOMARLO (no perder lo avanzado)
+        if(_progresoPend && _progresoPend.rutaId===choferTurno.rutaId && _progresoPend.etapaIdx===idx){
+          try{
+            nextWpIdx=Math.min(_progresoPend.nextWpIdx||0, waypoints.length);
+            (_progresoPend.doneWps||[]).forEach(i=>doneWps.add(i));
+            reachedStart=!!_progresoPend.reachedStart;
+            dumpCount=_progresoPend.dumpCount||0; fuelCount=_progresoPend.fuelCount||0;
+            kmRuta=_progresoPend.kmRuta||0; kmVertedero=_progresoPend.kmVertedero||0;
+            if(_progresoPend.tripStartedAt)tripStartedAt=_progresoPend.tripStartedAt;
+            dibujarProgresoVerde();
+            speak('Retomando tu ruta donde la dejaste','nav');
+          }catch(_){}
+          _progresoPend=null;
+        }
       }catch(e){ console.error('[chofer] cargar etapa:', e); }
     }
     _finEtapaAvisado=false;
@@ -3998,6 +4130,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       txChofer({status:'completada', evento:'ruta_fin'});
       detenerGuia(); limpiarProgresoVerde();
       try{ showRating(); }catch(e){ console.error('[chofer] showRating:', e); }
+      limpiarProgresoChofer(); // ruta terminada → borrar memoria (no retomar algo ya hecho)
       choferTurno.activo=false;
       detenerRotacionMapa();
       return;
@@ -4372,6 +4505,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       // Alertas persistentes (avería, obstáculo) en un nodo aparte para el supervisor
       if(extra && extra.alerta){
         fbDb.ref('alertas_chofer').push(Object.assign({tipo:extra.alerta, chofer:choferName||choferCode, rutaId:choferTurno.rutaId||null,
+          rutaNombre:(mgmtRutas[choferTurno.rutaId]||{}).nombre||null, ts:Date.now(),
           lat:lastTruckPos?lastTruckPos[0]:null, lng:lastTruckPos?lastTruckPos[1]:null,
           etapaHacia:extra.etapaHacia||null, etapaDesde:extra.etapaDesde||null,
           fecha:new Date().toISOString(), atendida:false}));
@@ -5158,35 +5292,47 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const deadEndProx2 = giroIdx>=0 && (isDeadEnd(giroIdx) || (giroIdx+1<waypoints.length && isDeadEnd(giroIdx+1)));
 
     if(giroInfo){
-      // Largo del tramo recto antes del giro (para decidir si caben 2 avisos)
-      const tramoCorto = (dGiroReal < 90);
-      const dPre = tramoCorto ? 0 : 60;
-      const dDob = tramoCorto ? 32 : 30; // "dobla" a ~30m (da tiempo de reaccionar antes del giro)
-
-      // CALLE SIN SALIDA: anticipar (no decir doble)
+      // === FÓRMULA COPILOTO: capas según distancia al giro, cada una solo si CABE (anti-solapamiento) ===
+      // CALLE SIN SALIDA: anticipar, no decir doble
       if(deadEndProx2){
-        if(dGiroReal<=70 && dGiroReal>30 && !annG.dead){
+        if(dGiroReal<=80 && dGiroReal>25 && !annG.dead){
           speak('Adelante hay calle sin salida. Entre, llegue al fondo y devuélvase','nav');
           annG.dead=true; lastVoiceAnnounce['g'+giroIdx]=annG; mostrarTrayectoRetorno(giroIdx); return;
         }
         return;
       }
-      // CURVA CONTINUA (la calle dobla pero no es una decisión): avisar continuar, no "doble"
+      // CURVA CONTINUA: continuar, no "doble"
       if(giroInfo.tipo==='curva'){
-        if(dGiroReal<=45 && !annG.curva){
+        if(dGiroReal<=55 && !annG.curva){
           speak('Continúe por la calle, viene una curva pronunciada a la '+dir,'nav');
           annG.curva=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
         }
         return;
       }
-      // GIRO REAL (decisión en intersección): preaviso + doblar
-      if(dPre>0 && dGiroReal<=dPre+15 && dGiroReal>dDob+8 && !annG.pre){
-        speak('Prepárese para doblar a la '+dir,'nav');
-        annG.pre=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
+      // GIRO REAL — 4 capas. El ancla (capa 4) SIEMPRE cabe; las demás solo si hay metros suficientes.
+      const ahoraT=Date.now();
+      const libre = ahoraT>=_voiceBusyUntil; // no hay otra voz sonando (anti-solapamiento)
+      // CAPA 1 — temprana (>150m): "a unos X metros doblará a la derecha"
+      if(dGiroReal>150 && dGiroReal<=230 && !annG.c1 && libre){
+        const mt=Math.round(dGiroReal/10)*10;
+        speak('A unos '+mt+' metros doblará a la '+dir,'nav');
+        annG.c1=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
       }
-      if(dGiroReal<=dDob && !annG.now){
-        speak('Dobla a la '+dir,'nav');
-        annG.now=true; annG.pre=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
+      // CAPA 2 — preaviso con metraje (~90m): "prepárese para doblar a la derecha en X metros"
+      if(dGiroReal>60 && dGiroReal<=110 && !annG.c2 && libre){
+        const mt=Math.round(dGiroReal/10)*10;
+        speak('Prepárese para doblar a la '+dir+' en '+mt+' metros','nav');
+        annG.c2=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
+      }
+      // CAPA 3 — preaviso corto (~50m): "prepárese, doble a la derecha" (solo si no se dijo capa 2 hace nada)
+      if(dGiroReal>32 && dGiroReal<=58 && !annG.c3 && !annG.c2 && libre){
+        speak('Prepárese, doble a la '+dir,'nav');
+        annG.c3=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
+      }
+      // CAPA 4 — ANCLA (~28m): "doble a la derecha". SIEMPRE suena (es lo más importante).
+      if(dGiroReal<=30 && !annG.now){
+        // Si justo acaba de sonar otra capa, esperar al próximo tick para no pegarse
+        if(libre){ speak('Dobla a la '+dir,'nav'); annG.now=true; lastVoiceAnnounce['g'+giroIdx]=annG; return; }
       }
     }
 
@@ -5196,16 +5342,20 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       if(dFin<=40 && !lastVoiceAnnounce['fin']){ speak('Está llegando al final del recorrido','nav'); lastVoiceAnnounce['fin']=true; }
     }
 
-    // === "Va bien" en recta larga SIN giros próximos, solo si se mueve ===
+    // === ACOMPAÑAMIENTO en recta larga (sin giro a la vista): "va bien, siga recto" cada ~350m de recta ===
     const ahora=Date.now();
     const seMueve = (_ultimoMovTs && (ahora-_ultimoMovTs)<6000);
-    const sinGiroCerca = (giroIdx<0 || dGiroReal>140);
+    const sinGiroCerca = (giroIdx<0 || dGiroReal>180);
     if(sinGiroCerca && reachedStart && seMueve){
-      if(ahora>=_voiceBusyUntil && (!_ultimoRecto || (ahora-_ultimoRecto)>25000)){
-        speak('Va bien, continúe recto','estado'); _ultimoRecto=ahora;
+      // Acumular distancia recorrida desde el último acompañamiento
+      if(_ultimoAcompPos){ _distDesdeAcomp += haversine(_ultimoAcompPos, lastTruckPos); }
+      _ultimoAcompPos = lastTruckPos.slice();
+      if(_distDesdeAcomp>=350 && ahora>=_voiceBusyUntil){
+        speak('Va bien, continúe recto','estado'); _distDesdeAcomp=0;
       }
-    }
+    } else { _ultimoAcompPos = lastTruckPos?lastTruckPos.slice():null; }
   }
+  let _ultimoAcompPos=null, _distDesdeAcomp=0;
   let _trayectoRetornoLayer=null;
   // Resalta en el mapa el tramo de regreso de una calle sin salida (asistente visual)
   function mostrarTrayectoRetorno(giroIdx){
@@ -5264,6 +5414,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
           const prog = waypoints.length ? Math.round((doneWps.size/waypoints.length)*100) : 0;
           txChofer({ status:(tripPhase==='vertedero'?'vertedero':(tripPhase==='combustible'?'combustible':(choferPausado?'pausado':'en_ruta'))),
             progress:prog, etapa:(choferTurno.etapaIdx+1), totalEtapas:choferTurno.totalEtapas, acc:Math.round(acc) });
+          guardarProgresoChofer(); // memoria de ruta (no se pierde si sale de la app)
         }
       }catch(_){}
     }
@@ -5335,38 +5486,37 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Actualizar la guía activa (giros por voz, detección de llegada)
     if(guiaActiva){ actualizarGuia(p); }
 
-    // === MARCADO UNO POR UNO — nunca marca varios de golpe ni calles futuras ===
-    // Solo se evalúa el waypoint ACTUAL (nextWpIdx). Se marca cuando el GPS realmente pasó por él.
+    // === MARCADO POR PROYECCIÓN (robusto con GPS real impreciso) ===
+    // Proyecta la posición sobre la línea de la ruta y avanza según el progreso a lo largo de ella,
+    // ignorando el error lateral del GPS. Así el camión avanza aunque el GPS lo ubique a 20m al lado.
     if(waypoints.length && reachedStart && nextWpIdx<waypoints.length){
-      const i=nextWpIdx;
-      const dWp=haversine(p,waypoints[i]);
-      // Registrar que el camión entró al radio del punto actual
-      if(dWp<=WP_REACH_M){ _wpCerca[i]=true; }
-      let yaPaso=false;
-      if(i+1<waypoints.length){
-        // Confirmar SOLO si: estuvo cerca de este punto Y ahora se aleja hacia el siguiente
-        const dSig=haversine(p,waypoints[i+1]);
-        const dWpSig=haversine(waypoints[i],waypoints[i+1])||1;
-        if(_wpCerca[i] && dSig < dWpSig*0.6){ yaPaso=true; }      // ya dobló y avanza al siguiente
-        else if(_wpCerca[i] && dWp<=8){ yaPaso=true; }            // pasó muy pegado al punto
-      } else {
-        // Último punto de la etapa: basta con llegar cerca
-        if(dWp<=WP_REACH_M)yaPaso=true;
+      // Buscar, en una ventana adelante, el punto de la ruta MÁS CERCANO a la posición actual
+      let mejorIdx=-1, mejorDist=Infinity;
+      const ventana=Math.min(nextWpIdx+12, waypoints.length); // mirar hasta 12 puntos densos (~140m) adelante
+      for(let k=nextWpIdx;k<ventana;k++){
+        const dd=haversine(p,waypoints[k]);
+        if(dd<mejorDist){ mejorDist=dd; mejorIdx=k; }
       }
-      if(yaPaso){
-        markWaypointDone(i);              // marca SOLO este punto
-        nextWpIdx=i+1;                    // avanza exactamente uno
-        // Si venía de una desviación y volvió → reconocer
-        if(deviated){
-          deviated=false; bonusReturnedToTrack=true;
-          quitarMarcadorPerdida && quitarMarcadorPerdida();
-          mostrarBotonAsistencia(false);
-          showAlert('✓ Volvió a la ruta');
-          redrawSkippedSegments();
+      // Si el punto más cercano está dentro de un radio razonable (tolerante al error GPS),
+      // marcar todos los puntos hasta ahí (el camión ya pasó por ellos siguiendo la calle)
+      const tol = Math.max(25, Math.min(45, (lastAccuracy||15)+22));
+      if(mejorIdx>=nextWpIdx && mejorDist<=tol){
+        let avanzados=0;
+        for(let k=nextWpIdx;k<=mejorIdx;k++){ markWaypointDone(k); avanzados++; }
+        nextWpIdx=mejorIdx+1;
+        if(avanzados>0){
+          if(deviated){
+            deviated=false; bonusReturnedToTrack=true;
+            quitarMarcadorPerdida && quitarMarcadorPerdida();
+            mostrarBotonAsistencia(false);
+            showAlert('✓ Volvió a la ruta');
+            redrawSkippedSegments();
+          }
+          for(let mi=nextWpIdx-avanzados; mi<nextWpIdx; mi++){
+            const stopOnWp=stops.find(s=>s.wpIdx===mi);
+            if(stopOnWp){stopOnWp.attended=true;stopOnWp.attendedAt=new Date().toISOString();renderStops();}
+          }
         }
-        // Marcar parada atendida si la había en este punto
-        const stopOnWp=stops.find(s=>s.wpIdx===i);
-        if(stopOnWp){stopOnWp.attended=true;stopOnWp.attendedAt=new Date().toISOString();renderStops();}
       }
     }
       // Paradas independientes (sin wpIdx)
