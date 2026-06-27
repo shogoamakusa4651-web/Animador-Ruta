@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.28 · 2026-06-26</div>
+    <div class="ver" style="padding-top:4px">v4.29 · 2026-06-26</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.28 · 2026-06-26</div>
+<div class="ver-badge" id="verBadge">v4.29 · 2026-06-26</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -3787,14 +3787,16 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   // Devuelve las rutas asignadas a este chofer, programadas para hoy
   function rutasDelChofer(){
     const code=choferCode; if(!code)return [];
-    const _n=new Date(); const dia=['D','L','M','X','J','V','S'][_n.getDay()];
+    const _n=new Date();
+    const hoyStr=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const out=[];
     Object.keys(mgmtRutas||{}).forEach(id=>{
       const r=mgmtRutas[id]||{};
       const mine=(r.choferCode && (r.choferCode===code || fbKey(r.choferCode)===fbKey(code)));
       if(!mine)return;
-      const hoy=(r.freq||[]).includes(dia);
-      if(hoy)out.push({id:id,r:r});
+      // SOLO si el centro de control la ENVIÓ/DESPACHÓ hoy (control y seguridad)
+      const enviada=(r.envios && r.envios[hoyStr]);
+      if(enviada)out.push({id:id,r:r});
     });
     return out;
   }
@@ -3816,8 +3818,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(cam)cam.innerHTML='<i class="ti ti-truck" aria-hidden="true"></i> '+(ficha?('Camión '+esc(ficha)):'Sin camión asignado');
     if(!list)return;
     if(!rutas.length){
-      list.innerHTML='<div class="cho-empty"><div class="ic"><i class="ti ti-calendar-off" aria-hidden="true"></i></div>'
-        +'<b>No tienes rutas para hoy</b><span>Cuando te asignen una ruta, aparecerá aquí lista para empezar.</span></div>';
+      list.innerHTML='<div class="cho-empty"><div class="ic"><i class="ti ti-clock-pause" aria-hidden="true"></i></div>'
+        +'<b>Esperando despacho</b><span>El centro de control aún no te ha enviado una ruta. Cuando la despachen, aparecerá aquí lista para empezar.</span></div>';
       if(foot)foot.style.display='none';
       return;
     }
