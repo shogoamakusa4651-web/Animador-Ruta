@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.30 · 2026-06-26</div>
+    <div class="ver" style="padding-top:4px">v4.31 · 2026-06-27</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -586,7 +586,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.30 · 2026-06-26</div>
+<div class="ver-badge" id="verBadge">v4.31 · 2026-06-27</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -4063,8 +4063,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         doneWps: Array.from(doneWps),
         reachedStart: !!reachedStart,
         dumpCount: dumpCount||0, fuelCount: fuelCount||0,
-        kmRuta: kmRuta||0, kmVertedero: kmVertedero||0,
+        kmRuta: kmRuta||0, kmVertedero: kmVertedero||0, kmCombustible: kmCombustible||0,
         tripStartedAt: tripStartedAt||null,
+        tripPhase: tripPhase||'ruta',
+        accionEnCurso: (choferAccion&&choferAccion.enCurso)||null,
+        puntoParada: puntoParada||null,
         fecha: hoyStr, ts: Date.now()
       });
     }catch(_){}
@@ -4108,10 +4111,23 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
             (_progresoPend.doneWps||[]).forEach(i=>doneWps.add(i));
             reachedStart=!!_progresoPend.reachedStart;
             dumpCount=_progresoPend.dumpCount||0; fuelCount=_progresoPend.fuelCount||0;
-            kmRuta=_progresoPend.kmRuta||0; kmVertedero=_progresoPend.kmVertedero||0;
+            kmRuta=_progresoPend.kmRuta||0; kmVertedero=_progresoPend.kmVertedero||0; kmCombustible=_progresoPend.kmCombustible||0;
             if(_progresoPend.tripStartedAt)tripStartedAt=_progresoPend.tripStartedAt;
             dibujarProgresoVerde();
-            speak('Retomando tu ruta donde la dejaste','nav');
+            // ¿Estaba en el vertedero o en la bomba cuando cerró la app? Retomar esa fase.
+            const fase=_progresoPend.tripPhase||'ruta';
+            const acc=_progresoPend.accionEnCurso||null;
+            if((fase==='vertedero' || fase==='combustible') && acc){
+              tripPhase=fase;
+              choferAccion.enCurso=acc;
+              if(_progresoPend.puntoParada)puntoParada=_progresoPend.puntoParada;
+              // Restaurar el botón parpadeando y avisar
+              setTimeout(()=>{ try{ restaurarBotonAccion(acc); }catch(_){} }, 600);
+              if(fase==='vertedero') speak('Estabas botando basura. Cuando termines, pulsa el botón para volver a tu ruta.','nav');
+              else speak('Estabas echando combustible. Cuando termines, pulsa el botón para volver a tu ruta.','nav');
+            } else {
+              speak('Retomando tu ruta donde la dejaste','nav');
+            }
           }catch(_){}
           _progresoPend=null;
         }
@@ -4367,7 +4383,12 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(dDest<=30){
       const t=guiaTipo;
       detenerGuia();
-      if(t==='regreso'){ speak('Llegaste al punto donde quedaste. Continúa tu ruta.','nav'); }
+      if(t==='regreso'){
+        // Llegó al punto donde paró → termina el conteo de km del vertedero/bomba, vuelve a la ruta
+        tripPhase='ruta'; puntoParada=null;
+        try{ guardarProgresoChofer(); }catch(_){}
+        speak('Llegaste al punto donde quedaste. Continúa tu ruta.','nav');
+      }
       else if(t==='reintegro'){ quitarMarcadorPerdida(); deviated=false; speak('Regresaste a tu ruta. Continúa.','nav'); }
       else { reachedStart=true; speak('Llegó al punto de inicio, comienza la ruta','nav'); const sg=document.getElementById('startGuide'); if(sg)sg.classList.remove('show'); }
       return;
@@ -4528,11 +4549,22 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function quitarMarcadorEvento(){ if(marcadorEvento){ try{ map.removeLayer(marcadorEvento); }catch(_){} marcadorEvento=null; } }
   let puntoParada=null; // punto donde el chofer paró la ruta para ir a botar/combustible
   // 1. CAPACIDAD MÁXIMA (basura llena) → marca, voz, botón brilla; 2º click = reanudar
+  // Restaura el botón parpadeando cuando se retoma una fase de vertedero/combustible tras cerrar la app
+  function restaurarBotonAccion(acc){
+    if(acc==='lleno'){
+      const b=document.getElementById('choLleno'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#F97316'; }
+      if(marcarPunto && puntoParada)marcarPunto('lleno','#EF9F27','🗑️',true);
+    } else if(acc==='combustible'){
+      const b=document.getElementById('choCombustible'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#1F6FB0'; }
+    }
+  }
   function accionLleno(){
     if(choferAccion.enCurso==='lleno'){
       // Ya estaba lleno → ahora reanuda
       confirmarChofer({titulo:'¿Ya descargaste?', mensaje:'Confirma que terminaste de botar la basura para volver a tu ruta.', textoOk:'Sí, volver a la ruta', colorOk:'#1F9D55', onOk:()=>{
-        choferAccion.enCurso=null; tripPhase='ruta'; dumpCount=(dumpCount||0)+1;
+        choferAccion.enCurso=null; dumpCount=(dumpCount||0)+1;
+        // La fase sigue contando km del vertedero hasta LLEGAR al punto donde paró
+        tripPhase='regreso_vertedero';
         quitarMarcadorEvento();
         const b=document.getElementById('choLleno'); if(b){ b.style.animation=''; b.style.background='#EF9F27'; }
         txChofer({status:'en_ruta', evento:'descarga_fin'});
@@ -4540,6 +4572,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         toast('De vuelta a la ruta');
         // Guiar de regreso al punto donde paró (por calles reales)
         if(puntoParada){ iniciarGuiaDestino(puntoParada,'regreso'); }
+        else { tripPhase='ruta'; } // sin punto de parada, no hay regreso que contar
       }});
       return;
     }
@@ -4558,13 +4591,15 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function accionCombustible(){
     if(choferAccion.enCurso==='combustible'){
       confirmarChofer({titulo:'¿Ya pusiste combustible?', mensaje:'Confirma que terminaste para volver a tu ruta.', textoOk:'Sí, volver a la ruta', colorOk:'#1F9D55', onOk:()=>{
-        choferAccion.enCurso=null; tripPhase='ruta'; fuelCount=(fuelCount||0)+1;
+        choferAccion.enCurso=null; fuelCount=(fuelCount||0)+1;
+        tripPhase='regreso_combustible'; // sigue contando km de la bomba hasta llegar al punto
         quitarMarcadorEvento();
         const b=document.getElementById('choCombustible'); if(b){ b.style.animation=''; b.style.background='#2F7DC2'; }
         txChofer({status:'en_ruta', evento:'combustible_fin'});
         speak('Listo. Te guío de regreso al punto donde quedaste.');
         toast('De vuelta a la ruta');
         if(puntoParada){ iniciarGuiaDestino(puntoParada,'regreso'); }
+        else { tripPhase='ruta'; }
       }});
       return;
     }
@@ -5453,7 +5488,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 
     if(!realPath.length || haversine(realPath[realPath.length-1],p)>=3){
       const prevP=realPath.length?realPath[realPath.length-1]:null;
-      if(prevP){ const seg=haversine(prevP,p)/1000; if(tripPhase==='vertedero')kmVertedero+=seg; else if(tripPhase==='combustible')kmCombustible+=seg; else kmRuta+=seg; }
+      if(prevP){ const seg=haversine(prevP,p)/1000; if(tripPhase==='vertedero'||tripPhase==='regreso_vertedero')kmVertedero+=seg; else if(tripPhase==='combustible'||tripPhase==='regreso_combustible')kmCombustible+=seg; else kmRuta+=seg; }
       realPath.push(p);
       if(tripPhase==='vertedero'){ dumpPath.push(p);
         if(dumpPath.length>=2){ if(!dumpLine)dumpLine=L.polyline(dumpPath,{color:'#B0843C',weight:5,opacity:.9,dashArray:'8 6',interactive:false}).addTo(map); else dumpLine.setLatLngs(dumpPath); } }
