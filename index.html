@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.27 · 2026-06-26</div>
+    <div class="ver" style="padding-top:4px">v4.28 · 2026-06-26</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.27 · 2026-06-26</div>
+<div class="ver-badge" id="verBadge">v4.28 · 2026-06-26</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -2630,7 +2630,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         if(v.cov&&pts){ try{ const bits=covDec(v.cov,pts); visit=0; bits.forEach(b=>{if(b)visit++;}); }catch(_){ } }
         const cCol=cumpl>=90?'#27A35B':(cumpl>=60?'#B0843C':'#C2402F');
         const kmR=Number(v.kmRuta)||0,kmV=Number(v.kmVertedero)||0,kmC=Number(v.kmCombustible)||0,kmT=Number(v.distancia)||0;
-        it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:700;flex:1">Viaje '+(n+1)+' · '+fmtTime(v.inicio)+'–'+fmtTime(v.fin)+(v.sim?' <small style="color:#9c5532">sim</small>':'')+'</span><span class="rpx-score" style="font-size:26px;color:'+cCol+'">'+cumpl+'<small>%</small></span></div>'
+        it.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:700;flex:1">Viaje '+(n+1)+' · '+fmtTime(v.inicio)+'–'+fmtTime(v.fin)+(v.sim?' <small style="color:#9c5532">sim</small>':'')+'</span><span class="rpx-score" style="font-size:26px;color:'+cCol+'">'+cumpl+'<small>%</small></span>'
+          +'<button class="rd-del-trip" data-vk="'+esc(k)+'" title="Eliminar este viaje" style="background:#3a1b1b;color:#E88;border:none;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;"><i class="ti ti-trash"></i></button></div>'
           +'<div class="lv-bar" style="margin:6px 0 8px"><i style="width:'+cumpl+'%;background:'+cCol+'"></i></div>'
           +'<div class="lv-grid3" style="margin-bottom:8px"><div class="lv-cell"><span>Programados</span><b>'+pts+'</b></div>'
           +'<div class="lv-cell"><span>Visitados</span><b style="color:#27A35B">'+visit+'</b></div>'
@@ -2642,6 +2643,23 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
           +pesajeFormHtml(v,rdId,rdDate,k);
         body.appendChild(it); });
       wirePesajeForms(body,()=>{ fbDb.ref('rutas/'+rdId+'/viajes').once('value').then(s=>{ rdViajes=s.val()||{}; renderDetail(); }); });
+      // Botones de borrar viaje
+      body.querySelectorAll('.rd-del-trip').forEach(btn=>{
+        btn.addEventListener('click',e=>{
+          e.stopPropagation();
+          const vk=btn.getAttribute('data-vk');
+          const nm=(mgmtRutas[rdId]||{}).nombre||'esta ruta';
+          if(!confirm('¿Eliminar este viaje de "'+nm+'" del '+fmtFecha(rdDate)+'?\n\nEsto borra el viaje y su reporte. No se puede deshacer.'))return;
+          if(!fbDb)return;
+          // Borrar el viaje
+          fbDb.ref('rutas/'+rdId+'/viajes/'+rdDate+'/'+vk).remove().then(()=>{
+            // Borrar también el reporte asociado a esa fecha (si existe)
+            try{ fbDb.ref('rutas/'+rdId+'/reportes').orderByChild('fecha').equalTo(rdDate).once('value').then(s=>{ const o=s.val()||{}; Object.keys(o).forEach(rk=>{ if(o[rk] && o[rk].tipo==='ruta'){ fbDb.ref('rutas/'+rdId+'/reportes/'+rk).remove(); } }); }); }catch(_){}
+            toast('Viaje eliminado ✓');
+            fbDb.ref('rutas/'+rdId+'/viajes').once('value').then(s=>{ rdViajes=s.val()||{}; renderDetail(); });
+          }).catch(()=>toast('No se pudo eliminar'));
+        });
+      });
     } else {
       const keys=Object.keys(rdReportes);
       if(!keys.length){ body.innerHTML='<div class="rd-empty">Aún no hay reportes de esta ruta.</div>'; return; }
@@ -4285,12 +4303,12 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Forzar que el simulador empiece "en el punto de inicio" (sin fase de llegada)
     reachedStart=true;
     let i=0;
-    // 6m cada 300ms = 20 m/s ≈ 72 km/h (velocidad realista, da tiempo a que termine cada indicación)
+    // 6m cada 420ms ≈ 51 km/h (velocidad realista, da tiempo a cada indicación)
     choSimTimer=setInterval(()=>{
       if(i>=ruta.length){ detenerSimulacion(); speak('Prueba finalizada. Llegaste al final de la ruta.'); return; }
       onGpsUpdate({coords:{latitude:ruta[i][0], longitude:ruta[i][1], accuracy:8}});
       i++;
-    }, 300);
+    }, 420);
   }
   function detenerSimulacion(){
     choSimOn=false; if(choSimTimer){ clearInterval(choSimTimer); choSimTimer=null; }
@@ -5140,8 +5158,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(giroInfo){
       // Largo del tramo recto antes del giro (para decidir si caben 2 avisos)
       const tramoCorto = (dGiroReal < 90);
-      const dPre = tramoCorto ? 0 : 55;
-      const dDob = tramoCorto ? 22 : 20;
+      const dPre = tramoCorto ? 0 : 60;
+      const dDob = tramoCorto ? 32 : 30; // "dobla" a ~30m (da tiempo de reaccionar antes del giro)
 
       // CALLE SIN SALIDA: anticipar (no decir doble)
       if(deadEndProx2){
@@ -5363,8 +5381,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       // Anuncios de voz inteligentes
       announceTurnIfNeeded();
 
-      // Chofer multi-etapa: detectar si terminó la etapa actual para avanzar a la siguiente
-      try{ if(currentUserRole==='chofer') chequearFinEtapa(); }catch(_){}
+      // Chofer multi-etapa: detectar fin de etapa — NUNCA en simulación (no debe registrar viaje real)
+      try{ if(currentUserRole==='chofer' && !choSimOn) chequearFinEtapa(); }catch(_){}
 
       // Detección de desviación (NUNCA en simulación: el animador sigue el trazado exacto)
       const dRoute=minDistToRoute(p);
@@ -5619,6 +5637,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
 
   function showRating(){
+    if(choSimOn){ return; } // en simulación NUNCA registra viaje ni calificación real
     tripEndedAt=new Date().toISOString();
     const r=calculateRating();
     const lbl=ratingLabel(r.score);
