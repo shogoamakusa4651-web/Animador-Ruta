@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.26 · 2026-06-26</div>
+    <div class="ver" style="padding-top:4px">v4.27 · 2026-06-26</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -585,7 +585,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.26 · 2026-06-26</div>
+<div class="ver-badge" id="verBadge">v4.27 · 2026-06-26</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -4750,11 +4750,60 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     return densityZones.some(z=>idx>=z.startIdx && idx<=z.endIdx);
   }
 
+  // Detecta los GIROS REALES de la ruta (una vez), clasificándolos.
+  // Un giro real = cambio de rumbo acumulado >=35° concentrado en poca distancia.
+  // Si el cambio es gradual a lo largo de muchos metros = curva continua (no es "doblar").
+  let girosRuta={}; // idx -> {dir:'right'|'left', tipo:'giro'|'curva', ang}
+  function rumboTramo(iniIdx, finIdx){
+    if(iniIdx<0||finIdx>=waypoints.length||iniIdx>=finIdx)return null;
+    return bearing(waypoints[iniIdx],waypoints[finIdx]);
+  }
+  function detectGiros(){
+    girosRuta={};
+    if(waypoints.length<4)return;
+    // Recorrer la ruta buscando cambios de rumbo. Comparar el rumbo "antes" (15m atrás) vs "después" (15m adelante) de cada punto.
+    const N=waypoints.length;
+    // Precalcular índice a ~15m antes y después de cada punto
+    function idxAdelante(i,m){ let j=i,acc=0; while(j<N-1&&acc<m){ acc+=haversine(waypoints[j],waypoints[j+1]); j++; } return j; }
+    function idxAtras(i,m){ let j=i,acc=0; while(j>0&&acc<m){ acc+=haversine(waypoints[j-1],waypoints[j]); j--; } return j; }
+    let i=2;
+    while(i<N-2){
+      const ia=idxAtras(i,15), ib=idxAdelante(i,15);
+      const b1=rumboTramo(ia,i), b2=rumboTramo(i,ib);
+      if(b1==null||b2==null){ i++; continue; }
+      let cambio=((b2-b1+540)%360)-180; // cambio de rumbo en este punto
+      if(Math.abs(cambio)<25){ i++; continue; }
+      // Hay un giro alrededor de i: encontrar su pico y medir en cuánta distancia ocurre
+      const signo=Math.sign(cambio);
+      let j=i, idxPico=i, picoVal=Math.abs(cambio), iniGiro=i;
+      // Avanzar mientras siga doblando en el mismo sentido
+      while(j<N-2){
+        const ja=idxAtras(j,15), jb=idxAdelante(j,15);
+        const c=((rumboTramo(j,jb)-rumboTramo(ja,j)+540)%360)-180;
+        if(Math.sign(c)!==signo||Math.abs(c)<18)break;
+        if(Math.abs(c)>picoVal){ picoVal=Math.abs(c); idxPico=j; }
+        j++;
+      }
+      // Cambio TOTAL de rumbo del giro: rumbo antes del inicio vs rumbo después del fin
+      const rIni=rumboTramo(idxAtras(iniGiro,12), iniGiro);
+      const rFin=rumboTramo(j, idxAdelante(j,12));
+      let angTotal=Math.abs(((rFin-rIni+540)%360)-180);
+      // Distancia en que ocurre el giro
+      let largo=0; for(let k=iniGiro;k<j;k++)largo+=haversine(waypoints[k],waypoints[k+1]);
+      if(angTotal>=35){
+        // Concentrado (<=45m) = giro de decisión (esquina); más repartido = curva continua
+        const tipo = largo<=45 ? 'giro' : 'curva';
+        girosRuta[idxPico]={ dir: signo>0?'right':'left', tipo:tipo, ang:angTotal };
+      }
+      i=Math.max(j+1,i+1);
+    }
+  }
   function buildInstructions(){
     instructions=[];
     if(waypoints.length<2){renderInstructions();return;}
     detectDensityZones();
     detectDeadEnds();
+    detectGiros();
     for(let i=0;i<waypoints.length;i++){
       const distFromPrev=i>0?haversine(waypoints[i-1],waypoints[i]):0;
       let entry={idx:i,distFromPrev,inDensity:inDensityZone(i)};
@@ -5063,83 +5112,103 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const stopHere=stops.find(s=>s.wpIdx===nextWpIdx);
     const ann=lastVoiceAnnounce[nextWpIdx]||{};
 
-    // ANTICIPAR calle sin salida: si el waypoint siguiente (o el actual) es deadEnd, avisar al entrar
-    const deadEndProx = isDeadEnd(nextWpIdx) || (nextWpIdx+1<waypoints.length && isDeadEnd(nextWpIdx+1));
-    if(deadEndProx && d<=60 && d>25 && !ann.deadAviso){
-      speak('Adelante hay calle sin salida. Entre, llegue al fondo y devuélvase','nav');
-      ann.deadAviso=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
+    // === Buscar el PRÓXIMO GIRO REAL precalculado (en girosRuta), adelante del punto actual ===
+    let giroIdx=-1, giroInfo=null;
+    for(let k=nextWpIdx;k<waypoints.length-1;k++){
+      if(girosRuta[k]){ giroIdx=k; giroInfo=girosRuta[k]; break; }
+      // No buscar más allá de ~200m
+      if(k>nextWpIdx && haversine(waypoints[nextWpIdx],waypoints[k])>200)break;
     }
 
-    // === ¿El próximo punto es un GIRO REAL o solo seguir la vía? ===
-    // Con ruta densa, medir el ángulo entre el tramo de ANTES y el de DESPUÉS del punto, ~18m a cada lado
-    let dirVivo='straight'; let esGiro=false; let anguloAbs=0;
-    {
-      const giroTraz = anguloGiroEnPunto(nextWpIdx, 18); // ángulo real del giro alrededor del punto
-      let giro=giroTraz;
-      // Si hay rumbo real del camión, usarlo para la perspectiva (izq/der correcto)
-      if(truckHeading!=null && nextWpIdx+1<waypoints.length){
-        const refIdx=Math.min(nextWpIdx+Math.max(1,Math.round(18/12)), waypoints.length-1);
-        const g2=giroSegunRumbo(waypoints[nextWpIdx], waypoints[refIdx]);
-        if(g2!=null)giro=g2;
+    // Distancia real al giro (siguiendo la ruta)
+    let dGiroReal=Infinity;
+    if(giroIdx>=0){ dGiroReal=haversine(lastTruckPos,waypoints[giroIdx]); }
+
+    // Dirección del giro desde la perspectiva REAL del camión (corrige reversa)
+    let dirGiro = giroInfo?giroInfo.dir:'straight';
+    if(giroInfo && truckHeading!=null && giroIdx+1<waypoints.length){
+      const refIdx=Math.min(giroIdx+2, waypoints.length-1);
+      const g2=giroSegunRumbo(waypoints[giroIdx], waypoints[refIdx]);
+      if(g2!=null && Math.abs(g2)>=25){ dirGiro = g2>0?'right':'left'; }
+    }
+    const dir = dirGiro==='right'?'derecha':(dirGiro==='left'?'izquierda':'recto');
+    const annG = giroIdx>=0 ? (lastVoiceAnnounce['g'+giroIdx]||{}) : {};
+
+    // ¿El próximo punto crítico es una calle sin salida?
+    const deadEndProx2 = giroIdx>=0 && (isDeadEnd(giroIdx) || (giroIdx+1<waypoints.length && isDeadEnd(giroIdx+1)));
+
+    if(giroInfo){
+      // Largo del tramo recto antes del giro (para decidir si caben 2 avisos)
+      const tramoCorto = (dGiroReal < 90);
+      const dPre = tramoCorto ? 0 : 55;
+      const dDob = tramoCorto ? 22 : 20;
+
+      // CALLE SIN SALIDA: anticipar (no decir doble)
+      if(deadEndProx2){
+        if(dGiroReal<=70 && dGiroReal>30 && !annG.dead){
+          speak('Adelante hay calle sin salida. Entre, llegue al fondo y devuélvase','nav');
+          annG.dead=true; lastVoiceAnnounce['g'+giroIdx]=annG; mostrarTrayectoRetorno(giroIdx); return;
+        }
+        return;
       }
-      if(giro!=null){
-        anguloAbs=Math.abs(giro);
-        if(anguloAbs<30){ dirVivo='straight'; esGiro=false; }
-        else { dirVivo = giro>0 ? 'right' : 'left'; esGiro=true; }
+      // CURVA CONTINUA (la calle dobla pero no es una decisión): avisar continuar, no "doble"
+      if(giroInfo.tipo==='curva'){
+        if(dGiroReal<=45 && !annG.curva){
+          speak('Continúe por la calle, viene una curva pronunciada a la '+dir,'nav');
+          annG.curva=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
+        }
+        return;
+      }
+      // GIRO REAL (decisión en intersección): preaviso + doblar
+      if(dPre>0 && dGiroReal<=dPre+15 && dGiroReal>dDob+8 && !annG.pre){
+        speak('Prepárese para doblar a la '+dir,'nav');
+        annG.pre=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
+      }
+      if(dGiroReal<=dDob && !annG.now){
+        speak('Dobla a la '+dir,'nav');
+        annG.now=true; annG.pre=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
       }
     }
-    const dir = dirVivo==='right'?'derecha':(dirVivo==='left'?'izquierda':'recto');
 
-    // Con ruta densificada, medir la distancia al PRÓXIMO GIRO real (no al próximo punto denso)
-    // Buscar hacia atrás: ¿desde dónde venimos sin giros? = largo del tramo recto actual
-    let largoTramo=0;
-    { let k=nextWpIdx-1;
-      while(k>0 && Math.abs(angleAtWp(k))<30){ largoTramo+=haversine(waypoints[k],waypoints[k+1]); k--; if(largoTramo>300)break; }
+    // === Final del recorrido ===
+    if(nextWpIdx>=waypoints.length-1){
+      const dFin=haversine(lastTruckPos,waypoints[waypoints.length-1]);
+      if(dFin<=40 && !lastVoiceAnnounce['fin']){ speak('Está llegando al final del recorrido','nav'); lastVoiceAnnounce['fin']=true; }
     }
-    if(largoTramo<=0)largoTramo=200;
-    // Calle corta = no caben dos avisos. Umbral 90m (cubre el caso de calle ~60m que solapaba)
-    const tramoCorto = largoTramo < 90;
-    const dPre = tramoCorto ? 0 : 55;
-    const dGiro = tramoCorto ? Math.min(25, Math.max(12, largoTramo*0.4)) : 20;
 
-    // === 1. PREAVISO de GIRO (solo en tramos largos, con anticipación) ===
-    if(esGiro && dPre>0 && d<=dPre+18 && d>dPre-18 && !ann.pre && !ann.now){
-      let msg;
-      if(stopHere) msg='En 50 metros, '+(stopHere.type==='critical'?'punto crítico':'punto de atención');
-      else if(ins.deadEnd) msg='Adelante, calle sin salida. Prepárese para entrar y devolverse';
-      else if(ins.type==='end') msg='En 50 metros, final del recorrido';
-      else msg='Prepárese para doblar a la '+dir;
-      speak(msg,'nav'); ann.pre=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
-    }
-    // === 2. GIRO ahora (corto y seco). En calle corta es el ÚNICO aviso ===
-    if(esGiro && d<=dGiro && !ann.now){
-      let msg;
-      if(stopHere) msg=(stopHere.type==='critical'?'Punto crítico ahora':'Punto de atención ahora');
-      else if(ins.deadEnd) msg='Calle sin salida, entre y devuélvase';
-      else if(ins.type==='end') msg='Llegando al final';
-      else msg='Dobla a la '+dir;
-      speak(msg,'nav'); ann.now=true; ann.pre=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
-    }
-    // === 3. CURVA suave próxima (no es giro): avisar que siga la vía, sin decir "doble" ===
-    if(!esGiro && anguloAbs>=15 && d<=50 && !ann.curva){
-      speak('Continúe por la vía','nav'); ann.curva=true; lastVoiceAnnounce[nextWpIdx]=ann; return;
-    }
-    // === 4. TRAMO RECTO LARGO: reafirmar "vas bien" — SOLO si el camión se está moviendo de verdad ===
+    // === "Va bien" en recta larga SIN giros próximos, solo si se mueve ===
     const ahora=Date.now();
-    // Requisitos: ya inició ruta + se movió hace poco (rumbo fresco) + recta sin giros próximos
     const seMueve = (_ultimoMovTs && (ahora-_ultimoMovTs)<6000);
-    if(!esGiro && d>100 && reachedStart && seMueve){
-      let giroProximo=false;
-      for(let k=nextWpIdx;k<Math.min(nextWpIdx+2,waypoints.length-1);k++){
-        if(Math.abs(angleAtWp(k))>=30){ giroProximo=true; break; }
-      }
-      if(!giroProximo && ahora>=_voiceBusyUntil && (!_ultimoRecto || (ahora-_ultimoRecto)>25000)){
+    const sinGiroCerca = (giroIdx<0 || dGiroReal>140);
+    if(sinGiroCerca && reachedStart && seMueve){
+      if(ahora>=_voiceBusyUntil && (!_ultimoRecto || (ahora-_ultimoRecto)>25000)){
         speak('Va bien, continúe recto','estado'); _ultimoRecto=ahora;
       }
     }
   }
-  let _ultimoRecto=0;
-  let _ultimoMovTs=0; // última vez que el camión se movió de verdad (para no decir "va bien" parado)
+  let _trayectoRetornoLayer=null;
+  // Resalta en el mapa el tramo de regreso de una calle sin salida (asistente visual)
+  function mostrarTrayectoRetorno(giroIdx){
+    try{
+      limpiarTrayectoRetorno();
+      // El tramo de regreso: desde el punto del giro (fondo) hacia adelante ~40m
+      const tramo=[];
+      let acum=0;
+      for(let k=giroIdx;k<waypoints.length-1 && acum<60;k++){
+        tramo.push(waypoints[k]); acum+=haversine(waypoints[k],waypoints[k+1]);
+      }
+      if(tramo.length<2)return;
+      _trayectoRetornoLayer=L.layerGroup();
+      L.polyline(tramo,{color:'#FFB020',weight:9,opacity:.9,dashArray:'4 10',lineCap:'round',interactive:false}).addTo(_trayectoRetornoLayer);
+      // Flecha en el punto de regreso
+      L.marker(tramo[Math.min(2,tramo.length-1)],{interactive:false,icon:L.divIcon({className:'',iconSize:[0,0],
+        html:'<div style="transform:translate(-50%,-50%);background:#FFB020;color:#3a2a00;font:800 11px sans-serif;padding:3px 8px;border-radius:12px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.4);">↩ regreso</div>'})}).addTo(_trayectoRetornoLayer);
+      _trayectoRetornoLayer.addTo(map);
+      // Quitar el resaltado después de 25 segundos
+      setTimeout(limpiarTrayectoRetorno, 25000);
+    }catch(_){}
+  }
+  function limpiarTrayectoRetorno(){ if(_trayectoRetornoLayer){ try{map.removeLayer(_trayectoRetornoLayer);}catch(_){} _trayectoRetornoLayer=null; } }
   // Botón flotante de ASISTENCIA: el chofer lo pulsa cuando quiere que ORS lo guíe de vuelta
   function mostrarBotonAsistencia(mostrar){
     let b=document.getElementById('choAsistencia');
