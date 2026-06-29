@@ -718,6 +718,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       <button class="btn" id="fuelBtn" style="background:linear-gradient(135deg,#2F7DC2,#4E9BD8);color:#fff;border:none;font-weight:700;">⛽ Voy a echar combustible</button>
       <button class="btn" id="finishTrip" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;border:none;font-weight:700;">🏁 Terminar viaje</button>
       <button class="btn" id="exportReal" disabled>💾 Exportar recorrido real</button>
+      <button class="btn" id="btnVistaCho" style="background:linear-gradient(135deg,#042C53,#0C447C);color:#fff;border:none;font-weight:700;">🚛 Simular vista chofer</button>
     </div>
   </div>
 
@@ -4494,6 +4495,46 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       _simI++;
     }, 420);
   }
+  // ===== VISTA CHOFER DESDE ADMIN (preview sin cambiar rol) =====
+  let _enVistaCho=false;
+  function previstaChofer(){
+    if(!waypoints || waypoints.length<2){ toast('Primero carga una ruta con trazado'); return; }
+    _enVistaCho=true;
+    document.body.classList.add('chofer-ruta-activa');
+    // Crear botón de simulación si no existe (normalmente lo crea montarBarraChofer)
+    let b=document.getElementById('choSimBtn');
+    if(!b){
+      b=document.createElement('button'); b.id='choSimBtn';
+      b.style.cssText='position:fixed;top:74px;right:10px;z-index:6500;background:#fff;border:2px solid #2F7DC2;color:#2F7DC2;border-radius:10px;padding:8px 11px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:-apple-system,Segoe UI,sans-serif;';
+      document.body.appendChild(b);
+      b.onclick=toggleSimulacion;
+    }
+    b.style.display='flex'; actualizarBtnSim();
+    // Botón salir vista chofer
+    let ex=document.getElementById('choPreviewExit');
+    if(!ex){
+      ex=document.createElement('button'); ex.id='choPreviewExit';
+      ex.style.cssText='position:fixed;top:10px;left:10px;z-index:7000;background:#042C53;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.4);font-family:-apple-system,Segoe UI,sans-serif;';
+      ex.innerHTML='<i class="ti ti-arrow-left"></i> Salir vista chofer';
+      ex.onclick=salirPrevistaChofer;
+      document.body.appendChild(ex);
+    }
+    ex.style.display='flex';
+    // Mostrar turnCard y hacer el mapa pantalla completa
+    document.getElementById('turnCard').classList.add('show');
+    toast('Vista chofer activa — toca Probar ruta');
+  }
+  function salirPrevistaChofer(){
+    if(!_enVistaCho)return;
+    if(choSimOn) detenerSimulacion();
+    _enVistaCho=false;
+    document.body.classList.remove('chofer-ruta-activa');
+    const ex=document.getElementById('choPreviewExit'); if(ex)ex.style.display='none';
+    const b=document.getElementById('choSimBtn'); if(b)b.style.display='none';
+    const rew=document.getElementById('choSimRew'); if(rew)rew.style.display='none';
+    document.getElementById('turnCard').classList.remove('show');
+    toast('Volviste a la vista admin');
+  }
   function retrocederSim(seg){
     if(!choSimOn || !_simRuta.length) return;
     // Retroceder ~seg segundos (420ms por paso → pasos = seg*1000/420)
@@ -5770,6 +5811,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     else speak('Avisos por voz activados');
   });
   document.getElementById('exportReal').addEventListener('click',()=>generateWordReport());
+  document.getElementById('btnVistaCho').addEventListener('click',previstaChofer);
   document.getElementById('finishTrip').addEventListener('click',()=>finishTrip());
   const dumpB=document.getElementById('dumpBtn'); if(dumpB)dumpB.addEventListener('click',()=>toggleDump());
   const fuelB=document.getElementById('fuelBtn'); if(fuelB)fuelB.addEventListener('click',()=>toggleFuel());
