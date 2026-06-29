@@ -4774,7 +4774,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       detenerGuia(); // ORS no guía al vertedero, el chofer sabe dónde botar
       marcarPunto('lleno','#EF9F27','🗑️',true);
       const b=document.getElementById('choLleno'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#F97316'; }
-      txChofer({status:'vertedero', evento:'lleno'});
+      txChofer({status:'vertedero', evento:'lleno', alerta:'lleno'});
       speak('Posición marcada. Dirígete a botar la basura. Cuando termines, pulsa de nuevo el botón.');
       toast('De camino a botar basura');
     }});
@@ -4801,7 +4801,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       detenerGuia(); // ORS no guía a la bomba, el chofer sabe dónde
       marcarPunto('combustible','#2F7DC2','⛽',true);
       const b=document.getElementById('choCombustible'); if(b){ b.style.animation='choPulse 1s infinite'; b.style.background='#1E5C99'; }
-      txChofer({status:'combustible', evento:'combustible'});
+      txChofer({status:'combustible', evento:'combustible', alerta:'combustible'});
       speak('Posición marcada. Dirígete a poner combustible. Cuando termines, pulsa de nuevo el botón.');
       toast('De camino a combustible');
     }});
