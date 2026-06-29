@@ -5223,9 +5223,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   let progresoVerdeLine=null;
   function dibujarProgresoVerde(){
     if(!waypoints.length)return;
-    // Tomar los waypoints cumplidos consecutivos desde 0
-    let hasta=-1;
-    for(let i=0;i<waypoints.length;i++){ if(doneWps.has(i))hasta=i; else break; }
+    // Dibujar verde hasta la posición actual del camión en la ruta (nextWpIdx-1)
+    const hasta=nextWpIdx-1;
     if(hasta<1){ return; }
     const tramo=waypoints.slice(0,hasta+1);
     if(progresoVerdeLine){ progresoVerdeLine.setLatLngs(tramo); }
@@ -5470,38 +5469,40 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Rotar el mapa hacia el rumbo (modo chofer, como Waze)
     if(currentUserRole==='chofer' && choferTurno.activo){ try{ rotarMapaChofer(); }catch(_){} }
 
-    if(!truckMarker){
-      truckMarker=L.marker(p,{icon:truckIcon,zIndexOffset:1500}).addTo(map);
-    }else{truckMarker.setLatLng(p);}
-    if(!accuracyCircle){
-      accuracyCircle=L.circle(p,{radius:acc,color:'#22d3ee',weight:1,opacity:.5,fillColor:'#22d3ee',fillOpacity:.08,interactive:false}).addTo(map);
-    }else{accuracyCircle.setLatLng(p);accuracyCircle.setRadius(acc);}
+    try{
+      if(!truckMarker){
+        truckMarker=L.marker(p,{icon:truckIcon,zIndexOffset:1500}).addTo(map);
+      }else{truckMarker.setLatLng(p);}
+      if(!accuracyCircle){
+        accuracyCircle=L.circle(p,{radius:acc,color:'#22d3ee',weight:1,opacity:.5,fillColor:'#22d3ee',fillOpacity:.08,interactive:false}).addTo(map);
+      }else{accuracyCircle.setLatLng(p);accuracyCircle.setRadius(acc);}
 
-    if(realPath.length){
-      const prev=realPath[realPath.length-1];
-      if(haversine(prev,p)>=2){
-        const brg=bearing(prev,p);
-        const wrap=truckMarker.getElement()?.querySelector('.truck-wrap');
-        if(wrap)wrap.style.transform=`rotate(${brg}deg)`;
+      if(realPath.length){
+        const prev=realPath[realPath.length-1];
+        if(haversine(prev,p)>=2){
+          const brg=bearing(prev,p);
+          const wrap=truckMarker.getElement()?.querySelector('.truck-wrap');
+          if(wrap)wrap.style.transform=`rotate(${brg}deg)`;
+        }
       }
-    }
 
-    if(!realPath.length || haversine(realPath[realPath.length-1],p)>=3){
-      const prevP=realPath.length?realPath[realPath.length-1]:null;
-      if(prevP){ const seg=haversine(prevP,p)/1000; if(tripPhase==='vertedero'||tripPhase==='regreso_vertedero')kmVertedero+=seg; else if(tripPhase==='combustible'||tripPhase==='regreso_combustible')kmCombustible+=seg; else kmRuta+=seg; }
-      realPath.push(p);
-      if(tripPhase==='vertedero'){ dumpPath.push(p);
-        if(dumpPath.length>=2){ if(!dumpLine)dumpLine=L.polyline(dumpPath,{color:'#B0843C',weight:5,opacity:.9,dashArray:'8 6',interactive:false}).addTo(map); else dumpLine.setLatLngs(dumpPath); } }
-      else if(tripPhase==='combustible'){ fuelPath.push(p);
-        if(fuelPath.length>=2){ if(!fuelLine)fuelLine=L.polyline(fuelPath,{color:'#2F7DC2',weight:5,opacity:.9,dashArray:'8 6',interactive:false}).addTo(map); else fuelLine.setLatLngs(fuelPath); } }
-      if(realPath.length>=2 && currentUserRole!=='chofer'){
-        if(!realLineGlow){
-          realLineGlow=L.polyline(realPath,{color:'#27A35B',weight:11,opacity:.22,interactive:false}).addTo(map);
-          realLine=L.polyline(realPath,{color:'#27A35B',weight:5,opacity:.97,interactive:false}).addTo(map);
-        }else{realLineGlow.setLatLngs(realPath);realLine.setLatLngs(realPath);}
-        const er=document.getElementById('exportReal'); if(er)er.disabled=false;
+      if(!realPath.length || haversine(realPath[realPath.length-1],p)>=3){
+        const prevP=realPath.length?realPath[realPath.length-1]:null;
+        if(prevP){ const seg=haversine(prevP,p)/1000; if(tripPhase==='vertedero'||tripPhase==='regreso_vertedero')kmVertedero+=seg; else if(tripPhase==='combustible'||tripPhase==='regreso_combustible')kmCombustible+=seg; else kmRuta+=seg; }
+        realPath.push(p);
+        if(tripPhase==='vertedero'){ dumpPath.push(p);
+          if(dumpPath.length>=2){ if(!dumpLine)dumpLine=L.polyline(dumpPath,{color:'#B0843C',weight:5,opacity:.9,dashArray:'8 6',interactive:false}).addTo(map); else dumpLine.setLatLngs(dumpPath); } }
+        else if(tripPhase==='combustible'){ fuelPath.push(p);
+          if(fuelPath.length>=2){ if(!fuelLine)fuelLine=L.polyline(fuelPath,{color:'#2F7DC2',weight:5,opacity:.9,dashArray:'8 6',interactive:false}).addTo(map); else fuelLine.setLatLngs(fuelPath); } }
+        if(realPath.length>=2 && currentUserRole!=='chofer'){
+          if(!realLineGlow){
+            realLineGlow=L.polyline(realPath,{color:'#27A35B',weight:11,opacity:.22,interactive:false}).addTo(map);
+            realLine=L.polyline(realPath,{color:'#27A35B',weight:5,opacity:.97,interactive:false}).addTo(map);
+          }else{realLineGlow.setLatLngs(realPath);realLine.setLatLngs(realPath);}
+          const er=document.getElementById('exportReal'); if(er)er.disabled=false;
+        }
       }
-    }
+    }catch(_){}
 
     if(followOn){
       const b=map.getBounds().pad(-0.2);
@@ -5524,10 +5525,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // === MARCADO POR PROYECCIÓN (robusto con GPS real impreciso) ===
     // Proyecta la posición sobre la línea de la ruta y avanza según el progreso a lo largo de ella,
     // ignorando el error lateral del GPS. Así el camión avanza aunque el GPS lo ubique a 20m al lado.
+    try{
     if(waypoints.length && reachedStart && nextWpIdx<waypoints.length){
       // Buscar, en una ventana adelante, el punto de la ruta MÁS CERCANO a la posición actual
       let mejorIdx=-1, mejorDist=Infinity;
-      const ventana=Math.min(nextWpIdx+12, waypoints.length); // mirar hasta 12 puntos densos (~140m) adelante
+      const ventana=Math.min(nextWpIdx+25, waypoints.length); // mirar hasta 25 puntos densos (~300m) adelante
       for(let k=nextWpIdx;k<ventana;k++){
         const dd=haversine(p,waypoints[k]);
         if(dd<mejorDist){ mejorDist=dd; mejorIdx=k; }
@@ -5601,9 +5603,10 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       // Resetear el preaviso cuando vuelve a estar dentro de la ruta
       if(dRoute<=20 && _preDesvioAvisado){ _preDesvioAvisado=0; }
       } // fin else (no simulación)
+    }catch(_){} // fin try bloque navegación
 
-    updateGpsPanel();
-    updateTurnCard();
+    try{updateGpsPanel();}catch(_){}
+    try{updateTurnCard();}catch(_){}
   }
 
   function redrawSkippedSegments(){
