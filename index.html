@@ -821,7 +821,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.48 · 2026-06-29'; // ← actualizar con cada release
+  const APP_VERSION='v4.49 · 2026-06-29'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1729,33 +1729,28 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
     if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); _procesarAlertasDesdeLive(supLast); if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicioSoft(); },300); }); }
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
-    // Alertas enviadas por choferes — listener en tiempo real + polling cada 4s como respaldo garantizado
+    // Alertas persistentes desde alertas_chofer (respaldo) — no sobreescribe claves LIVE_
     window._alertasVistas=window._alertasVistas||{};
-    function _procesarAlertas(val){
-      window._alertasChofer=val||{};
-      try{
-        const al=window._alertasChofer;
-        Object.keys(al).forEach(k=>{
-          const a=al[k];
-          if(!a||a.atendida)return;
-          if(!window._alertasVistas[k]){
-            window._alertasVistas[k]=true;
-            mostrarBannerAlerta(k,a);
-          }
-        });
-        Object.keys(window._alertasVistas).forEach(k=>{ if(!al[k]||al[k].atendida)quitarBannerAlerta(k); });
-      }catch(_){}
-      if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio();
-    }
     if(!window._alertasChoferSub){ window._alertasChoferSub=true;
-      fbDb.ref('alertas_chofer').on('value', s=>_procesarAlertas(s.val()),
-        e=>console.warn('[admin] alertas listener:', e&&e.code));
+      fbDb.ref('alertas_chofer').on('value', s=>{
+        const val=s.val()||{};
+        window._alertasChofer=window._alertasChofer||{};
+        // Mezclar: solo tocar claves que NO son LIVE_
+        Object.keys(window._alertasChofer).forEach(k=>{ if(!k.startsWith('LIVE_'))delete window._alertasChofer[k]; });
+        Object.assign(window._alertasChofer, val);
+        try{
+          Object.keys(val).forEach(k=>{
+            const a=val[k]; if(!a||a.atendida)return;
+            if(!window._alertasVistas[k]){ window._alertasVistas[k]=true; mostrarBannerAlerta(k,a); }
+          });
+          Object.keys(window._alertasVistas).forEach(k=>{
+            if(k.startsWith('LIVE_'))return;
+            if(!val[k]||val[k].atendida)quitarBannerAlerta(k);
+          });
+        }catch(_){}
+        if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio();
+      }, e=>console.warn('[admin] alertas_chofer:', e&&e.code));
     }
-    // Polling directo como red de seguridad: si el listener falla o tarda, esto lo garantiza
-    if(!window._alertasPollTick){ window._alertasPollTick=setInterval(()=>{
-      if(!fbDb)return;
-      fbDb.ref('alertas_chofer').once('value').then(s=>_procesarAlertas(s.val())).catch(()=>{});
-    },4000); }
   }
   function toggleUnits(){ const sp=document.getElementById('supPanel'); if(!sp)return;
     if(sp.classList.contains('hide')){ sp.classList.remove('hide'); subscribeUnits(); } else { sp.classList.add('hide'); } }
