@@ -39,7 +39,7 @@
   <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
   <div class="shell-foot">
     <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px">v4.31 · 2026-06-27</div>
+    <div class="ver" style="padding-top:4px" id="navVer">v4.38 · 2026-06-29</div>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
@@ -361,6 +361,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         <span>Empezar ruta</span>
       </button>
       <div class="cho-hint" id="choHint">Toca una ruta y luego Empezar</div>
+      <div id="choVer" style="text-align:center;font-size:11px;color:#8097B1;margin-top:4px;letter-spacing:.3px;"></div>
     </div>
   </div>
 </div>
@@ -586,7 +587,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.31 · 2026-06-27</div>
+<div class="ver-badge" id="verBadge">v4.38 · 2026-06-29</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -819,6 +820,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
+  const APP_VERSION='v4.38 · 2026-06-29'; // ← actualizar con cada release
+  // Inyectar versión en todos los badges al cargar
+  document.addEventListener('DOMContentLoaded',()=>{
+    ['verBadge','navVer','choVer'].forEach(id=>{
+      const el=document.getElementById(id); if(el)el.textContent=APP_VERSION;
+    });
+  });
   const LA_VEGA=[19.2225,-70.5293];
   const map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:18}).setView(LA_VEGA,15);
 
