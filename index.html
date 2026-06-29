@@ -5312,13 +5312,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     let dGiroReal=Infinity;
     if(giroIdx>=0){ dGiroReal=haversine(lastTruckPos,waypoints[giroIdx]); }
 
-    // Dirección del giro desde la perspectiva REAL del camión (corrige reversa)
-    let dirGiro = giroInfo?giroInfo.dir:'straight';
-    if(giroInfo && truckHeading!=null && giroIdx+1<waypoints.length){
-      const refIdx=Math.min(giroIdx+2, waypoints.length-1);
-      const g2=giroSegunRumbo(waypoints[giroIdx], waypoints[refIdx]);
-      if(g2!=null && Math.abs(g2)>=25){ dirGiro = g2>0?'right':'left'; }
-    }
+    // Dirección del giro: usar siempre la geometría precalculada de la ruta (más confiable que el heading GPS)
+    const dirGiro = giroInfo ? giroInfo.dir : 'straight';
     const dir = dirGiro==='right'?'derecha':(dirGiro==='left'?'izquierda':'recto');
     const annG = giroIdx>=0 ? (lastVoiceAnnounce['g'+giroIdx]||{}) : {};
 
@@ -5326,7 +5321,6 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const deadEndProx2 = giroIdx>=0 && (isDeadEnd(giroIdx) || (giroIdx+1<waypoints.length && isDeadEnd(giroIdx+1)));
 
     if(giroInfo){
-      // === FÓRMULA COPILOTO: capas según distancia al giro, cada una solo si CABE (anti-solapamiento) ===
       // CALLE SIN SALIDA: anticipar, no decir doble
       if(deadEndProx2){
         if(dGiroReal<=80 && dGiroReal>25 && !annG.dead){
@@ -5335,38 +5329,26 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         }
         return;
       }
-      // CURVA CONTINUA: continuar, no "doble"
+      // CURVA CONTINUA: solo avisar una vez cerca, sin distancia
       if(giroInfo.tipo==='curva'){
         if(dGiroReal<=55 && !annG.curva){
-          speak('Continúe por la calle, viene una curva pronunciada a la '+dir,'nav');
+          speak('Curva a la '+dir,'nav');
           annG.curva=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
         }
         return;
       }
-      // GIRO REAL — 4 capas. El ancla (capa 4) SIEMPRE cabe; las demás solo si hay metros suficientes.
+      // GIRO REAL — 2 capas estilo Waze: aviso temprano con distancia + ancla al llegar
       const ahoraT=Date.now();
-      const libre = ahoraT>=_voiceBusyUntil; // no hay otra voz sonando (anti-solapamiento)
-      // CAPA 1 — temprana (>150m): "a unos X metros doblará a la derecha"
-      if(dGiroReal>150 && dGiroReal<=230 && !annG.c1 && libre){
-        const mt=Math.round(dGiroReal/10)*10;
-        speak('A unos '+mt+' metros doblará a la '+dir,'nav');
+      const libre = ahoraT>=_voiceBusyUntil;
+      // CAPA 1 — aviso temprano (150-280m): "En X metros, doble a la derecha"
+      if(dGiroReal>100 && dGiroReal<=280 && !annG.c1 && libre){
+        const mt=Math.round(dGiroReal/50)*50; // redondear a 50m para sonar natural
+        speak('En '+(mt||150)+' metros, doble a la '+dir,'nav');
         annG.c1=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
       }
-      // CAPA 2 — preaviso con metraje (~90m): "prepárese para doblar a la derecha en X metros"
-      if(dGiroReal>60 && dGiroReal<=110 && !annG.c2 && libre){
-        const mt=Math.round(dGiroReal/10)*10;
-        speak('Prepárese para doblar a la '+dir+' en '+mt+' metros','nav');
-        annG.c2=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
-      }
-      // CAPA 3 — preaviso corto (~50m): "prepárese, doble a la derecha" (solo si no se dijo capa 2 hace nada)
-      if(dGiroReal>32 && dGiroReal<=58 && !annG.c3 && !annG.c2 && libre){
-        speak('Prepárese, doble a la '+dir,'nav');
-        annG.c3=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
-      }
-      // CAPA 4 — ANCLA (~28m): "doble a la derecha". SIEMPRE suena (es lo más importante).
+      // CAPA 2 — ANCLA (≤30m): "Doble a la derecha". Sin distancia, siempre suena.
       if(dGiroReal<=30 && !annG.now){
-        // Si justo acaba de sonar otra capa, esperar al próximo tick para no pegarse
-        if(libre){ speak('Dobla a la '+dir,'nav'); annG.now=true; lastVoiceAnnounce['g'+giroIdx]=annG; return; }
+        if(libre){ speak('Doble a la '+dir,'nav'); annG.now=true; lastVoiceAnnounce['g'+giroIdx]=annG; return; }
       }
     }
 
