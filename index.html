@@ -4210,6 +4210,22 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       document.body.appendChild(sim);
       sim.onclick=toggleSimulacion;
     }
+    // Botón RETROCEDER SIMULACIÓN (aparece solo cuando la simulación está activa)
+    let rew=document.getElementById('choSimRew');
+    if(!rew){
+      rew=document.createElement('button'); rew.id='choSimRew';
+      rew.style.cssText='position:fixed;top:74px;right:10px;z-index:6499;background:#fff;border:2px solid #B0843C;color:#B0843C;border-radius:10px;padding:8px 11px;font-size:13px;font-weight:700;display:none;align-items:center;gap:5px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:-apple-system,Segoe UI,sans-serif;margin-top:42px;';
+      rew.innerHTML='<i class="ti ti-player-track-prev-filled"></i> −20s';
+      rew.title='Retroceder 20 segundos en la prueba';
+      document.body.appendChild(rew);
+      rew.onclick=()=>retrocederSim(20);
+    }
+    // Mostrar/ocultar botón retroceder según estado del simulador
+    const _origActSim=actualizarBtnSim;
+    actualizarBtnSim=function(){
+      _origActSim();
+      const r=document.getElementById('choSimRew'); if(r)r.style.display=choSimOn?'flex':'none';
+    };
     // Botón CENTRAR (debajo del de simulación) — encuadra ruta completa + camión
     let cen=document.getElementById('choCentrarBtn');
     if(!cen){
@@ -4433,7 +4449,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     else if(pts.length===1){ try{ map.setView(pts[0],15); }catch(_){} }
   }
   // ===== SIMULACIÓN DE RUTA (para probar las indicaciones de voz sin salir a la calle) =====
-  let choSimOn=false, choSimTimer=null;
+  let choSimOn=false, choSimTimer=null, _simRuta=[], _simI=0;
   function actualizarBtnSim(){
     const b=document.getElementById('choSimBtn'); if(!b)return;
     if(choSimOn){ b.innerHTML='<i class="ti ti-player-stop-filled"></i> Detener prueba'; b.style.background='#E24B4A'; b.style.borderColor='#E24B4A'; b.style.color='#fff'; }
@@ -4456,21 +4472,31 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     speak('Iniciando prueba de la ruta. Escucha las indicaciones.');
     _ultimoRecto=Date.now()+10000; // no decir "va bien" en los primeros 10s de la prueba
     toast('Prueba en marcha · escucha las indicaciones');
-    const ruta=[]; const PASO=6; // pasos de 6m (más finos = movimiento suave y rumbo estable)
+    _simRuta=[]; const PASO=6;
     for(let i=1;i<waypoints.length;i++){
       const a=waypoints[i-1], b=waypoints[i]; const d=haversine(a,b); const n=Math.max(1,Math.round(d/PASO));
-      for(let k=0;k<n;k++){ const t=k/n; ruta.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t]); }
+      for(let k=0;k<n;k++){ const t=k/n; _simRuta.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t]); }
     }
-    ruta.push(waypoints[waypoints.length-1]);
-    // Forzar que el simulador empiece "en el punto de inicio" (sin fase de llegada)
+    _simRuta.push(waypoints[waypoints.length-1]);
     reachedStart=true;
-    let i=0;
-    // 6m cada 420ms ≈ 51 km/h (velocidad realista, da tiempo a cada indicación)
+    _simI=0;
     choSimTimer=setInterval(()=>{
-      if(i>=ruta.length){ detenerSimulacion(); speak('Prueba finalizada. Llegaste al final de la ruta.'); return; }
-      onGpsUpdate({coords:{latitude:ruta[i][0], longitude:ruta[i][1], accuracy:8}});
-      i++;
+      if(_simI>=_simRuta.length){ detenerSimulacion(); speak('Prueba finalizada. Llegaste al final de la ruta.'); return; }
+      onGpsUpdate({coords:{latitude:_simRuta[_simI][0], longitude:_simRuta[_simI][1], accuracy:8}});
+      _simI++;
     }, 420);
+  }
+  function retrocederSim(seg){
+    if(!choSimOn || !_simRuta.length) return;
+    // Retroceder ~seg segundos (420ms por paso → pasos = seg*1000/420)
+    const pasos = Math.round(seg * 1000 / 420);
+    _simI = Math.max(0, _simI - pasos);
+    // Resetear estado de navegación para que replaye desde ahí limpio
+    nextWpIdx=0; doneWps.clear(); _wpCerca={}; deviated=false;
+    lastVoiceAnnounce={}; _voiceGiroTarget=-1; reachedStart=true;
+    limpiarProgresoVerde();
+    try{ window.speechSynthesis.cancel(); }catch(_){}
+    toast('↩ Retrocedió ~'+seg+'s');
   }
   function detenerSimulacion(){
     choSimOn=false; if(choSimTimer){ clearInterval(choSimTimer); choSimTimer=null; }
@@ -5460,14 +5486,22 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
 
   function kalmanGPS(lat, lng, acc, dt){
-    const R = acc * acc; // varianza de medición = accuracy² (metros²)
-    if(_kLat===null){ _kLat=lat; _kLng=lng; _kP=R; return [lat,lng]; }
-    _kP = _kP + _kQ * dt;           // predicción: la incertidumbre crece con el tiempo
-    const K = _kP / (_kP + R);      // ganancia de Kalman: 0=ignorar GPS, 1=confiar 100%
-    _kLat = _kLat + K*(lat-_kLat);  // corregir latitud
-    _kLng = _kLng + K*(lng-_kLng);  // corregir longitud
-    _kP   = (1-K) * _kP;            // reducir incertidumbre tras la corrección
-    return [_kLat, _kLng];
+    if(choSimOn) return [lat, lng]; // simulador: posiciones perfectas, no filtrar
+    // Trabajar en metros para que Q y R sean comparables
+    const cosLat = Math.cos(lat * Math.PI / 180);
+    const latM = lat * 111320;
+    const lngM = lng * 111320 * cosLat;
+    const R = acc * acc; // metros²
+    if(_kLat===null){ _kLat=latM; _kLng=lngM; _kP=R; return [lat,lng]; }
+    _kP = _kP + _kQ * dt;
+    const K = _kP / (_kP + R);
+    _kLat = _kLat + K*(latM-_kLat);
+    _kLng = _kLng + K*(lngM-_kLng);
+    _kP   = (1-K) * _kP;
+    // Convertir de metros a grados
+    const fLat = _kLat / 111320;
+    const fLng = _kLng / (111320 * cosLat);
+    return [fLat, fLng];
   }
 
   function onGpsUpdate(pos){
