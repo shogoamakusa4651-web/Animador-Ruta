@@ -821,7 +821,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.39 · 2026-06-29'; // ← actualizar con cada release
+  const APP_VERSION='v4.44 · 2026-06-29'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -4714,14 +4714,14 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       // _idx y cov permiten al centro de control dibujar el TRAZADO REAL con el progreso (no una línea recta)
       base._idx = (typeof nextWpIdx==='number')?nextWpIdx:null;
       if(waypoints && waypoints.length && doneWps){ try{ base.cov=covEnc(doneWps,waypoints.length); }catch(_){} }
-      fbDb.ref('live/'+txId()).update(Object.assign(base, extra||{}));
+      fbDb.ref('live/'+txId()).update(Object.assign(base, extra||{})).catch(e=>console.warn('[chofer] tx live falló:', e&&e.code, e&&e.message));
       // Alertas persistentes (avería, obstáculo) en un nodo aparte para el supervisor
       if(extra && extra.alerta){
         fbDb.ref('alertas_chofer').push(Object.assign({tipo:extra.alerta, chofer:choferName||choferCode, rutaId:choferTurno.rutaId||null,
           rutaNombre:(mgmtRutas[choferTurno.rutaId]||{}).nombre||null, ts:Date.now(),
           lat:lastTruckPos?lastTruckPos[0]:null, lng:lastTruckPos?lastTruckPos[1]:null,
           etapaHacia:extra.etapaHacia||null, etapaDesde:extra.etapaDesde||null,
-          fecha:new Date().toISOString(), atendida:false}));
+          fecha:new Date().toISOString(), atendida:false})).catch(e=>{ console.warn('[chofer] alerta falló:', e&&e.code, e&&e.message); toast('⚠️ No se pudo enviar la alerta ('+(e&&e.code||'error')+')'); });
       }
     }catch(e){ console.warn('[chofer] tx:', e); }
   }
