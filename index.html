@@ -1694,7 +1694,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function loadRutaFromFb(id,cb){ if(!fbDb){cb&&cb(null);return;} fbDb.ref('rutas/'+id).once('value').then(s=>cb&&cb(s.val())).catch(()=>cb&&cb(null)); }
   function subscribeUnits(){
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
-    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio(); },300); }); }
+    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicioSoft(); },300); }); }
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
     // Alertas enviadas por choferes
     if(!window._alertasChoferSub){ window._alertasChoferSub=true;
@@ -1887,6 +1887,10 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(name==='reportes'){ if(typeof openReportes==='function')openReportes(); }
     else { const ro=document.getElementById('repOv'); if(ro)ro.classList.remove('show'); }
   }
+  window.setSection=setSection; // accesible desde onclick inline
+  // Debounce para auto-actualizaciones de inicio desde listeners de live (evita parpadeo de animaciones)
+  let _bITimer=null;
+  function buildInicioSoft(){ if(curSec!=='inicio')return; clearTimeout(_bITimer); _bITimer=setTimeout(buildInicio,3500); }
   function applyTheme(t){ document.body.classList.toggle('dark',t==='dark'); const tx=document.getElementById('umThemeTx'); if(tx)tx.textContent=(t==='dark'?'Modo claro':'Modo oscuro'); const ic=document.querySelector('#umTheme i'); if(ic)ic.className='ti ti-'+(t==='dark'?'sun':'moon'); try{localStorage.setItem('animador_theme',t);}catch(_){ } }
   function toggleTheme(){ applyTheme(document.body.classList.contains('dark')?'light':'dark'); }
   function shellSetup(){
