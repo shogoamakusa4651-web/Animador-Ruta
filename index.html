@@ -1716,7 +1716,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
           Object.keys(window._alertasVistas).forEach(k=>{ if(!al[k] || al[k].atendida){ quitarBannerAlerta(k); } });
         }catch(_){}
         if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio();
-      });
+      }, e=>{ console.warn('[admin] alertas_chofer denegado:', e&&e.code, e&&e.message); toast('⚠️ Sin acceso a alertas: '+(e&&e.code||'error')); });
     }
   }
   function toggleUnits(){ const sp=document.getElementById('supPanel'); if(!sp)return;
@@ -2177,7 +2177,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     ids.filter(id=>todayIds.indexOf(id)<0).sort((a,b)=>(((rutas[a]||{}).nombre||'').localeCompare((rutas[b]||{}).nombre||''))).forEach(id=>{ h+='<option value="'+esc(id)+'">'+esc((rutas[id]||{}).nombre||'(sin nombre)')+' · '+esc(((rutas[id]||{}).freq||[]).join('·')||'sin días')+'</option>'; });
     h+='</select></div>';
     // Alertas
-    h+='<div class="cc-card cc-al"><div class="cc-h">ALERTAS</div>';
+    const _dbgTotal=window._alertasChofer?Object.keys(window._alertasChofer).length:0;
+    h+='<div class="cc-card cc-al"><div class="cc-h">ALERTAS<small style="font-weight:400;margin-left:8px;opacity:.55;font-size:11px">('+_dbgTotal+' en base)</small></div>';
     if(!alerts.length)h+='<div class="ini-ok"><i class="ti ti-circle-check" aria-hidden="true"></i> Sin incidencias activas</div>';
     else alerts.slice(0,8).forEach((a,i)=>{ h+='<div class="ini-alert'+(a.sev===2?' grave':'')+'"><span class="ia-dot"></span><span class="ia-tx"><span class="ia-sev">'+(a.sev===2?'CRÍTICA':'ALTA')+'</span>'+a.tx+'</span><button class="ia-btn" data-i="'+i+'">'+a.act+'</button></div>'; });
     h+='</div>';
