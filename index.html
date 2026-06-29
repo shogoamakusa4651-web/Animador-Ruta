@@ -821,7 +821,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.47 · 2026-06-29'; // ← actualizar con cada release
+  const APP_VERSION='v4.48 · 2026-06-29'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1692,34 +1692,38 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   const DAYS=['L','M','X','J','V','S','D'];
   let rDaysSel=[];
   function loadRutaFromFb(id,cb){ if(!fbDb){cb&&cb(null);return;} fbDb.ref('rutas/'+id).once('value').then(s=>cb&&cb(s.val())).catch(()=>cb&&cb(null)); }
-  // Lee alertas incrustadas en live/ (canal garantizado) y las inyecta en window._alertasChofer
+  // Lee alertas incrustadas en live/ y las inyecta en window._alertasChofer
   function _procesarAlertasDesdeLive(liveData){
     if(!liveData) return;
     window._alertasChofer=window._alertasChofer||{};
     window._alertasVistas=window._alertasVistas||{};
     const ahora=Date.now();
+    let cambio=false;
     Object.keys(liveData).forEach(txid=>{
       const u=liveData[txid]||{};
       const al=u.alertaActiva;
-      if(!al||al.atendida)return;
-      // Solo alertas recientes (últimos 10 min)
-      if(ahora-al.ts>10*60*1000)return;
+      if(!al||al.atendida||ahora-al.ts>10*60*1000)return;
       const key='LIVE_'+txid;
       window._alertasChofer[key]=al;
       if(!window._alertasVistas[key]){
         window._alertasVistas[key]=true;
         mostrarBannerAlerta(key,al);
+        cambio=true;
       }
     });
-    // Limpiar alertas live que ya fueron atendidas o expiradas
+    // Limpiar alertas live atendidas o expiradas
     Object.keys(window._alertasChofer).forEach(k=>{
       if(!k.startsWith('LIVE_'))return;
       const txid=k.slice(5);
-      const u=(liveData[txid])||{};
-      const al=u.alertaActiva;
-      if(!al||al.atendida||ahora-al.ts>10*60*1000){ delete window._alertasChofer[k]; quitarBannerAlerta(k); }
+      const al=(liveData[txid]||{}).alertaActiva;
+      if(!al||al.atendida||ahora-al.ts>10*60*1000){
+        delete window._alertasChofer[k];
+        quitarBannerAlerta(k);
+        cambio=true;
+      }
     });
-    if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicio();
+    // Solo reconstruir Inicio si algo cambió en las alertas
+    if(cambio && typeof curSec!=='undefined'&&curSec==='inicio')buildInicio();
   }
   function subscribeUnits(){
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
