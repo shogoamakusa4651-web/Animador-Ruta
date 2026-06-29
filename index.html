@@ -3895,6 +3895,50 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
 
   let choferRutaSel=null; // id de la ruta seleccionada por el chofer
+  function _renderChoferRetomar(p){
+    const ruta=mgmtRutas[p.rutaId]||{};
+    const list=document.getElementById('choRutasList');
+    const btn=document.getElementById('choStartBtn');
+    const hint=document.getElementById('choHint');
+    const foot=document.getElementById('choFoot');
+    if(foot)foot.style.display='';
+    const etLbl=p.etapaIdx>0?'Etapa '+(p.etapaIdx+1)+' de '+(ruta.etapas?ruta.etapas.length:1):'Etapa 1';
+    if(list)list.innerHTML=''
+      +'<div class="cho-rcard sel" style="border:2px solid #2F7DC2;background:linear-gradient(135deg,#042C53,#0C3A6B);">'
+        +'<div class="pin" style="background:linear-gradient(145deg,#2F7DC2,#4E9BD8);"><i class="ti ti-player-play-filled"></i></div>'
+        +'<div class="info"><b style="color:#fff;">'+esc(ruta.nombre||'Ruta')+'</b>'
+        +'<small style="color:#85B7EB;"><i class="ti ti-refresh"></i> En progreso · '+esc(etLbl)+'</small></div>'
+      +'</div>'
+      +'<div style="text-align:center;margin-top:14px;">'
+        +'<button id="choNuevaRuta" style="background:none;border:none;color:#8097B1;font-size:13px;text-decoration:underline;cursor:pointer;padding:6px 12px;">Empezar desde cero</button>'
+      +'</div>';
+    const nr=document.getElementById('choNuevaRuta');
+    if(nr)nr.onclick=function(){
+      if(!confirm('¿Seguro? Perderás el progreso guardado.'))return;
+      limpiarProgresoChofer(); _choProgresoHoy=false; renderChoferInicio();
+    };
+    if(btn){ btn.disabled=false; btn.textContent='▶ Retomar ruta';
+      btn.onclick=function(){ choferRutaSel=p.rutaId; choferEmpezar(); }; }
+    if(hint)hint.textContent='Continúa donde lo dejaste';
+  }
+
+  function confirmarSalidaChofer(){
+    const ex=document.getElementById('choSalidaMdl'); if(ex)ex.remove();
+    const mdl=document.createElement('div'); mdl.id='choSalidaMdl';
+    mdl.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px;';
+    mdl.innerHTML='<div style="background:#0C2236;border-radius:18px;padding:28px 22px;width:100%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5);">'
+      +'<div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px;text-align:center;">¿Qué quieres hacer?</div>'
+      +'<div style="font-size:13px;color:#8097B1;text-align:center;margin-bottom:20px;">La ruta quedará guardada si pausas</div>'
+      +'<button id="choSalPausar" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#1F9D55,#27AE60);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ti ti-player-pause-filled"></i> Pausar — seguir después</button>'
+      +'<button id="choSalTerminar" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#B91C1C,#DC2626);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ti ti-flag-filled"></i> Terminar turno</button>'
+      +'<button id="choSalCancelar" style="width:100%;padding:12px;border-radius:12px;background:none;border:1px solid #1A3A55;color:#8097B1;font-size:14px;cursor:pointer;">Cancelar</button>'
+      +'</div>';
+    document.body.appendChild(mdl);
+    document.getElementById('choSalPausar').onclick=function(){ guardarProgresoChofer(); mdl.remove(); logout(); };
+    document.getElementById('choSalTerminar').onclick=function(){ limpiarProgresoChofer(); mdl.remove(); logout(); };
+    document.getElementById('choSalCancelar').onclick=function(){ mdl.remove(); };
+  }
+
   function renderChoferInicio(){
     const cam=document.getElementById('choCamion');
     const list=document.getElementById('choRutasList');
@@ -3902,10 +3946,23 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const hint=document.getElementById('choHint');
     const foot=document.getElementById('choFoot');
     const sal=document.getElementById('choSaludo');
-    // Saludo según la hora
     if(sal){ const h=new Date().getHours(); sal.textContent = h<12?'Buenos días':(h<19?'Buenas tardes':'Buenas noches'); }
     const exitBtn=document.getElementById('choExit');
     if(exitBtn){ exitBtn.onclick=function(){ if(confirm('¿Salir de tu sesión?')) logout(); }; }
+    // Chequear progreso guardado (solo la primera vez, async)
+    if(_choProgresoHoy===null){
+      if(list) list.innerHTML='<div style="text-align:center;padding:32px;color:#8097B1;font-size:14px;"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px;"></i>Cargando…</div>';
+      restaurarProgresoChofer(hay=>{
+        _choProgresoHoy = hay ? _progresoPend : false;
+        renderChoferInicio();
+      });
+      return;
+    }
+    // Si hay ruta en progreso de hoy, mostrar pantalla de retomar
+    if(_choProgresoHoy && _choProgresoHoy.rutaId && mgmtRutas[_choProgresoHoy.rutaId]){
+      _renderChoferRetomar(_choProgresoHoy);
+      return;
+    }
     const rutas=rutasDelChofer();
     let ficha=''; if(rutas.length){ ficha=rutas[0].r.camion||''; }
     if(cam)cam.innerHTML='<i class="ti ti-truck" aria-hidden="true"></i> '+(ficha?('Camión '+esc(ficha)):'Sin camión asignado');
@@ -4085,7 +4142,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       });
     }catch(_){}
   }
-  function limpiarProgresoChofer(){ try{ const ref=progresoRef(); if(ref)ref.remove(); }catch(_){} }
+  function limpiarProgresoChofer(){ try{ const ref=progresoRef(); if(ref)ref.remove(); }catch(_){} _choProgresoHoy=false; }
   function restaurarProgresoChofer(cb){
     const ref=progresoRef(); if(!ref){ cb&&cb(false); return; }
     ref.once('value').then(s=>{
@@ -4098,6 +4155,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }).catch(()=>{ cb&&cb(false); });
   }
   let _progresoPend=null;
+  let _choProgresoHoy=null; // null=sin chequear, false=no hay, {...}=hay progreso guardado
   function cargarEtapaChofer(idx, r){
     r=r||mgmtRutas[choferTurno.rutaId];
     const et=choferTurno.etapas[idx]; if(!et)return;
@@ -4209,7 +4267,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       +'<button id="choBarPausa" style="width:40px;height:40px;border-radius:9px;background:'+(choferPausado?'#1F9D55':'#B0843C')+';border:none;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-'+(choferPausado?'player-play':'player-pause')+'"></i></button>'
       +'<button id="choBarExit" style="width:40px;height:40px;border-radius:9px;background:#0C447C;border:none;color:#85B7EB;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-logout"></i></button>'
       +'</div>';
-    const bx=document.getElementById('choBarExit'); if(bx)bx.onclick=function(){ if(confirm('¿Salir de tu turno?')) logout(); };
+    const bx=document.getElementById('choBarExit'); if(bx)bx.onclick=confirmarSalidaChofer;
     const bp=document.getElementById('choBarPausa'); if(bp)bp.onclick=togglePausaChofer;
     // Botón de SIMULACIÓN (esquina superior derecha, flotante) para probar las indicaciones sin salir a la calle
     let sim=document.getElementById('choSimBtn');
