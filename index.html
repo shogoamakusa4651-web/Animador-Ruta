@@ -844,6 +844,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   let lastVoiceAnnounce={};   // {wpIdx: {early:true, mid:true, imminent:true}}
   let _voiceGiroTarget=-1;   // giro que el sistema de voz está rastreando actualmente
   let lastDeviationAt=0, lastTruckPos=null, lastAccuracy=null;
+  // === FILTRO DE KALMAN (suaviza el GPS) ===
+  let _kLat=null, _kLng=null, _kP=Infinity, _kLastTs=null;
+  const _kQ=4; // ruido del proceso: ~2m/s de incertidumbre para un camión lento
   let truckHeading=null;        // rumbo real del camión (grados), de las últimas posiciones GPS
   let _headHist=[];             // historial corto de posiciones para calcular rumbo estable
   let deviated=false, deviationStartIdx=0;  // tramos rojos
@@ -5454,10 +5457,26 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     } else if(b){ b.style.display='none'; }
   }
 
+  function kalmanGPS(lat, lng, acc, dt){
+    const R = acc * acc; // varianza de medición = accuracy² (metros²)
+    if(_kLat===null){ _kLat=lat; _kLng=lng; _kP=R; return [lat,lng]; }
+    _kP = _kP + _kQ * dt;           // predicción: la incertidumbre crece con el tiempo
+    const K = _kP / (_kP + R);      // ganancia de Kalman: 0=ignorar GPS, 1=confiar 100%
+    _kLat = _kLat + K*(lat-_kLat);  // corregir latitud
+    _kLng = _kLng + K*(lng-_kLng);  // corregir longitud
+    _kP   = (1-K) * _kP;            // reducir incertidumbre tras la corrección
+    return [_kLat, _kLng];
+  }
+
   function onGpsUpdate(pos){
     const lat=pos.coords.latitude, lng=pos.coords.longitude, acc=pos.coords.accuracy||20;
     lastAccuracy=acc;
-    const p=[lat,lng];
+    // Aplicar filtro de Kalman — suaviza saltos y ruido del GPS del celular
+    const now=Date.now();
+    const dt=_kLastTs ? Math.min((now-_kLastTs)/1000, 5) : 1; // segundos desde último tick, máx 5s
+    _kLastTs=now;
+    const [fLat,fLng]=kalmanGPS(lat,lng,acc,dt);
+    const p=[fLat,fLng];
     const prevPos=lastTruckPos;
     lastTruckPos=p;
 
@@ -5685,6 +5704,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 
   function stopGps(){
     gpsActive=false;
+    _kLat=null; _kLng=null; _kP=Infinity; _kLastTs=null; // resetear Kalman
     if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
     releaseWakeLock();
     stopAutoSave();
