@@ -842,6 +842,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   let _wpCerca={}; // registro de waypoints donde el camión ya estuvo cerca (para marcar tras pasar)
   let followOn=true, voiceOn=true;
   let lastVoiceAnnounce={};   // {wpIdx: {early:true, mid:true, imminent:true}}
+  let _voiceGiroTarget=-1;   // giro que el sistema de voz está rastreando actualmente
   let lastDeviationAt=0, lastTruckPos=null, lastAccuracy=null;
   let truckHeading=null;        // rumbo real del camión (grados), de las últimas posiciones GPS
   let _headHist=[];             // historial corto de posiciones para calcular rumbo estable
@@ -4096,7 +4097,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         loadRoute(pts);
         if(typeof buildInstructions==='function') buildInstructions();
         voiceOn=true;
-        nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={};
+        nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1;
         _wpCerca={};
         truckHeading=null; _headHist=[];
         limpiarProgresoVerde();
@@ -4443,7 +4444,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Pausar el GPS real para que NO mezcle la posición real con la simulada
     try{ if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; } }catch(_){}
     // Reiniciar trazado para empezar limpio desde el inicio de la ruta
-    realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={}; _wpCerca={}; doneWps.clear(); limpiarProgresoVerde();
+    realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpCerca={}; doneWps.clear(); limpiarProgresoVerde();
     if(realLine){try{map.removeLayer(realLine);}catch(_){}realLine=null;}
     if(realLineGlow){try{map.removeLayer(realLineGlow);}catch(_){}realLineGlow=null;}
     choSimOn=true; choSimIdx=0; actualizarBtnSim();
@@ -4472,7 +4473,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     try{ window.speechSynthesis.cancel(); }catch(_){}
     toast('Prueba detenida');
     // RESTAURAR el estado REAL: borrar todo lo que el animador marcó (era solo visual)
-    nextWpIdx=0; doneWps.clear(); _wpCerca={}; reachedStart=false; deviated=false; lastVoiceAnnounce={};
+    nextWpIdx=0; doneWps.clear(); _wpCerca={}; reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1;
     limpiarProgresoVerde();
     if(_simBackup){ // restaurar lo que había antes de la simulación
       nextWpIdx=_simBackup.nextWpIdx; reachedStart=_simBackup.reachedStart;
@@ -4979,7 +4980,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       let angTotal=Math.abs(((rFin-rIni+540)%360)-180);
       // Distancia en que ocurre el giro
       let largo=0; for(let k=iniGiro;k<j;k++)largo+=haversine(waypoints[k],waypoints[k+1]);
-      if(angTotal>=35){
+      if(angTotal>=25){
         // Concentrado (<=45m) = giro de decisión (esquina); más repartido = curva continua
         const tipo = largo<=45 ? 'giro' : 'curva';
         girosRuta[idxPico]={ dir: signo>0?'right':'left', tipo:tipo, ang:angTotal };
@@ -5253,32 +5254,59 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }
     card.classList.add('show');
     card.classList.toggle('minimized',turnCardMin);
-    const ins=instructions[nextWpIdx];
-    if(!ins){card.classList.remove('show');return;}
-    const d=haversine(lastTruckPos,waypoints[nextWpIdx]);
-    const stopHere=stops.find(s=>s.wpIdx===nextWpIdx);
     const arrow=document.getElementById('turnArrow');
     const noteEl=document.getElementById('turnNote');
     arrow.className='turn-arrow';
-    let arrowSym=ins.type==='turn'?arrowFor(ins.dir,ins.severity):(ins.type==='end'?'🏁':'↑');
-    if(stopHere){
-      arrowSym='📍';
-      arrow.classList.add(stopHere.type);
+    noteEl.style.display='none';
+
+    // Usar el mismo giro que la voz está rastreando para que display y voz siempre coincidan
+    let tGiroIdx=_voiceGiroTarget;
+    if(tGiroIdx<0){
+      // Si la voz aún no encontró giro, buscar uno para el display
+      for(let k=nextWpIdx;k<waypoints.length-1;k++){
+        if(girosRuta[k]){ tGiroIdx=k; break; }
+        if(k>nextWpIdx && haversine(waypoints[nextWpIdx],waypoints[k])>400)break;
+      }
     }
-    if(ins.deadEnd && !stopHere)arrowSym='⚠';
-    arrow.textContent=arrowSym;
-    document.getElementById('turnLabel').textContent=stopHere?'Próxima parada':(ins.deadEnd?'Calle sin salida':(ins.type==='end'?'Final del recorrido':'Próximo giro'));
-    document.getElementById('turnDistance').textContent=d<1000?Math.round(d)+' m':(d/1000).toFixed(2)+' km';
-    document.getElementById('turnDetail').textContent=ins.text||'';
+
+    // Parada próxima (tiene prioridad visual si está dentro de 80m)
+    const stopHere=stops.find(s=>s.wpIdx!==null && s.wpIdx>=nextWpIdx && s.wpIdx<=nextWpIdx+5 && !s.attended);
+
     if(stopHere){
-      noteEl.style.display='';
-      noteEl.className='turn-note '+stopHere.type;
+      const dS=haversine(lastTruckPos,[stopHere.lat,stopHere.lng]);
+      arrow.textContent='📍'; arrow.classList.add(stopHere.type);
+      document.getElementById('turnLabel').textContent='Próxima parada';
+      document.getElementById('turnDistance').textContent=dS<1000?Math.round(dS)+' m':(dS/1000).toFixed(2)+' km';
+      document.getElementById('turnDetail').textContent=stopHere.note||(stopHere.type==='critical'?'Punto crítico':'Punto de atención');
+      noteEl.style.display=''; noteEl.className='turn-note '+stopHere.type;
       noteEl.textContent=stopHere.note||(stopHere.type==='critical'?'Punto crítico':'Punto de atención');
-    }else if(ins.deadEnd){
-      noteEl.style.display='';noteEl.className='turn-note attention';
-      noteEl.textContent='Prepare maniobra de reversa o vuelta en U';
-    }else{
-      noteEl.style.display='none';
+      return;
+    }
+
+    if(tGiroIdx>=0){
+      const g=girosRuta[tGiroIdx];
+      const d=haversine(lastTruckPos,waypoints[tGiroIdx]);
+      const isDE=isDeadEnd(tGiroIdx);
+      if(isDE){
+        arrow.textContent='⚠';
+        document.getElementById('turnLabel').textContent='Calle sin salida';
+        document.getElementById('turnDetail').textContent='Entre al fondo y devuélvase';
+        noteEl.style.display=''; noteEl.className='turn-note attention';
+        noteEl.textContent='Prepare maniobra de reversa o vuelta en U';
+      } else {
+        arrow.textContent=g.dir==='right'?'↱':'↰';
+        document.getElementById('turnLabel').textContent='Próximo giro';
+        document.getElementById('turnDetail').textContent=g.dir==='right'?'Doble a la derecha':'Doble a la izquierda';
+      }
+      document.getElementById('turnDistance').textContent=d<1000?Math.round(d)+' m':(d/1000).toFixed(2)+' km';
+    } else {
+      // Sin giro a la vista — fin de ruta o recta larga
+      const atEnd=nextWpIdx>=waypoints.length-5;
+      arrow.textContent=atEnd?'🏁':'↑';
+      document.getElementById('turnLabel').textContent=atEnd?'Final del recorrido':'Continúe recto';
+      const dFin=haversine(lastTruckPos,waypoints[waypoints.length-1]);
+      document.getElementById('turnDistance').textContent=dFin<1000?Math.round(dFin)+' m':(dFin/1000).toFixed(2)+' km';
+      document.getElementById('turnDetail').textContent=atEnd?'Ya casi llega':'Va bien, siga recto';
     }
   }
 
@@ -5300,55 +5328,69 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const stopHere=stops.find(s=>s.wpIdx===nextWpIdx);
     const ann=lastVoiceAnnounce[nextWpIdx]||{};
 
-    // === Buscar el PRÓXIMO GIRO REAL precalculado (en girosRuta), adelante del punto actual ===
-    let giroIdx=-1, giroInfo=null;
-    for(let k=nextWpIdx;k<waypoints.length-1;k++){
-      if(girosRuta[k]){ giroIdx=k; giroInfo=girosRuta[k]; break; }
-      // No buscar más allá de ~200m
-      if(k>nextWpIdx && haversine(waypoints[nextWpIdx],waypoints[k])>200)break;
+    // === GIRO TARGET PERSISTENTE: no cambia hasta que el ancla suene ===
+    // Si el ancla del giro actual ya sonó, buscar el siguiente
+    if(_voiceGiroTarget>=0 && lastVoiceAnnounce['g'+_voiceGiroTarget]?.now){
+      _voiceGiroTarget=-1;
     }
+    // Si el target actual quedó muy atrás (el camión avanzó mucho), resetear
+    if(_voiceGiroTarget>=0 && _voiceGiroTarget < nextWpIdx-5){
+      _voiceGiroTarget=-1;
+    }
+    // Si no hay target activo, buscar el próximo giro desde la posición actual
+    if(_voiceGiroTarget<0){
+      for(let k=nextWpIdx;k<waypoints.length-1;k++){
+        if(girosRuta[k]){ _voiceGiroTarget=k; break; }
+        if(k>nextWpIdx && haversine(waypoints[nextWpIdx],waypoints[k])>400)break;
+      }
+    }
+    const giroIdx=_voiceGiroTarget;
+    const giroInfo=giroIdx>=0?girosRuta[giroIdx]:null;
 
-    // Distancia real al giro (siguiendo la ruta)
+    // Distancia al giro
     let dGiroReal=Infinity;
     if(giroIdx>=0){ dGiroReal=haversine(lastTruckPos,waypoints[giroIdx]); }
 
-    // Dirección del giro: usar siempre la geometría precalculada de la ruta (más confiable que el heading GPS)
+    // Dirección: siempre desde la geometría precalculada del KMZ
     const dirGiro = giroInfo ? giroInfo.dir : 'straight';
     const dir = dirGiro==='right'?'derecha':(dirGiro==='left'?'izquierda':'recto');
     const annG = giroIdx>=0 ? (lastVoiceAnnounce['g'+giroIdx]||{}) : {};
 
-    // ¿El próximo punto crítico es una calle sin salida?
+    // ¿Calle sin salida?
     const deadEndProx2 = giroIdx>=0 && (isDeadEnd(giroIdx) || (giroIdx+1<waypoints.length && isDeadEnd(giroIdx+1)));
 
     if(giroInfo){
-      // CALLE SIN SALIDA: anticipar, no decir doble
+      // CALLE SIN SALIDA
       if(deadEndProx2){
         if(dGiroReal<=80 && dGiroReal>25 && !annG.dead){
           speak('Adelante hay calle sin salida. Entre, llegue al fondo y devuélvase','nav');
           annG.dead=true; lastVoiceAnnounce['g'+giroIdx]=annG; mostrarTrayectoRetorno(giroIdx); return;
         }
+        if(dGiroReal<=25 && !annG.now){ annG.now=true; lastVoiceAnnounce['g'+giroIdx]=annG; } // marcar ancla para avanzar
         return;
       }
-      // CURVA CONTINUA: solo avisar una vez cerca, sin distancia
+      // CURVA CONTINUA
       if(giroInfo.tipo==='curva'){
         if(dGiroReal<=55 && !annG.curva){
           speak('Curva a la '+dir,'nav');
-          annG.curva=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
+          annG.curva=true; annG.now=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
         }
+        if(dGiroReal<=12){ annG.now=true; lastVoiceAnnounce['g'+giroIdx]=annG; } // pasó, avanzar
         return;
       }
-      // GIRO REAL — 2 capas estilo Waze: aviso temprano con distancia + ancla al llegar
-      const ahoraT=Date.now();
-      const libre = ahoraT>=_voiceBusyUntil;
-      // CAPA 1 — aviso temprano (150-280m): "En X metros, doble a la derecha"
-      if(dGiroReal>100 && dGiroReal<=280 && !annG.c1 && libre){
-        const mt=Math.round(dGiroReal/50)*50; // redondear a 50m para sonar natural
-        speak('En '+(mt||150)+' metros, doble a la '+dir,'nav');
+      // GIRO REAL — 2 capas estilo Waze
+      const libre = Date.now()>=_voiceBusyUntil;
+      // CAPA 1 — aviso temprano (100-300m): "En X metros, doble a la derecha"
+      if(dGiroReal>50 && dGiroReal<=300 && !annG.c1 && libre){
+        const mt=Math.round(dGiroReal/50)*50||100;
+        speak('En '+mt+' metros, doble a la '+dir,'nav');
         annG.c1=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
       }
-      // CAPA 2 — ANCLA (≤30m): "Doble a la derecha". Sin distancia, siempre suena.
+      // ANCLA (≤30m): SIEMPRE suena — cancela lo que esté sonando si hace falta
       if(dGiroReal<=30 && !annG.now){
-        if(libre){ speak('Doble a la '+dir,'nav'); annG.now=true; lastVoiceAnnounce['g'+giroIdx]=annG; return; }
+        try{window.speechSynthesis.cancel();}catch(_){}
+        speak('Doble a la '+dir,'nav');
+        annG.now=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
       }
     }
 
