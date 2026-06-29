@@ -2100,6 +2100,55 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       +'<div class="ibs-lbl"><b style="color:'+EST[0]+'">'+EST[1]+'</b><span>Salud del servicio</span></div>'
       +'</div>'
       +'</div></div>';
+    // ===== CAMIONES EN VIVO (sección de mando, arriba del todo)
+    const liveIds=Object.keys(live);
+    const critAlerts=alerts.filter(a=>a.sev===2);
+    h+='<div class="cc-mando">';
+    // Header con contadores y botón mapa
+    h+='<div class="cc-mando-h">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+        +(liveIds.length?('<span class="cc-live-dot"></span><span style="font-weight:700;font-size:14px;color:#fff;">'+liveIds.length+' camión'+(liveIds.length!==1?'es':'')+'&nbsp;en vivo</span>')
+          :'<span style="font-size:13px;color:#8097B1;">Sin camiones activos ahora</span>')
+        +(critAlerts.length?('<span class="cc-alrt-badge">'+critAlerts.length+' alerta'+(critAlerts.length!==1?'s':'')+'</span>'):'')
+      +'</div>'
+      +'<button class="cc-mapa-btn" onclick="setSection(\'monitoreo\')"><i class="ti ti-map-2"></i> Mapa completo</button>'
+    +'</div>';
+    // Tarjetas por camión activo
+    if(liveIds.length){
+      h+='<div class="cc-trucks">';
+      liveIds.forEach(id=>{
+        const r=mgmtRutas[id]||{}; const t=live[id]||{};
+        const pg=Math.max(0,Math.min(100,Number(t.progress)||0));
+        const age=t.ts?Math.max(0,Math.round((Date.now()-t.ts)/1000)):null;
+        const stale=age!=null&&age>120;
+        const enVert=t.status==='vertedero', enComb=t.status==='combustible';
+        const dotC=enVert?'#B0843C':(enComb?'#2F7DC2':'#27A35B');
+        const ageTx=age==null?'':(age<60?age+'s':'~'+Math.round(age/60)+'min');
+        h+='<div class="cc-truck-card">'
+          +'<div class="cc-tc-top">'
+            +'<span class="cc-tc-dot" style="background:'+dotC+'"></span>'
+            +'<span class="cc-tc-name">'+esc(r.nombre||'(sin nombre)')+'</span>'
+            +(enVert?'<span class="cc-tc-tag" style="color:#B0843C;background:#B0843C18"><i class="ti ti-trash"></i> Vertedero</span>':'')
+            +(enComb?'<span class="cc-tc-tag" style="color:#2F7DC2;background:#2F7DC218"><i class="ti ti-gas-station"></i> Bomba</span>':'')
+            +(stale?'<span class="cc-tc-tag" style="color:#C2402F;background:#C2402F18"><i class="ti ti-wifi-off"></i> Sin señal '+ageTx+'</span>':'')
+            +'<button class="cc-tc-btn" onclick="setSection(\'monitoreo\')">Ver</button>'
+          +'</div>'
+          +'<div class="cc-tc-meta"><i class="ti ti-user"></i> '+esc(t.code||r.choferCode||'—')+(t.name?' '+esc(t.name):'')+'&nbsp;·&nbsp;<i class="ti ti-truck"></i> '+esc(r.camion||'—')+'&nbsp;·&nbsp;señal '+(stale?'<b style="color:#C2402F">'+ageTx+'</b>':ageTx||'ahora')+'</div>'
+          +'<div class="cc-tc-bar"><i style="width:'+pg+'%;background:'+dotC+'"></i></div>'
+          +'<div class="cc-tc-pct">'+pg+'% completado</div>'
+        +'</div>';
+      });
+      h+='</div>';
+    }
+    // Alertas críticas directamente en mando (si hay)
+    if(critAlerts.length){
+      h+='<div class="cc-mando-alerts">';
+      critAlerts.slice(0,4).forEach((a,i)=>{
+        h+='<div class="ini-alert grave" style="margin:0 0 6px;"><span class="ia-dot"></span><span class="ia-tx"><span class="ia-sev">CRÍTICA</span>'+a.tx+'</span><button class="ia-btn" data-i="'+i+'">'+a.act+'</button></div>';
+      });
+      h+='</div>';
+    }
+    h+='</div>'; // cierra cc-mando
     // ===== Tira de métricas clave (integrada, sin caja redundante)
     h+='<div class="ini-metrics">'
       +'<div class="im-cell"><div class="im-v">'+(cob!=null?cob+'<small>%</small>':'—')+'</div><div class="im-l">Cobertura del día</div></div>'
