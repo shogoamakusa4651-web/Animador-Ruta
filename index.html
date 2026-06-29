@@ -4893,19 +4893,16 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   function detectDeadEnds(){
     deadEnds.clear();
     // Calle sin salida / retorno: punto con giro fuerte donde el trazado devuelve por el mismo camino
-    for(let i=2;i<waypoints.length-2;i++){
+    for(let i=3;i<waypoints.length-3;i++){
       const a=anguloGiroEnPunto(i, 15);
-      if(Math.abs(a)>=140){
-        // Verificar que el camino de salida pasa CERCA del de entrada (es la misma calle de regreso)
-        // Comparar puntos antes y después del giro: deben estar próximos entre sí
+      if(Math.abs(a)>=150){ // ≥150° = casi media vuelta, más estricto para evitar falsos positivos
+        // La calle de entrada y la de salida deben ser practicamente la misma (el camión regresa por donde vino)
+        // Verificar con ventana más amplia (i-3 vs i+3, ~36m cada lado)
         let esRetorno=false;
         const antes=waypoints[i-1], despues=waypoints[i+1];
-        if(haversine(antes,despues)<25){ esRetorno=true; } // entrada y salida casi en el mismo punto
-        else {
-          // O comparar tramos más amplios: el punto i-2 vs i+2
-          if(i-2>=0 && i+2<waypoints.length){
-            if(haversine(waypoints[i-2],waypoints[i+2])<35)esRetorno=true;
-          }
+        if(haversine(antes,despues)<15){ esRetorno=true; } // entrada y salida en el mismo punto
+        else if(i-3>=0 && i+3<waypoints.length){
+          if(haversine(waypoints[i-3],waypoints[i+3])<20)esRetorno=true; // tramos amplios también muy cerca
         }
         if(esRetorno){ deadEnds.add(i); }
       }
@@ -5224,8 +5221,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   let progresoVerdeLine=null;
   function dibujarProgresoVerde(){
     if(!waypoints.length)return;
-    // Dibujar verde hasta la posición actual del camión en la ruta (nextWpIdx-1)
-    const hasta=nextWpIdx-1;
+    // Solo pintar verde lo que el camión realmente pasó (doneWps consecutivos desde 0)
+    let hasta=-1;
+    for(let i=0;i<waypoints.length;i++){ if(doneWps.has(i))hasta=i; else break; }
     if(hasta<1){ return; }
     const tramo=waypoints.slice(0,hasta+1);
     if(progresoVerdeLine){ progresoVerdeLine.setLatLngs(tramo); }
@@ -5328,13 +5326,13 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const stopHere=stops.find(s=>s.wpIdx===nextWpIdx);
     const ann=lastVoiceAnnounce[nextWpIdx]||{};
 
-    // === GIRO TARGET PERSISTENTE: no cambia hasta que el ancla suene ===
-    // Si el ancla del giro actual ya sonó, buscar el siguiente
-    if(_voiceGiroTarget>=0 && lastVoiceAnnounce['g'+_voiceGiroTarget]?.now){
+    // === GIRO TARGET PERSISTENTE: no cambia hasta haber PASADO el giro (~36m después) ===
+    // Solo resetear cuando el ancla sonó Y el camión ya superó físicamente el punto del giro
+    if(_voiceGiroTarget>=0 && lastVoiceAnnounce['g'+_voiceGiroTarget]?.now && nextWpIdx > _voiceGiroTarget+3){
       _voiceGiroTarget=-1;
     }
-    // Si el target actual quedó muy atrás (el camión avanzó mucho), resetear
-    if(_voiceGiroTarget>=0 && _voiceGiroTarget < nextWpIdx-5){
+    // Si el target quedó muy atrás sin sonar el ancla (GPS jump), resetear igual
+    if(_voiceGiroTarget>=0 && _voiceGiroTarget < nextWpIdx-8){
       _voiceGiroTarget=-1;
     }
     // Si no hay target activo, buscar el próximo giro desde la posición actual
@@ -5380,8 +5378,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       }
       // GIRO REAL — 2 capas estilo Waze
       const libre = Date.now()>=_voiceBusyUntil;
-      // CAPA 1 — aviso temprano (100-300m): "En X metros, doble a la derecha"
-      if(dGiroReal>50 && dGiroReal<=300 && !annG.c1 && libre){
+      // CAPA 1 — aviso temprano (80-300m): mínimo 80m para que el camión no llegue al ancla mientras aún habla
+      if(dGiroReal>80 && dGiroReal<=300 && !annG.c1 && libre){
         const mt=Math.round(dGiroReal/50)*50||100;
         speak('En '+mt+' metros, doble a la '+dir,'nav');
         annG.c1=true; lastVoiceAnnounce['g'+giroIdx]=annG; return;
@@ -5562,9 +5560,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       // marcar todos los puntos hasta ahí (el camión ya pasó por ellos siguiendo la calle)
       const tol = Math.max(25, Math.min(45, (lastAccuracy||15)+22));
       if(mejorIdx>=nextWpIdx && mejorDist<=tol){
+        // Limitar a máx 10 waypoints por tick (~120m) para evitar que un salto GPS pinte verde calles no recorridas
+        const limIdx = Math.min(mejorIdx, nextWpIdx+10);
         let avanzados=0;
-        for(let k=nextWpIdx;k<=mejorIdx;k++){ markWaypointDone(k); avanzados++; }
-        nextWpIdx=mejorIdx+1;
+        for(let k=nextWpIdx;k<=limIdx;k++){ markWaypointDone(k); avanzados++; }
+        nextWpIdx=limIdx+1;
         if(avanzados>0){
           if(deviated){
             deviated=false; bonusReturnedToTrack=true;
