@@ -821,7 +821,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.52 · 2026-06-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.53 · 2026-06-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -4633,8 +4633,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     try{ if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; } }catch(_){}
     // Reiniciar trazado para empezar limpio desde el inicio de la ruta
     realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpCerca={}; doneWps.clear(); limpiarProgresoVerde(); _wpConfirmTick=0;
-    // Resetear Kalman para que el simulador arranque limpio en waypoints[0] sin arrastrar la posición real
+    // Resetear Kalman y rumbo para que el simulador arranque limpio sin arrastrar estado GPS real
     _kLat=null; _kLng=null; _kP=Infinity; _kLastTs=null;
+    truckHeading=null; _headHist=[]; lastTruckPos=null;
     if(realLine){try{map.removeLayer(realLine);}catch(_){}realLine=null;}
     if(realLineGlow){try{map.removeLayer(realLineGlow);}catch(_){}realLineGlow=null;}
     choSimOn=true; choSimIdx=0; actualizarBtnSim();
