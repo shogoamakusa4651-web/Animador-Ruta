@@ -821,7 +821,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.50 · 2026-06-29'; // ← actualizar con cada release
+  const APP_VERSION='v4.51 · 2026-06-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -3932,12 +3932,16 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       sc.style.cssText='position:fixed;inset:0;z-index:99999;background:#042C53;color:#fff;display:flex;flex-direction:column;font-family:-apple-system,Segoe UI,sans-serif;overflow-y:auto;';
     }
     const nm=document.getElementById('choNombre'); if(nm)nm.textContent=choferName||choferCode||'Chofer';
-    // Si las rutas aún no han cargado de Firebase, esperar a que lleguen
-    try{ renderChoferInicio(); }catch(e){ console.warn('chofer init:',e); }
+    // Resetear estado de progreso: DEBE verificar de nuevo con rutas garantizadas en memoria
+    _choProgresoHoy=null;
+    // Solo llamar renderChoferInicio() DESPUÉS de que mgmtRutas esté cargado
+    // para evitar que restaurarProgresoChofer falle al encontrar mgmtRutas vacío
     if(!mgmtRutas || !Object.keys(mgmtRutas).length){
       fbDb.ref('rutas').once('value').then(s=>{ mgmtRutas=s.val()||{}; try{renderChoferInicio();}catch(_){}})
-        .catch(()=>{});
+        .catch(()=>{ try{renderChoferInicio();}catch(_){} });
       fbDb.ref('rutas').on('value',s=>{ mgmtRutas=s.val()||{}; if(currentUserRole==='chofer'){try{renderChoferInicio();}catch(_){}}});
+    } else {
+      try{ renderChoferInicio(); }catch(e){ console.warn('chofer init:',e); }
     }
   }
   // Mantener pantalla encendida (Wake Lock) mientras el chofer trabaja
@@ -3957,6 +3961,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(document.visibilityState==='visible' && currentUserRole==='chofer'){
       // Reactivar Wake Lock
       try{ if(_wakeLock===null && choferTurno.activo) pedirWakeLock(); }catch(_){}
+      // Recuperar speechSynthesis congelado (bug de Chrome Android al volver del fondo)
+      if(voiceOn){ try{ window.speechSynthesis.cancel(); }catch(_){} }
       // SEÑAL SAGRADA: si el GPS se suspendió al bloquear, reactivarlo y transmitir de inmediato
       try{
         if(choferTurno.activo && !choSimOn){
@@ -4044,6 +4050,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(exitBtn){ exitBtn.onclick=function(){ if(confirm('¿Salir de tu sesión?')) logout(); }; }
     // Chequear progreso guardado (solo la primera vez, async)
     if(_choProgresoHoy===null){
+      _choProgresoHoy='loading'; // evita que llamadas en paralelo disparen doble restaurar
       if(list) list.innerHTML='<div style="text-align:center;padding:32px;color:#8097B1;font-size:14px;"><i class="ti ti-loader" style="font-size:28px;display:block;margin-bottom:8px;"></i>Cargando…</div>';
       restaurarProgresoChofer(hay=>{
         _choProgresoHoy = hay ? _progresoPend : false;
@@ -4051,6 +4058,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       });
       return;
     }
+    if(_choProgresoHoy==='loading') return; // esperando Firebase, ignorar llamadas concurrentes
     // Si hay ruta en progreso de hoy, mostrar pantalla de retomar
     if(_choProgresoHoy && _choProgresoHoy.rutaId && mgmtRutas[_choProgresoHoy.rutaId]){
       _renderChoferRetomar(_choProgresoHoy);
@@ -4242,8 +4250,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       const p=s.val();
       const _n=new Date();
       const hoyStr=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
-      // Solo retomar si es de HOY y la ruta sigue existiendo
-      if(!p || p.fecha!==hoyStr || !p.rutaId || !mgmtRutas[p.rutaId]){ cb&&cb(false); return; }
+      // Solo retomar si es de HOY y tiene rutaId válido (la existencia en mgmtRutas se verifica en renderChoferInicio)
+      if(!p || p.fecha!==hoyStr || !p.rutaId){ cb&&cb(false); return; }
       _progresoPend=p; cb&&cb(true);
     }).catch(()=>{ cb&&cb(false); });
   }
@@ -5459,15 +5467,16 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   // Dibuja en VERDE el tramo de la ruta ya recorrido (waypoints cumplidos en orden)
   let progresoVerdeLine=null;
   function dibujarProgresoVerde(){
-    if(!waypoints.length)return;
-    // Solo pintar verde lo que el camión realmente pasó (doneWps consecutivos desde 0)
-    let hasta=-1;
-    for(let i=0;i<waypoints.length;i++){ if(doneWps.has(i))hasta=i; else break; }
-    if(hasta<1){ return; }
-    const tramo=waypoints.slice(0,hasta+1);
-    if(progresoVerdeLine){ progresoVerdeLine.setLatLngs(tramo); }
-    else { progresoVerdeLine=L.polyline(tramo,{color:'#1F9D55',weight:7,opacity:.95,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map);
-      progresoVerdeLine.bringToFront(); }
+    if(!waypoints.length || !doneWps.size) return;
+    const bits=new Array(waypoints.length).fill(false);
+    doneWps.forEach(i=>{ if(i>=0 && i<bits.length) bits[i]=true; });
+    // covSegs: segmentos donde AMBOS extremos están visitados — sin requisito de consecutividad
+    const segs=covSegs(waypoints, bits, true);
+    if(!segs.length) return;
+    if(progresoVerdeLine){ try{map.removeLayer(progresoVerdeLine);}catch(_){} progresoVerdeLine=null; }
+    const g=L.layerGroup();
+    segs.forEach(s=>L.polyline(s,{color:'#1F9D55',weight:7,opacity:.95,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
+    progresoVerdeLine=g; g.addTo(map);
   }
   function limpiarProgresoVerde(){ if(progresoVerdeLine){ try{map.removeLayer(progresoVerdeLine);}catch(_){} progresoVerdeLine=null; } }
 
