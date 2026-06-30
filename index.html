@@ -821,7 +821,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.49 · 2026-06-29'; // ← actualizar con cada release
+  const APP_VERSION='v4.50 · 2026-06-29'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1727,7 +1727,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
   function subscribeUnits(){
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
-    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); _procesarAlertasDesdeLive(supLast); if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); if(typeof curSec!=='undefined'&&curSec==='inicio')buildInicioSoft(); },300); }); }
+    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); _procesarAlertasDesdeLive(supLast); if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); },300); }); }
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
     // Alertas persistentes desde alertas_chofer (respaldo) — no sobreescribe claves LIVE_
     window._alertasVistas=window._alertasVistas||{};
