@@ -821,7 +821,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.51 · 2026-06-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.52 · 2026-06-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -858,6 +858,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   const _kQ=4; // ruido del proceso: ~2m/s de incertidumbre para un camión lento
   let truckHeading=null;        // rumbo real del camión (grados), de las últimas posiciones GPS
   let _headHist=[];             // historial corto de posiciones para calcular rumbo estable
+  let _wpConfirmTick=0; // ticks GPS consecutivos confirmando proximidad (anti-falso-positivo calles paralelas)
   let deviated=false, deviationStartIdx=0;  // tramos rojos
   let skippedSegments=[];      // [{from, to, distance}]
   let wakeLock=null;
@@ -4268,7 +4269,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         loadRoute(pts);
         if(typeof buildInstructions==='function') buildInstructions();
         voiceOn=true;
-        nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1;
+        nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpConfirmTick=0;
         _wpCerca={};
         truckHeading=null; _headHist=[];
         limpiarProgresoVerde();
@@ -4631,7 +4632,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Pausar el GPS real para que NO mezcle la posición real con la simulada
     try{ if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; } }catch(_){}
     // Reiniciar trazado para empezar limpio desde el inicio de la ruta
-    realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpCerca={}; doneWps.clear(); limpiarProgresoVerde();
+    realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpCerca={}; doneWps.clear(); limpiarProgresoVerde(); _wpConfirmTick=0;
     // Resetear Kalman para que el simulador arranque limpio en waypoints[0] sin arrastrar la posición real
     _kLat=null; _kLng=null; _kP=Infinity; _kLastTs=null;
     if(realLine){try{map.removeLayer(realLine);}catch(_){}realLine=null;}
@@ -5822,21 +5823,37 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     try{
     if(waypoints.length && reachedStart && nextWpIdx<waypoints.length){
       // Buscar, en una ventana adelante, el punto de la ruta MÁS CERCANO a la posición actual
-      let mejorIdx=-1, mejorDist=Infinity;
-      const ventana=Math.min(nextWpIdx+25, waypoints.length); // mirar hasta 25 puntos densos (~300m) adelante
+      let mejorIdx=-1, mejorDist=Infinity, mejorSegDist=Infinity;
+      const ventana=Math.min(nextWpIdx+25, waypoints.length);
       for(let k=nextWpIdx;k<ventana;k++){
-        const dd=haversine(p,waypoints[k]);
-        if(dd<mejorDist){ mejorDist=dd; mejorIdx=k; }
+        const ddPt=haversine(p,waypoints[k]);
+        // distancia perpendicular al segmento que TERMINA en este waypoint (más precisa que solo al punto)
+        const ddSeg=k>0 ? distPointToSegment(p,waypoints[k-1],waypoints[k]) : ddPt;
+        const dd=Math.min(ddPt,ddSeg);
+        if(dd<mejorDist){ mejorDist=dd; mejorIdx=k; mejorSegDist=ddSeg; }
       }
-      // Si el punto más cercano está dentro de un radio razonable (tolerante al error GPS),
-      // marcar todos los puntos hasta ahí (el camión ya pasó por ellos siguiendo la calle)
-      const tol = Math.max(25, Math.min(45, (lastAccuracy||15)+22));
-      if(mejorIdx>=nextWpIdx && mejorDist<=tol){
-        // Limitar a máx 10 waypoints por tick (~120m) para evitar que un salto GPS pinte verde calles no recorridas
-        const limIdx = Math.min(mejorIdx, nextWpIdx+10);
+      // Tolerancia ajustada — cross-track es más precisa que distancia al punto
+      const tol=Math.max(22,Math.min(38,(lastAccuracy||12)+18));
+      // Verificar rumbo: el camión debe ir en dirección compatible con la ruta (hasta 50° de diferencia)
+      let headingOk=true;
+      if(truckHeading!=null && mejorIdx>=0 && mejorIdx+1<waypoints.length){
+        const rutaRumbo=bearing(waypoints[mejorIdx],waypoints[mejorIdx+1]);
+        const diffGrados=Math.abs(((rutaRumbo-truckHeading+540)%360)-180);
+        headingOk=(diffGrados<=50);
+      }
+      // Acumular confirmaciones consecutivas (anti-falso-positivo: requiere 2 ticks seguidos)
+      if(mejorIdx>=nextWpIdx && mejorSegDist<=tol && headingOk){
+        _wpConfirmTick++;
+      } else {
+        _wpConfirmTick=0;
+      }
+      if(_wpConfirmTick>=2 && mejorIdx>=nextWpIdx){
+        // Máx 5 waypoints por tick (~60m) — antes era 10 (~120m)
+        const limIdx=Math.min(mejorIdx,nextWpIdx+5);
         let avanzados=0;
         for(let k=nextWpIdx;k<=limIdx;k++){ markWaypointDone(k); avanzados++; }
         nextWpIdx=limIdx+1;
+        _wpConfirmTick=0; // resetear: el siguiente bloque necesita 2 ticks frescos
         if(avanzados>0){
           if(deviated){
             deviated=false; bonusReturnedToTrack=true;
@@ -5935,7 +5952,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(!skipResume && hasPendingTrip()){showResumeModal();return;}
     gpsActive=true;
     if(!tripStartedAt)tripStartedAt=new Date().toISOString();
-    nextWpIdx=0;doneWps.clear();realPath=[];lastTruckPos=null;reachedStart=false;tripPhase='ruta';kmRuta=0;kmVertedero=0;dumpPath=[];dumpCount=0;if(dumpLine){map.removeLayer(dumpLine);dumpLine=null;}kmCombustible=0;fuelPath=[];fuelCount=0;if(fuelLine){map.removeLayer(fuelLine);fuelLine=null;}{const g=document.getElementById('startGuide');if(g)g.classList.remove('show');}
+    nextWpIdx=0;doneWps.clear();realPath=[];lastTruckPos=null;reachedStart=false;tripPhase='ruta';kmRuta=0;kmVertedero=0;dumpPath=[];dumpCount=0;if(dumpLine){map.removeLayer(dumpLine);dumpLine=null;}kmCombustible=0;fuelPath=[];fuelCount=0;if(fuelLine){map.removeLayer(fuelLine);fuelLine=null;}_wpConfirmTick=0;{const g=document.getElementById('startGuide');if(g)g.classList.remove('show');}
     lastVoiceAnnounce={};skippedSegments=[];deviated=false;bonusReturnedToTrack=false;
     if(realLine){map.removeLayer(realLine);realLine=null;}
     if(realLineGlow){map.removeLayer(realLineGlow);realLineGlow=null;}
