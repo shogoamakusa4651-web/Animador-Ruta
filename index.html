@@ -826,7 +826,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.54 · 2026-07-04'; // ← actualizar con cada release
+  const APP_VERSION='v4.55 · 2026-07-04'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2158,6 +2158,56 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const trendDelta=(idx!=null&&prevAvg!=null)?(idx-prevAvg):null;
     const hora=now.toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
     const kmHoy=kmDone;
+    { // ===== DASHBOARD "TORRE DE CONTROL" (Fase 2) — usa los mismos datos calculados arriba =====
+      const total=todayIds.length;
+      const critCount=alerts.filter(a=>a.sev===2).length;
+      const liveIds=Object.keys(live);
+      const nSinEnviar=cola.filter(x=>x.s==='pendiente').length;
+      const kmTxt=kmHoy?Math.round(kmHoy):0;
+      const kpi=(val,suf,lab,cls)=>'<div class="tc-kpi"><span class="v'+(cls?' '+cls:'')+'">'+val+(suf?'<small>'+suf+'</small>':'')+'</span><span class="l">'+lab+'</span></div>';
+      let H='<div class="ini-tc">';
+      H+='<div class="tc-kpis">';
+      H+=kpi(cob!=null?cob:'—','%','Cobertura<br>del día','');
+      H+=kpi(nDone,'/'+(total||0),'Rutas<br>completadas','');
+      H+=kpi(fPct!=null?fPct:'—','%','Flota<br>disponible',(fPct!=null&&fPct<60)?'warn':'');
+      H+=kpi(kmTxt,' km','Recorridos<br>hoy','');
+      H+=kpi(critCount,'','Incidencias<br>críticas',critCount>0?'crit':'pos');
+      H+='</div>';
+      H+='<div class="tc-main">';
+      H+='<div class="tc-mapchips"><div class="tc-chip"><i class="ti ti-map-2"></i> Mapa en vivo</div><div class="tc-chip sec">'+(liveIds.length?(liveIds.length+' camión'+(liveIds.length!==1?'es':'')+' en vivo'):'Sin camiones activos ahora')+'</div></div>';
+      H+='<button class="tc-mapfull" data-go="mon"><i class="ti ti-maximize"></i> Mapa completo</button>';
+      H+='<div class="tc-dock">';
+      H+='<div class="tc-dock-h"><span class="t">Despacho de hoy</span><span class="tc-badge'+(nSinEnviar?'':' zero')+'">'+nSinEnviar+' sin enviar</span></div>';
+      H+='<div class="tc-dock-list">';
+      if(!cola.length){ H+='<div class="tc-empty">No hay rutas programadas hoy.</div>'; }
+      else { cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const cls=x.s==='curso'?'curso':(x.s==='completada'?'done':'');
+        const t=live[x.id]; const pg=(t&&t.progress!=null)?(' · '+t.progress+'%'):'';
+        const meta=(r.choferCode||'sin chofer')+' · '+(r.camion||'sin camión')+' · '+st[0];
+        H+='<div class="tc-rcard '+cls+'" data-id="'+esc(x.id)+'"><div class="info"><div class="nm">'+esc(r.nombre||'(sin nombre)')+pg+'</div><div class="mt">'+esc(meta)+'</div></div>';
+        if(x.s!=='completada')H+='<button class="tc-rbtn'+(x.s==='curso'?' ghost':'')+'" data-id="'+esc(x.id)+'" data-s="'+x.s+'">'+st[2]+'</button>';
+        H+='</div>'; }); }
+      let otro=''; ids.filter(id=>todayIds.indexOf(id)<0).sort((a,b)=>(((rutas[a]||{}).nombre||'').localeCompare((rutas[b]||{}).nombre||''))).forEach(id=>{ otro+='<option value="'+esc(id)+'">'+esc((rutas[id]||{}).nombre||'(sin nombre)')+' · '+esc(((rutas[id]||{}).freq||[]).join('·')||'sin días')+'</option>'; });
+      H+='<select class="tc-otro" id="iniExtra"><option value="">Despachar ruta de otro día…</option>'+otro+'</select>';
+      H+='</div>'; // tc-dock-list
+      const opPct=tot?Math.round(disp/tot*100):0; const repPct=tot?(100-opPct):0;
+      H+='<div class="tc-dock-foot">';
+      H+='<div class="tc-foot-row"><span class="lb">Salud de flota</span><span class="vl"><b style="color:#1f7a45">'+disp+'</b> operativos · <b style="color:#b07d1e">'+fTal+'</b> en reparación</span></div>';
+      H+='<div class="tc-fleetbar"><i style="width:'+opPct+'%;background:#1f7a45"></i><i style="width:'+repPct+'%;background:#d9a53f"></i></div>';
+      H+='<div class="tc-foot-sub"><span>Supervisión hoy: '+nSupAsig+'/'+(total||0)+' rutas · '+supVer+' verificado'+(supVer===1?'':'s')+'</span><span class="tc-foot-ok"><i class="ti ti-circle-check"></i> '+esc(EST[1])+'</span></div>';
+      H+='</div>'; // tc-dock-foot
+      H+='</div>'; // tc-dock
+      H+='</div>'; // tc-main
+      H+='</div>'; // ini-tc
+      host.innerHTML=H;
+      host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='mon')setSection('monitoreo'); else if(g==='admin')setSection('admin'); }));
+      host.querySelectorAll('.tc-rbtn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
+      host.querySelectorAll('.tc-rcard').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
+      const _ex=document.getElementById('iniExtra'); if(_ex)_ex.addEventListener('change',()=>{ if(_ex.value)openRouteDetail(_ex.value); _ex.value=''; });
+      try{ if(typeof subscribeUnits==='function')subscribeUnits(); }catch(_){}
+      try{ if(map&&map.invalidateSize)setTimeout(()=>{ try{map.invalidateSize();}catch(_){} },80); }catch(_){}
+      try{ actualizarEstadoServicio(); }catch(_){}
+      return;
+    }
     let h='<div class="ini-wrap cc-wrap">';
     const _hh=now.getHours(); const _saludo=_hh<12?'Buenos días':(_hh<19?'Buenas tardes':'Buenas noches');
     h+='<div class="ini-banner">'

@@ -836,6 +836,69 @@
   body.adm-shell .map-cover,body.adm-shell #secRutas,body.adm-shell #secAdmin,body.adm-shell #secReportes,body.adm-shell #secRecursos{bottom:24px;}
   .map-cover{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:var(--tx0);}
   body.sec-inicio .map-cover{display:block;}
+  /* ===== DASHBOARD TORRE DE CONTROL (Inicio) ===== */
+  /* En Inicio el mapa real se ve por detrás: el cover es transparente y no bloquea el ratón */
+  body.sec-inicio .map-cover{background:transparent;overflow:hidden;pointer-events:none;}
+  body.dark.sec-inicio .map-cover{background:transparent;}
+  #iniBody{height:100%;}
+  .ini-tc{height:100%;display:flex;flex-direction:column;pointer-events:none;}
+  /* Franja de KPIs */
+  .tc-kpis{height:64px;flex:none;background:#fff;border-bottom:1px solid #dcdad2;display:grid;grid-template-columns:repeat(5,1fr);pointer-events:auto;}
+  body.dark .tc-kpis{background:#26241F;border-bottom-color:rgba(255,255,255,.08);}
+  .tc-kpi{display:flex;align-items:center;gap:12px;padding:0 24px;border-right:1px solid #eceae3;min-width:0;}
+  .tc-kpi:last-child{border-right:none;}
+  body.dark .tc-kpi{border-right-color:rgba(255,255,255,.06);}
+  .tc-kpi .v{font-family:'IBM Plex Mono',ui-monospace,'Segoe UI',monospace;font-size:26px;font-weight:600;color:#1a1f16;line-height:1;white-space:nowrap;}
+  body.dark .tc-kpi .v{color:#ECEAE3;}
+  .tc-kpi .v small{font-size:15px;color:#9a9f8f;font-weight:600;}
+  .tc-kpi .v.warn{color:#b07d1e;}
+  .tc-kpi .v.pos{color:#1f7a45;}
+  .tc-kpi .v.crit{color:#C2402F;}
+  .tc-kpi .l{font-size:12px;color:#6b7263;line-height:1.2;}
+  body.dark .tc-kpi .l{color:#A8A49B;}
+  /* Zona principal: mapa (transparente) + dock */
+  .tc-main{flex:1;position:relative;min-height:0;pointer-events:none;}
+  .tc-mapchips{position:absolute;top:16px;left:16px;display:flex;gap:8px;pointer-events:none;z-index:2;}
+  .tc-chip{background:rgba(10,18,30,.85);border:1px solid rgba(255,255,255,.14);color:#cfe3d6;font-size:12.5px;padding:7px 12px;border-radius:6px;display:flex;align-items:center;gap:8px;pointer-events:auto;}
+  .tc-chip.sec{color:#8fa3b8;}
+  .tc-mapfull{position:absolute;bottom:16px;right:416px;background:#1f7a45;color:#fff;border:none;border-radius:7px;padding:10px 16px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;font-family:inherit;cursor:pointer;pointer-events:auto;z-index:2;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+  .tc-mapfull:hover{background:#186238;}
+  /* Dock de despacho */
+  .tc-dock{position:absolute;top:0;right:0;bottom:0;width:400px;background:#fff;border-left:1px solid #dcdad2;display:flex;flex-direction:column;pointer-events:auto;}
+  body.dark .tc-dock{background:#26241F;border-left-color:rgba(255,255,255,.08);}
+  .tc-dock-h{padding:16px 20px 12px;border-bottom:1px solid #eceae3;display:flex;align-items:center;justify-content:space-between;flex:none;}
+  body.dark .tc-dock-h{border-bottom-color:rgba(255,255,255,.08);}
+  .tc-dock-h .t{font-family:'Archivo','Segoe UI',sans-serif;font-weight:700;font-size:15px;color:#1a1f16;}
+  body.dark .tc-dock-h .t{color:#ECEAE3;}
+  .tc-badge{background:#fdecea;color:#b3362a;font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;}
+  .tc-badge.zero{background:#eaf5ec;color:#1f7a45;}
+  .tc-dock-list{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;}
+  .tc-rcard{border:1px solid #e6e3da;border-left:3px solid #e5533d;border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:border-color .14s,box-shadow .14s;}
+  .tc-rcard:hover{border-color:#c9c6bb;box-shadow:0 2px 8px rgba(20,30,20,.08);}
+  .tc-rcard.curso{border-left-color:#1f7a45;}
+  .tc-rcard.done{border-left-color:#9a9f8f;opacity:.72;}
+  body.dark .tc-rcard{border-color:rgba(255,255,255,.1);}
+  .tc-rcard .info{flex:1;min-width:0;}
+  .tc-rcard .nm{font-weight:600;font-size:14px;color:#1a1f16;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  body.dark .tc-rcard .nm{color:#ECEAE3;}
+  .tc-rcard .mt{font-size:12px;color:#6b7263;font-family:'IBM Plex Mono',ui-monospace,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tc-rbtn{background:#14532d;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;flex:none;}
+  .tc-rbtn:hover{background:#0f3d21;}
+  .tc-rbtn.ghost{background:#eef2ef;color:#1f7a45;}
+  .tc-rbtn.ghost:hover{background:#e0e9e2;}
+  .tc-otro{border:1px dashed #c9c6bb;background:none;border-radius:8px;padding:11px;font-size:13px;color:#6b7263;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;}
+  .tc-otro:hover{border-color:#1f7a45;color:#1f7a45;}
+  .tc-empty{text-align:center;color:#8097B1;font-size:13px;padding:30px 12px;}
+  .tc-dock-foot{border-top:1px solid #eceae3;padding:14px 20px;display:flex;flex-direction:column;gap:10px;flex:none;}
+  body.dark .tc-dock-foot{border-top-color:rgba(255,255,255,.08);}
+  .tc-foot-row{display:flex;justify-content:space-between;font-size:12.5px;}
+  .tc-foot-row .lb{font-weight:600;color:#1a1f16;}
+  body.dark .tc-foot-row .lb{color:#ECEAE3;}
+  .tc-foot-row .vl{color:#6b7263;}
+  .tc-fleetbar{height:8px;border-radius:4px;background:#eceae3;overflow:hidden;display:flex;}
+  .tc-fleetbar i{display:block;height:100%;}
+  .tc-foot-sub{display:flex;justify-content:space-between;font-size:12px;color:#6b7263;}
+  .tc-foot-ok{color:#1f7a45;display:flex;align-items:center;gap:5px;}
   #secReportes{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:var(--tx0);}
   body.sec-reportes #secReportes{display:block;}
   body.dark #secReportes{background:#1A1916;color:#ECEAE3;}
