@@ -32,21 +32,26 @@
 <div class="mon-strip" id="monStrip"></div>
 <nav class="shell-nav" id="shellNav">
   <div class="shell-logo"><span class="ic"><i class="ti ti-recycle" aria-hidden="true"></i></span><span class="tx"><b>Animador de Ruta</b><small>Ayuntamiento de La Vega</small></span></div>
-  <div class="nav-item" data-sec="inicio"><i class="ti ti-home" aria-hidden="true"></i>Inicio</div>
-  <div class="nav-item" data-sec="monitoreo"><i class="ti ti-broadcast" aria-hidden="true"></i>Monitoreo</div>
-  <div class="nav-item" data-sec="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
-  <div class="nav-item" data-sec="admin"><i class="ti ti-settings" aria-hidden="true"></i>Administración</div>
-  <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-text" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
-  <div class="shell-foot">
-    <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-    <div class="ver" style="padding-top:4px" id="navVer">v4.38 · 2026-06-29</div>
+  <div class="shell-navitems">
+    <div class="nav-item" data-sec="inicio"><i class="ti ti-home" aria-hidden="true"></i>Inicio</div>
+    <div class="nav-item" data-sec="monitoreo"><i class="ti ti-radar-2" aria-hidden="true"></i>Monitoreo</div>
+    <div class="nav-item" data-sec="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
+    <div class="nav-item" data-sec="admin"><i class="ti ti-settings" aria-hidden="true"></i>Administración</div>
+    <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-analytics" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
+  </div>
+  <div class="shell-nav-right">
+    <div class="shell-status" id="shellStatus" style="display:none"><span class="ss-dot" id="shellStatusDot"></span><span class="ss-tx" id="shellStatusTx">Servicio</span></div>
+    <button class="shell-help" id="shellHelp" title="¿Qué significa cada cosa?"><i class="ti ti-help" aria-hidden="true"></i> <span>Ayuda</span></button>
+    <span class="shell-user" id="shellUser"><span class="av" id="shellUserAv">A</span><span id="shellUserTx">ADM</span> <i class="ti ti-chevron-down" style="font-size:14px" aria-hidden="true"></i></span>
   </div>
 </nav>
 <div class="shell-top" id="shellTop">
   <span class="shell-title" id="shellTitle">Inicio</span>
   <span class="shell-badge" id="shellBadge" style="display:none"></span>
-  <button class="shell-help" id="shellHelp" title="¿Qué significa cada cosa?"><i class="ti ti-help" aria-hidden="true"></i> Ayuda</button>
-  <span class="shell-user" id="shellUser"><span class="av" id="shellUserAv">A</span><span id="shellUserTx">ADM</span> <i class="ti ti-chevron-down" style="font-size:14px" aria-hidden="true"></i></span>
+</div>
+<div class="shell-foot" id="shellFoot">
+  <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
+  <div class="ver" id="navVer">v4.38 · 2026-06-29</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -821,7 +826,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.53 · 2026-06-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.54 · 2026-07-04'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1728,7 +1733,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   }
   function subscribeUnits(){
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
-    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); _procesarAlertasDesdeLive(supLast); if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); },300); }); }
+    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); _procesarAlertasDesdeLive(supLast); try{actualizarEstadoServicio();}catch(_){} if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); },300); }); }
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
     // Alertas persistentes desde alertas_chofer (respaldo) — no sobreescribe claves LIVE_
     window._alertasVistas=window._alertasVistas||{};
@@ -1920,11 +1925,36 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     else { const mo=document.getElementById('mgmtOv'); if(mo)mo.classList.remove('show'); }
     if(name==='reportes'){ if(typeof openReportes==='function')openReportes(); }
     else { const ro=document.getElementById('repOv'); if(ro)ro.classList.remove('show'); }
+    try{ actualizarEstadoServicio(); }catch(_){}
   }
   window.setSection=setSection; // accesible desde onclick inline
+  // ===== Píldora de estado del servicio (barra superior, todas las secciones) =====
+  function actualizarEstadoServicio(){
+    const el=document.getElementById('shellStatus'); if(!el)return;
+    const tx=document.getElementById('shellStatusTx');
+    if(currentUserRole!=='adm'&&currentUserRole!=='supervisor'){ el.style.display='none'; return; }
+    try{
+      const rutas=mgmtRutas||{}; const live=(typeof liveByRuta==='function')?liveByRuta():{};
+      const today=todayLetter();
+      const now=new Date(); const hoy=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+      const todayIds=Object.keys(rutas).filter(id=>((rutas[id]||{}).freq||[]).includes(today));
+      const nCur=Object.keys(live).length;
+      const nDone=todayIds.filter(id=>{ const v=(rutas[id]||{}).viajes||{}; return v[hoy]&&Object.keys(v[hoy]).length; }).length;
+      const total=todayIds.length;
+      let cls,txt;
+      if(total===0){ cls='ok'; txt='Servicio: sin rutas hoy'; }
+      else if(nDone>=total){ cls='ok'; txt='Servicio: completado · '+nDone+'/'+total+' rutas'; }
+      else if(nCur>0){ cls='ok'; txt='Servicio: en marcha · '+nCur+'/'+total+' rutas activas'; }
+      else { cls=''; txt='Servicio: CRÍTICO · 0/'+total+' rutas en marcha'; }
+      el.className='shell-status'+(cls?' '+cls:'');
+      if(tx)tx.textContent=txt;
+      el.style.display='flex';
+    }catch(_){ el.style.display='none'; }
+  }
+  window.actualizarEstadoServicio=actualizarEstadoServicio;
   // Debounce para auto-actualizaciones de inicio desde listeners de live (evita parpadeo de animaciones)
   let _bITimer=null;
-  function buildInicioSoft(){ if(curSec!=='inicio')return; clearTimeout(_bITimer); _bITimer=setTimeout(buildInicio,3500); }
+  function buildInicioSoft(){ try{ actualizarEstadoServicio(); }catch(_){} if(curSec!=='inicio')return; clearTimeout(_bITimer); _bITimer=setTimeout(buildInicio,3500); }
   function applyTheme(t){ document.body.classList.toggle('dark',t==='dark'); const tx=document.getElementById('umThemeTx'); if(tx)tx.textContent=(t==='dark'?'Modo claro':'Modo oscuro'); const ic=document.querySelector('#umTheme i'); if(ic)ic.className='ti ti-'+(t==='dark'?'sun':'moon'); try{localStorage.setItem('animador_theme',t);}catch(_){ } }
   function toggleTheme(){ applyTheme(document.body.classList.contains('dark')?'light':'dark'); }
   function shellSetup(){

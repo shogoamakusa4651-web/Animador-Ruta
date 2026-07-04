@@ -1,2 +1,3 @@
 app.js
 *.zip
+.claude/launch.json

@@ -774,37 +774,46 @@
   .mon-divider{height:1px;background:rgba(30,28,24,0.06);margin:16px 0 14px;}
   body.dark .mon-divider{background:rgba(255,255,255,.07);}
   /* ===== APP SHELL (ADM) ===== */
-  :root{--rail:204px;--topbar:54px;}
-  .shell-nav{position:fixed;top:0;left:0;bottom:0;width:var(--rail);z-index:3000;background:#2E2C27;color:#fff;display:none;flex-direction:column;padding:14px 11px;font-family:-apple-system,'Segoe UI',sans-serif;}
+  :root{--rail:0px;--topbar:60px;}
+  /* ===== BARRA SUPERIOR HORIZONTAL (Torre de control) ===== */
+  .shell-nav{position:fixed;top:0;left:0;right:0;height:var(--topbar);z-index:3000;background:#0f2418;color:#fff;display:none;flex-direction:row;align-items:center;gap:28px;padding:0 24px;font-family:-apple-system,'Segoe UI',sans-serif;}
   body.adm-shell .shell-nav{display:flex;}
-  .shell-logo{display:flex;align-items:center;gap:10px;padding:4px 6px 18px;}
-  .shell-logo .ic{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#7E9B86,#5B7A66);display:inline-flex;align-items:center;justify-content:center;font-size:16px;color:#fff;flex:none;box-shadow:0 2px 8px rgba(91,122,102,.4);}
-  .shell-logo .tx{display:flex;flex-direction:column;line-height:1.2;}
-  .shell-logo .tx b{font-size:13.5px;font-weight:700;letter-spacing:-.2px;color:#fff;}
-  .shell-logo .tx small{font-size:9.5px;color:#9B988F;font-weight:500;letter-spacing:.2px;}
-  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:10px;color:#C9C6BE;font-size:13px;cursor:pointer;border-left:3px solid transparent;margin-bottom:3px;transition:background .16s,color .16s,border-color .16s;}
+  .shell-logo{display:flex;align-items:center;gap:10px;padding:0;flex:none;}
+  .shell-logo .ic{width:32px;height:32px;border-radius:7px;background:#1f7a45;display:inline-flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex:none;}
+  .shell-logo .tx{display:flex;flex-direction:column;line-height:1.15;}
+  .shell-logo .tx b{font-size:14px;font-weight:700;letter-spacing:-.1px;color:#fff;}
+  .shell-logo .tx small{font-size:10.5px;color:#7fa88f;font-weight:500;letter-spacing:.06em;text-transform:uppercase;}
+  .shell-navitems{display:flex;align-items:center;gap:4px;}
+  .nav-item{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:6px;color:#a9c4b2;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .16s,color .16s;white-space:nowrap;}
   .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
-  .nav-item.on{background:linear-gradient(90deg,rgba(126,155,134,.28),rgba(126,155,134,.1));color:#fff;border-left-color:#7E9B86;}
-  .nav-item i{font-size:17px;width:18px;text-align:center;}
+  .nav-item.on{background:#1f7a45;color:#fff;font-weight:600;}
+  .nav-item i{font-size:16px;width:auto;text-align:center;}
   .nav-chev{margin-left:6px;font-size:14px !important;transition:transform .15s;}
-  .nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#C2402F;color:#fff;font-size:10.5px;font-weight:800;margin-left:auto;}
+  .nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#e5533d;color:#fff;font-size:10.5px;font-weight:800;margin-left:4px;}
   .nav-badge.hide{display:none;}
   #navReportes.open .nav-chev{transform:rotate(180deg);}
-  .nav-sub{display:none;flex-direction:column;margin:2px 0 4px;}
+  .nav-sub{display:none;}
   .nav-sub.open{display:flex;}
-  .nav-subitem{display:flex;align-items:center;gap:9px;padding:8px 11px 8px 22px;color:#B7B4AC;font-size:12.5px;cursor:pointer;border-radius:9px;margin-bottom:2px;}
-  .nav-subitem i{font-size:14px;width:16px;text-align:center;}
-  .nav-subitem:hover{background:rgba(255,255,255,.06);color:#fff;}
-  .nav-subitem.on{background:rgba(126,155,134,.22);color:#fff;}
-  .shell-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding:9px 6px 2px;font-size:11px;color:#8E8B82;}
-  .shell-foot .row{display:flex;align-items:center;gap:8px;cursor:pointer;}
-  .shell-foot .dot{width:7px;height:7px;border-radius:50%;background:#7E9B86;flex:none;}
-  .shell-top{position:fixed;top:0;left:var(--rail);right:0;height:var(--topbar);z-index:2600;display:none;align-items:center;gap:11px;padding:0 18px;background:#FBFAF6;border-bottom:1px solid rgba(30,28,24,.12);box-shadow:0 2px 10px rgba(30,28,24,.05);font-family:-apple-system,'Segoe UI',sans-serif;}
-  body.adm-shell .shell-top{display:flex;}
-  .shell-help{margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border:1px solid rgba(30,28,24,.16);border-radius:9px;background:#fff;color:#55524B;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;}
-  .shell-help:hover{border-color:#CF9A4A;color:#9c6b1f;}
-  .shell-help+.shell-user{margin-left:14px;}
-  body.dark .shell-help{background:#2E2C27;color:#ECEAE3;border-color:rgba(255,255,255,.14);}
+  .shell-nav-right{margin-left:auto;display:flex;align-items:center;gap:14px;}
+  /* Píldora de estado del servicio */
+  .shell-status{display:flex;align-items:center;gap:8px;border-radius:20px;padding:5px 14px 5px 10px;font-size:12.5px;font-weight:600;
+    background:rgba(220,80,60,.15);border:1px solid rgba(220,80,60,.5);color:#ffb3a6;}
+  .shell-status .ss-dot{width:8px;height:8px;border-radius:50%;background:#e5533d;flex:none;animation:pulse 1.6s infinite;}
+  .shell-status.ok{background:rgba(61,220,132,.13);border-color:rgba(61,220,132,.45);color:#9be7bf;}
+  .shell-status.ok .ss-dot{background:#3ddc84;}
+  .shell-status.warn{background:rgba(217,165,63,.15);border-color:rgba(217,165,63,.5);color:#f0cf8a;}
+  .shell-status.warn .ss-dot{background:#d9a53f;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  /* Pie de estado (Firebase + versión) — barra inferior fija */
+  .shell-foot{position:fixed;left:0;right:0;bottom:0;height:24px;z-index:2400;display:none;align-items:center;gap:16px;padding:0 24px;background:#0f2418;font-size:11.5px;color:#7fa88f;font-family:-apple-system,'Segoe UI',sans-serif;}
+  body.adm-shell .shell-foot{display:flex;}
+  .shell-foot .row{display:flex;align-items:center;gap:6px;cursor:pointer;}
+  .shell-foot .dot{width:7px;height:7px;border-radius:50%;background:#3ddc84;flex:none;}
+  .shell-foot .ver{color:#4e6a58;font-size:11.5px;letter-spacing:.3px;}
+  .shell-top{display:none !important;}
+  .shell-help{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border:1px solid rgba(255,255,255,.16);border-radius:9px;background:rgba(255,255,255,.06);color:#cfe3d6;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;}
+  .shell-help:hover{border-color:#3ddc84;color:#fff;}
+  body.dark .shell-help{background:rgba(255,255,255,.06);color:#cfe3d6;border-color:rgba(255,255,255,.16);}
   .help-ov{position:fixed;inset:0;z-index:6000;background:rgba(20,18,15,.45);display:none;align-items:center;justify-content:center;padding:20px;}
   .help-ov.show{display:flex;}
   .help-card{background:#FBFAF6;border-radius:18px;max-width:560px;width:100%;max-height:84vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.3);}
@@ -821,8 +830,10 @@
   @media(max-width:768px){.shell-help span{display:none;}.help-card{max-height:90vh;}}
   .shell-title{font-size:16px;font-weight:500;color:var(--tx0);}
   .shell-badge{font-size:12px;color:#5f7a66;background:rgba(126,155,134,.16);padding:3px 9px;border-radius:8px;}
-  .shell-user{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#44413A;}
-  .shell-user .av{width:28px;height:28px;border-radius:50%;background:#7E9B86;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;}
+  .shell-user{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#d7e5db;cursor:pointer;}
+  .shell-user .av{width:30px;height:30px;border-radius:50%;background:#2a5a3d;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;}
+  /* Secciones: dejar 24px abajo para no quedar tapadas por el pie de estado */
+  body.adm-shell .map-cover,body.adm-shell #secRutas,body.adm-shell #secAdmin,body.adm-shell #secReportes,body.adm-shell #secRecursos{bottom:24px;}
   .map-cover{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:var(--tx0);}
   body.sec-inicio .map-cover{display:block;}
   #secReportes{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:var(--tx0);}
@@ -1467,15 +1478,18 @@
   /* ========= MÓVIL (≤768px): shell ADM adaptado ========= */
   @media(max-width:768px){
     :root{--rail:0px;--topbar:50px;}
-    body.adm-shell .shell-nav{top:auto;bottom:0;left:0;right:0;width:auto;height:auto;flex-direction:row;align-items:stretch;padding:5px 4px calc(5px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 16px rgba(0,0,0,.18);}
-    .shell-logo,.shell-foot{display:none;}
-    .shell-nav .nav-item{flex:1;flex-direction:column;justify-content:center;gap:3px;padding:6px 2px;margin:0;border-left:none;border-top:3px solid transparent;border-radius:9px;font-size:9px;text-align:center;line-height:1.1;overflow:hidden;white-space:nowrap;}
-    .shell-nav .nav-item.on{border-left:none;border-top-color:#7E9B86;}
+    body.adm-shell .shell-nav{top:auto;bottom:0;left:0;right:0;width:auto;height:auto;flex-direction:row;align-items:stretch;gap:0;padding:5px 4px calc(5px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 16px rgba(0,0,0,.18);}
+    .shell-logo,body.adm-shell .shell-foot{display:none;}
+    .shell-navitems{flex:1;display:flex;align-items:stretch;gap:0;}
+    .shell-nav .nav-item{flex:1;flex-direction:column;justify-content:center;gap:3px;padding:6px 2px;margin:0;border-radius:9px;font-size:9px;font-weight:500;text-align:center;line-height:1.1;overflow:hidden;white-space:nowrap;}
+    .shell-nav .nav-item.on{background:#1f7a45;}
     .shell-nav .nav-item i{font-size:19px;width:auto;}
+    /* En móvil el clúster de usuario/ayuda va fijo arriba a la derecha */
+    .shell-nav-right{position:fixed;top:8px;right:10px;left:auto;margin:0;z-index:3200;gap:8px;}
+    .shell-status{display:none !important;}
     .nav-chev{display:none !important;}
-    .nav-sub{position:fixed;left:10px;right:10px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:3100;background:#2E2C27;border-radius:14px;padding:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);margin:0;}
+    .nav-sub{position:fixed;left:10px;right:10px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:3100;background:#0f2418;border-radius:14px;padding:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);margin:0;}
     .nav-subitem{padding:11px 13px;font-size:13.5px;}
-    body.adm-shell .shell-top{left:0;padding:0 12px;}
     .map-cover,#secRutas,#secAdmin,#secReportes{bottom:0;padding-bottom:calc(78px + env(safe-area-inset-bottom,0px));}
     .ini-wrap{padding:16px 14px 40px;}
     body.adm-shell .mon-panel{left:10px;right:10px;width:auto;max-height:36vh;top:calc(var(--topbar) + 8px);}
