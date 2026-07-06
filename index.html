@@ -349,27 +349,22 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   <!-- ESTADO: INICIO (antes de empezar) -->
   <div class="cho-view" id="choInicio">
     <div class="cho-top">
-      <div class="cho-user">
-        <div class="cho-ava"><i class="ti ti-steering-wheel" aria-hidden="true"></i></div>
-        <div class="cho-id">
-          <span class="cho-saludo" id="choSaludo">Buenos días</span>
-          <b id="choNombre">—</b>
-          <small id="choCamion"><i class="ti ti-truck" aria-hidden="true"></i> —</small>
-        </div>
+      <div class="cho-logo"><i class="ti ti-recycle" aria-hidden="true"></i></div>
+      <div class="cho-id">
+        <b>Hola, <span id="choNombre">—</span></b>
+        <small id="choCamion">—</small>
       </div>
-      <div class="cho-topright">
-        <div class="cho-screenlock" id="choLock"><i class="ti ti-bulb" aria-hidden="true"></i><span>Pantalla activa</span></div>
-        <button class="cho-exit" id="choExit" aria-label="Salir"><i class="ti ti-logout" aria-hidden="true"></i></button>
-      </div>
+      <div class="cho-online" id="choLock"><span class="dot"></span><span id="choLockTx">En línea</span></div>
+      <button class="cho-exit" id="choExit" aria-label="Salir"><i class="ti ti-logout" aria-hidden="true"></i></button>
     </div>
     <div class="cho-body" id="choRutasList"></div>
     <div class="cho-foot" id="choFoot">
       <button class="cho-bigbtn verde" id="choStartBtn">
-        <i class="ti ti-player-play" aria-hidden="true"></i>
-        <span>Empezar ruta</span>
+        <i class="ti ti-player-play-filled" aria-hidden="true"></i>
+        <span>INICIAR RUTA</span>
       </button>
       <div class="cho-hint" id="choHint">Toca una ruta y luego Empezar</div>
-      <div id="choVer" style="text-align:center;font-size:11px;color:#8097B1;margin-top:4px;letter-spacing:.3px;"></div>
+      <div class="cho-verbar"><span id="choVer"></span><span>Ayuntamiento de La Vega</span></div>
     </div>
   </div>
 </div>
@@ -4013,7 +4008,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     if(sc){
       sc.classList.remove('hide');
       // Estilos críticos forzados por JS (no dependen del CSS externo ni del caché)
-      sc.style.cssText='position:fixed;inset:0;z-index:99999;background:#042C53;color:#fff;display:flex;flex-direction:column;font-family:-apple-system,Segoe UI,sans-serif;overflow-y:auto;';
+      sc.style.cssText='position:fixed;inset:0;z-index:99999;background:#f4f3ef;color:#1a1f16;display:flex;flex-direction:column;overflow:hidden;';
     }
     const nm=document.getElementById('choNombre'); if(nm)nm.textContent=choferName||choferCode||'Chofer';
     // Resetear estado de progreso: DEBE verificar de nuevo con rutas garantizadas en memoria
@@ -4032,9 +4027,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
   let _wakeLock=null;
   async function pedirWakeLock(){
     try{ if('wakeLock' in navigator){ _wakeLock=await navigator.wakeLock.request('screen');
-      const lk=document.getElementById('choLock'); if(lk){lk.classList.remove('off'); lk.querySelector('span').textContent='Pantalla activa';}
+      const lk=document.getElementById('choLock'); const lkt=document.getElementById('choLockTx'); if(lk){lk.classList.remove('off'); if(lkt)lkt.textContent='En línea';}
       _wakeLock.addEventListener('release',()=>{ const l=document.getElementById('choLock'); if(l)l.classList.add('off'); });
-    } }catch(e){ const lk=document.getElementById('choLock'); if(lk){lk.classList.add('off'); lk.querySelector('span').textContent='Mantén la pantalla'; } }
+    } }catch(e){ const lk=document.getElementById('choLock'); const lkt=document.getElementById('choLockTx'); if(lk){lk.classList.add('off'); if(lkt)lkt.textContent='Pantalla'; } }
   }
   // reintentar wake lock al volver a la pestaña
   document.addEventListener('visibilitychange',()=>{
@@ -4085,23 +4080,26 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     const hint=document.getElementById('choHint');
     const foot=document.getElementById('choFoot');
     if(foot)foot.style.display='';
-    const etLbl=p.etapaIdx>0?'Etapa '+(p.etapaIdx+1)+' de '+(ruta.etapas?ruta.etapas.length:1):'Etapa 1';
+    const nEt=(ruta.etapas&&ruta.etapas.length)?ruta.etapas.length:1;
+    const etNum=(p.etapaIdx||0)+1;
+    const ptNum=(p.nextWpIdx!=null?p.nextWpIdx:(p.doneWps?p.doneWps.length:0));
     if(list)list.innerHTML=''
-      +'<div class="cho-rcard sel" style="border:2px solid #2F7DC2;background:linear-gradient(135deg,#042C53,#0C3A6B);">'
-        +'<div class="pin" style="background:linear-gradient(145deg,#2F7DC2,#4E9BD8);"><i class="ti ti-player-play-filled"></i></div>'
-        +'<div class="info"><b style="color:#fff;">'+esc(ruta.nombre||'Ruta')+'</b>'
-        +'<small style="color:#85B7EB;"><i class="ti ti-refresh"></i> En progreso · '+esc(etLbl)+'</small></div>'
+      +'<div class="cho-section-label">Ruta en progreso</div>'
+      +'<div class="cho-rcard sel" data-rid="'+esc(p.rutaId)+'">'
+        +'<div class="cho-rc-head"><i class="ti ti-player-play-filled ic" aria-hidden="true"></i>'
+          +'<div style="flex:1;min-width:0;"><div class="ov">Retomar donde quedaste</div><div class="nm">'+esc(ruta.nombre||'Ruta')+'</div></div>'
+          +'<div class="chip">Etapa '+etNum+(nEt>1?('/'+nEt):'')+'</div></div>'
       +'</div>'
-      +'<div style="text-align:center;margin-top:14px;">'
-        +'<button id="choNuevaRuta" style="background:none;border:none;color:#8097B1;font-size:13px;text-decoration:underline;cursor:pointer;padding:6px 12px;">Empezar desde cero</button>'
-      +'</div>';
+      +'<div class="cho-mem"><i class="ti ti-history" aria-hidden="true"></i>'
+        +'<div><b>Quedaste en el punto '+ptNum+' de la etapa '+etNum+'</b><small>Al iniciar, retomas exactamente donde te quedaste</small></div></div>'
+      +'<button class="cho-secbtn" id="choNuevaRuta"><i class="ti ti-refresh" aria-hidden="true"></i>Empezar esta ruta desde cero</button>';
     const nr=document.getElementById('choNuevaRuta');
     if(nr)nr.onclick=function(){
       if(!confirm('¿Seguro? Perderás el progreso guardado.'))return;
       limpiarProgresoChofer(); _choProgresoHoy=false; renderChoferInicio();
     };
-    if(btn){ btn.disabled=false; btn.textContent='▶ Retomar ruta';
-      btn.onclick=function(){ choferRutaSel=p.rutaId; choferEmpezar(); }; }
+    if(btn){ btn.disabled=false; const sp=btn.querySelector('span'); if(sp)sp.textContent='RETOMAR RUTA'; else btn.textContent='RETOMAR RUTA';
+      btn.onclick=function(){ window._choIniciarEnSim=false; choferRutaSel=p.rutaId; choferEmpezar(); }; }
     if(hint)hint.textContent='Continúa donde lo dejaste';
   }
 
@@ -4150,7 +4148,9 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }
     const rutas=rutasDelChofer();
     let ficha=''; if(rutas.length){ ficha=rutas[0].r.camion||''; }
-    if(cam)cam.innerHTML='<i class="ti ti-truck" aria-hidden="true"></i> '+(ficha?('Camión '+esc(ficha)):'Sin camión asignado');
+    // Meta del header: código de chofer · camión · fecha
+    const _n=new Date(); const fechaCorta=_n.toLocaleDateString('es-DO',{weekday:'long',day:'numeric',month:'short'});
+    if(cam)cam.textContent=(choferCode||'CH')+(ficha?(' · Camión '+ficha):' · Sin camión')+' · '+fechaCorta;
     if(!list)return;
     if(!rutas.length){
       list.innerHTML='<div class="cho-empty"><div class="ic"><i class="ti ti-clock-pause" aria-hidden="true"></i></div>'
@@ -4162,29 +4162,41 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     // Auto-seleccionar si hay una sola ruta
     if(rutas.length===1) choferRutaSel=rutas[0].id;
     if(!rutas.some(o=>o.id===choferRutaSel)) choferRutaSel=null;
+    const hoy=(()=>{ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); })();
     const label = rutas.length>1 ? '<div class="cho-section-label">Elige tu ruta de hoy</div>' : '<div class="cho-section-label">Tu ruta de hoy</div>';
     list.innerHTML=label+rutas.map(o=>{
       const r=o.r; const sel=(o.id===choferRutaSel);
-      const meta=[]; if(r.sector)meta.push(esc(r.sector));
-      // ¿Esta ruta ya se completó hoy?
-      const hoy=(()=>{ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); })();
       const completada = r.viajes && r.viajes[hoy] && Object.keys(r.viajes[hoy]).length>0;
+      const nEt=(r.etapas&&r.etapas.length)?r.etapas.length:1;
+      let km=0; try{ if(r.etapas&&r.etapas.length){ r.etapas.forEach(e=>{ km+=kmOf(decode(e.wp||'')); }); } else { km=kmOf(decode(r.wp||'')); } }catch(_){}
+      const hrs=km>0?(km/7.5):0; const hTxt=hrs>0?('~'+Math.floor(hrs)+':'+String(Math.round((hrs%1)*60)).padStart(2,'0')):'—';
+      let envTxt='—'; try{ if(r.envios&&r.envios[hoy]){ const e=r.envios[hoy]; const ts=(typeof e==='object')?(e.ts||e.t||null):(typeof e==='number'?e:null); if(ts)envTxt=new Date(ts).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}); } }catch(_){}
+      const ov = completada?'COMPLETADA HOY · puedes repetirla':'RUTA DESPACHADA HOY';
       return '<div class="cho-rcard'+(sel?' sel':'')+(completada?' done':'')+'" data-rid="'+esc(o.id)+'">'
-        +'<div class="pin" style="'+(completada?'background:linear-gradient(145deg,#34C36E,#1F9D55);':'')+'"><i class="ti ti-'+(completada?'check':'map-pin')+'" aria-hidden="true"></i></div>'
-        +'<div class="info"><b>'+esc(r.nombre||'Ruta')+'</b>'
-        +(completada?'<small style="color:#1F9D55;font-weight:700;"><i class="ti ti-circle-check"></i> Completada hoy · puedes hacerla otra vez</small>':(meta.length?'<small><i class="ti ti-map-2" aria-hidden="true"></i> '+meta.join(' · ')+'</small>':''))+'</div>'
-        +'<div class="check"><i class="ti ti-check" aria-hidden="true"></i></div></div>';
-    }).join('');
+        +'<div class="cho-rc-head"><i class="ti ti-'+(completada?'circle-check':'route')+' ic" aria-hidden="true"></i>'
+          +'<div style="flex:1;min-width:0;"><div class="ov">'+ov+'</div><div class="nm">'+esc(r.nombre||'Ruta')+'</div></div>'
+          +'<div class="chip">'+nEt+' etapa'+(nEt!==1?'s':'')+'</div></div>'
+        +'<div class="cho-rc-stats">'
+          +'<div><div class="v">'+(km>0?km.toFixed(1):'—')+'</div><div class="l">km totales</div></div>'
+          +'<div><div class="v">'+hTxt+'</div><div class="l">h estimadas</div></div>'
+          +'<div><div class="v">'+envTxt+'</div><div class="l">enviada</div></div>'
+        +'</div></div>';
+    }).join('')
+    +'<button class="cho-secbtn" id="choProbarBtn"><i class="ti ti-test-pipe" aria-hidden="true"></i>Probar ruta (simulador)</button>';
     // Click en cada tarjeta = seleccionar
     list.querySelectorAll('.cho-rcard').forEach(card=>{
       card.onclick=function(){ choferRutaSel=card.getAttribute('data-rid'); renderChoferInicio(); };
     });
-    // Botón Empezar: habilitado solo si hay ruta seleccionada
+    // Probar ruta: inicia en modo simulación (prueba sin salir a la calle)
+    const pb=document.getElementById('choProbarBtn');
+    if(pb)pb.onclick=function(){ if(!choferRutaSel){ try{toast('Elige una ruta primero');}catch(_){} return; } window._choIniciarEnSim=true; try{ choferEmpezar(); }catch(_){} };
+    // Botón Iniciar: habilitado solo si hay ruta seleccionada
     if(btn){
       btn.disabled=!choferRutaSel;
-      btn.onclick=function(ev){ if(ev){ev.preventDefault();} if(!choferRutaSel)return; try{ choferEmpezar(); }catch(err){ console.error('[chofer] ERROR:', err); } };
+      const sp=btn.querySelector('span'); if(sp)sp.textContent='INICIAR RUTA';
+      btn.onclick=function(ev){ if(ev){ev.preventDefault();} if(!choferRutaSel)return; window._choIniciarEnSim=false; try{ choferEmpezar(); }catch(err){ console.error('[chofer] ERROR:', err); } };
     }
-    if(hint){ hint.textContent = choferRutaSel ? 'Listo. Toca Empezar ruta' : (rutas.length>1?'Toca una ruta para elegirla':'Toca Empezar ruta'); }
+    if(hint){ hint.textContent = choferRutaSel ? 'Listo. Toca Iniciar ruta' : (rutas.length>1?'Toca una ruta para elegirla':'Toca Iniciar ruta'); }
   }
   // Estado del turno del chofer
   let choferTurno={activo:false, rutaId:null, etapas:[], etapaIdx:0, totalEtapas:1};
@@ -4522,6 +4534,8 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     bindChofBtn('choAsistGps', ()=>toggleAsistenciaGps());
     if(hayProxima){ const cp=document.getElementById('choProxEtapa'); if(cp)cp.onclick=function(){
       confirmarChofer({titulo:'Continuar a la próxima etapa', mensaje:'¿Quieres adelantar a '+esc(nomSig)+' ahora? Se avisará al centro de control.', textoOk:'Sí, continuar', colorOk:'#1F9D55', onOk:()=>{ avanzarEtapaChofer(true); }}); }; }
+    // Si el chofer pulsó "Probar ruta (simulador)" en la pantalla de inicio, arrancar la simulación
+    if(window._choIniciarEnSim){ window._choIniciarEnSim=false; setTimeout(()=>{ try{ if(!choSimOn && waypoints&&waypoints.length>1) iniciarSimulacion(); }catch(_){} }, 1200); }
   }
   function montarBotonProximaEtapa(){ /* integrado en montarBarraChofer */ }
   // Activar/desactivar el asistente GPS (ORS). Al desactivar, resetea para tomar el nuevo punto al reactivar.
