@@ -781,7 +781,7 @@
   .shell-logo{display:flex;align-items:center;gap:10px;padding:0;flex:none;}
   .shell-logo .ic{width:32px;height:32px;border-radius:7px;background:#1f7a45;display:inline-flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex:none;}
   .shell-logo .tx{display:flex;flex-direction:column;line-height:1.15;}
-  .shell-logo .tx b{font-size:14px;font-weight:700;letter-spacing:-.1px;color:#fff;}
+  .shell-logo .tx b{font-family:'Archivo','Segoe UI',sans-serif;font-size:14px;font-weight:700;letter-spacing:-.1px;color:#fff;}
   .shell-logo .tx small{font-size:10.5px;color:#7fa88f;font-weight:500;letter-spacing:.06em;text-transform:uppercase;}
   .shell-navitems{display:flex;align-items:center;gap:4px;}
   .nav-item{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:6px;color:#a9c4b2;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .16s,color .16s;white-space:nowrap;}
@@ -899,6 +899,22 @@
   .tc-fleetbar i{display:block;height:100%;}
   .tc-foot-sub{display:flex;justify-content:space-between;font-size:12px;color:#6b7263;}
   .tc-foot-ok{color:#1f7a45;display:flex;align-items:center;gap:5px;}
+  /* Dashboard responsive: laptop angosto → dock más estrecho */
+  @media(max-width:1100px){
+    .tc-dock{width:340px;}
+    .tc-mapfull{right:356px;}
+    .tc-kpi{padding:0 14px;gap:9px;}
+    .tc-kpi .v{font-size:22px;}
+  }
+  /* Tablet/móvil: KPIs con scroll horizontal, dock como panel inferior sobre el mapa */
+  @media(max-width:768px){
+    .tc-kpis{grid-template-columns:repeat(5,minmax(130px,1fr));overflow-x:auto;height:60px;}
+    .tc-main{display:block;}
+    .tc-dock{top:auto;left:0;right:0;bottom:0;width:auto;height:54%;border-left:none;border-top:1px solid #dcdad2;box-shadow:0 -6px 20px rgba(0,0,0,.12);}
+    body.dark .tc-dock{border-top-color:rgba(255,255,255,.08);}
+    .tc-mapfull{right:12px;bottom:calc(54% + 12px);}
+    .tc-mapchips{top:10px;left:10px;}
+  }
   #secReportes{position:fixed;top:var(--topbar);left:var(--rail);right:0;bottom:0;z-index:1500;background:#F4F3F0;display:none;overflow-y:auto;font-family:-apple-system,'Segoe UI',sans-serif;color:var(--tx0);}
   body.sec-reportes #secReportes{display:block;}
   body.dark #secReportes{background:#1A1916;color:#ECEAE3;}
