@@ -258,55 +258,69 @@
 /* ============================================================
    PANTALLA DEL CHOFER — diseño cálido, claro, para 50-60 años
    ============================================================ */
-#choferScreen{ background:linear-gradient(170deg,#0A3D62 0%,#0C447C 55%,#06304F 100%) !important; }
-#choferScreen .cho-view{ flex:1; display:flex; flex-direction:column; padding:0; max-width:600px; margin:0 auto; width:100%; box-sizing:border-box; }
-/* Header cálido */
-#choferScreen .cho-top{ display:flex; align-items:flex-start; justify-content:space-between; padding:26px 22px 18px; }
-#choferScreen .cho-user{ display:flex; align-items:center; gap:14px; }
-#choferScreen .cho-ava{ width:54px; height:54px; border-radius:16px; background:linear-gradient(145deg,#2E7DF2,#185FA5); display:flex; align-items:center; justify-content:center; font-size:28px; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(0,0,0,.25); }
-#choferScreen .cho-id{ display:flex; flex-direction:column; }
-#choferScreen .cho-saludo{ font-size:13px; color:#9FC4E8; font-weight:500; letter-spacing:.2px; }
-#choferScreen .cho-id b{ display:block; font-size:23px; font-weight:700; color:#fff; line-height:1.15; letter-spacing:-.3px; }
-#choferScreen .cho-id small{ display:flex; align-items:center; gap:5px; font-size:13px; color:#9FC4E8; margin-top:3px; }
-#choferScreen .cho-topright{ display:flex; align-items:center; gap:8px; }
-#choferScreen .cho-screenlock{ display:none; }
-#choferScreen .cho-exit{ width:44px; height:44px; border-radius:13px; background:rgba(255,255,255,.1); border:none; color:#cfe2f5; font-size:21px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .15s; }
-#choferScreen .cho-exit:active{ background:rgba(255,255,255,.2); }
-/* Cuerpo: tarjetas de ruta */
-#choferScreen .cho-body{ flex:1; display:flex; flex-direction:column; gap:14px; padding:8px 18px 18px; overflow-y:auto; }
-#choferScreen .cho-section-label{ font-size:12px; font-weight:700; letter-spacing:1.2px; color:#7FB0DD; text-transform:uppercase; margin:6px 4px 2px; }
-#choferScreen .cho-rcard{ background:#fff; border-radius:20px; padding:18px; display:flex; align-items:center; gap:15px; cursor:pointer; border:3px solid transparent; transition:transform .12s, border-color .15s, box-shadow .15s; box-shadow:0 6px 20px rgba(0,0,0,.18); position:relative; }
-#choferScreen .cho-rcard:active{ transform:scale(.98); }
-#choferScreen .cho-rcard.sel{ border-color:#1F9D55; box-shadow:0 8px 26px rgba(31,157,85,.35); }
-#choferScreen .cho-rcard .pin{ width:54px; height:54px; border-radius:15px; background:linear-gradient(145deg,#34C36E,#1F9D55); display:flex; align-items:center; justify-content:center; font-size:27px; color:#fff; flex-shrink:0; }
-#choferScreen .cho-rcard .info{ flex:1; min-width:0; }
-#choferScreen .cho-rcard .info b{ display:block; font-size:19px; font-weight:700; color:#152B3C; line-height:1.2; letter-spacing:-.2px; }
-#choferScreen .cho-rcard .info small{ display:flex; align-items:center; gap:6px; font-size:14px; color:#6B8299; margin-top:4px; font-weight:500; }
-#choferScreen .cho-rcard .check{ width:30px; height:30px; border-radius:50%; border:2.5px solid #D4DEE7; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; transition:all .15s; }
-#choferScreen .cho-rcard.sel .check{ background:#1F9D55; border-color:#1F9D55; }
-#choferScreen .cho-rcard .check i{ font-size:18px; opacity:0; transition:opacity .15s; }
-#choferScreen .cho-rcard.sel .check i{ opacity:1; }
+/* ===== Rediseño Torre de Control (celular) — fuente de verdad, alta especificidad ===== */
+#choferScreen{ background:#f4f3ef !important; font-family:'IBM Plex Sans',-apple-system,Segoe UI,sans-serif; }
+#choferScreen .cho-view{ flex:1; display:flex; flex-direction:column; padding:0; margin:0; width:100%; box-sizing:border-box; min-height:0; }
+/* Header verde oscuro */
+#choferScreen .cho-top{ display:flex; align-items:center; gap:12px; background:#0f2418; padding:16px 18px; flex:none; }
+#choferScreen .cho-logo{ width:36px; height:36px; border-radius:8px; background:#1f7a45; display:flex; align-items:center; justify-content:center; font-size:20px; color:#fff; flex:none; }
+#choferScreen .cho-id{ flex:1; min-width:0; display:block; }
+#choferScreen .cho-id b{ display:block; font-family:'Archivo',sans-serif; font-size:15px; font-weight:700; color:#fff; line-height:1.2; }
+#choferScreen .cho-id small{ display:block; font-size:11.5px; color:#7fa88f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#choferScreen .cho-online{ display:flex; align-items:center; gap:6px; background:rgba(61,220,132,.14); border:1px solid rgba(61,220,132,.4); border-radius:16px; padding:4px 10px; font-size:11px; font-weight:600; color:#9fdcb6; flex:none; }
+#choferScreen .cho-online .dot{ width:7px; height:7px; border-radius:50%; background:#3ddc84; flex:none; }
+#choferScreen .cho-online.off{ background:rgba(224,120,60,.14); border-color:rgba(224,120,60,.4); color:#f0c090; }
+#choferScreen .cho-online.off .dot{ background:#e6b45a; }
+#choferScreen .cho-exit{ width:36px; height:36px; border-radius:9px; background:rgba(255,255,255,.08); border:none; color:#9fdcb6; font-size:18px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; }
+#choferScreen .cho-exit:active{ transform:scale(.95); }
+/* Cuerpo */
+#choferScreen .cho-body{ flex:1; display:flex; flex-direction:column; gap:14px; padding:18px 16px; overflow-y:auto; min-height:0; }
+#choferScreen .cho-section-label{ font-size:12px; font-weight:600; letter-spacing:.04em; color:#6b7263; text-transform:uppercase; }
+/* Tarjeta de ruta despachada */
+#choferScreen .cho-rcard{ display:block; background:#fff; border:1px solid #e3e1d8; border-radius:14px; padding:0; overflow:hidden; cursor:pointer; box-shadow:none; transition:border-color .14s, box-shadow .14s; }
+#choferScreen .cho-rcard:active{ transform:scale(.99); }
+#choferScreen .cho-rcard.sel{ border-color:#1f7a45; box-shadow:0 0 0 2px rgba(31,122,69,.18); }
+#choferScreen .cho-rcard.done{ opacity:.75; }
+#choferScreen .cho-rc-head{ background:#14532d; padding:14px 18px; display:flex; align-items:center; gap:10px; }
+#choferScreen .cho-rcard.done .cho-rc-head{ background:#5f6b5a; }
+#choferScreen .cho-rc-head .ic{ font-size:20px; color:#9fdcb6; flex:none; }
+#choferScreen .cho-rc-head .ov{ font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; font-weight:600; color:#9fdcb6; }
+#choferScreen .cho-rc-head .nm{ font-family:'Archivo',sans-serif; font-weight:700; font-size:19px; color:#fff; line-height:1.15; }
+#choferScreen .cho-rc-head .chip{ background:rgba(255,255,255,.12); border-radius:8px; padding:5px 10px; color:#d7e5db; font-family:'IBM Plex Mono',monospace; font-size:12px; flex:none; }
+#choferScreen .cho-rc-stats{ padding:14px 18px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+#choferScreen .cho-rc-stats .v{ font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:600; color:#1a1f16; }
+#choferScreen .cho-rc-stats .l{ font-size:11px; color:#8a8f7f; }
+/* Aviso de memoria de ruta */
+#choferScreen .cho-mem{ background:#fff8ea; border:1px solid #ecd9ac; border-radius:12px; padding:13px 16px; display:flex; align-items:center; gap:12px; }
+#choferScreen .cho-mem i{ font-size:22px; color:#b07d1e; flex:none; }
+#choferScreen .cho-mem b{ display:block; font-size:13.5px; font-weight:600; color:#7a5a14; }
+#choferScreen .cho-mem small{ display:block; font-size:12px; color:#a58840; }
+/* Secundario "Probar ruta" / "Empezar desde cero" */
+#choferScreen .cho-secbtn{ height:52px; width:100%; background:#fff; border:1px solid #dcdad2; border-radius:12px; color:#454a3e; font-size:15px; font-weight:600; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:9px; cursor:pointer; }
+#choferScreen .cho-secbtn:active{ transform:scale(.98); }
+#choferScreen .cho-secbtn i{ font-size:18px; color:#6b7263; }
 /* Estado vacío */
-#choferScreen .cho-empty{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#9FC4E8; gap:16px; padding:50px 30px; }
-#choferScreen .cho-empty .ic{ width:90px; height:90px; border-radius:50%; background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; }
-#choferScreen .cho-empty .ic i{ font-size:46px; color:#7FB0DD; }
-#choferScreen .cho-empty b{ font-size:19px; color:#fff; font-weight:600; }
-#choferScreen .cho-empty span{ font-size:15px; max-width:260px; line-height:1.4; }
-/* Footer con botón Empezar */
-#choferScreen .cho-foot{ padding:16px 18px calc(18px + env(safe-area-inset-bottom,0)); }
-#choferScreen .cho-bigbtn{ border:none; border-radius:20px; padding:24px; display:flex; align-items:center; justify-content:center; gap:14px; cursor:pointer; width:100%; box-shadow:0 8px 28px rgba(31,157,85,.4); transition:transform .12s, opacity .15s; }
+#choferScreen .cho-empty{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#8a8f7f; gap:12px; padding:40px 24px; }
+#choferScreen .cho-empty .ic{ width:72px; height:72px; border-radius:50%; background:#eceae3; display:flex; align-items:center; justify-content:center; }
+#choferScreen .cho-empty .ic i{ font-size:38px; color:#9a9f8f; }
+#choferScreen .cho-empty b{ font-size:17px; color:#1a1f16; font-weight:600; }
+#choferScreen .cho-empty span{ font-size:14px; max-width:280px; line-height:1.5; }
+/* Footer con botón primario */
+#choferScreen .cho-foot{ flex:none; padding:14px 16px calc(14px + env(safe-area-inset-bottom,0)); background:#f4f3ef; border-top:1px solid #e3e1d8; display:flex; flex-direction:column; gap:10px; }
+#choferScreen .cho-bigbtn{ border:none; border-radius:12px; height:60px; padding:0; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; width:100%; box-shadow:none; font-family:'Archivo',sans-serif; transition:transform .12s, background .12s, opacity .15s; }
 #choferScreen .cho-bigbtn:active{ transform:scale(.98); }
-#choferScreen .cho-bigbtn.verde{ background:linear-gradient(145deg,#34C36E,#1F9D55); }
-#choferScreen .cho-bigbtn i{ font-size:34px; color:#fff; }
-#choferScreen .cho-bigbtn span{ font-size:22px; font-weight:700; color:#fff; letter-spacing:.2px; }
+#choferScreen .cho-bigbtn.verde{ background:#1f7a45; }
+#choferScreen .cho-bigbtn.verde:active{ background:#186238; }
+#choferScreen .cho-bigbtn i{ font-size:20px; color:#fff; }
+#choferScreen .cho-bigbtn span{ font-size:18px; font-weight:700; color:#fff; letter-spacing:0; }
 #choferScreen .cho-bigbtn:disabled{ opacity:.45; box-shadow:none; }
-#choferScreen .cho-hint{ text-align:center; font-size:13px; color:#7FB0DD; margin-top:12px; }
-/* Pastilla "pantalla activa" reubicada en el header como mini-chip */
-#choferScreen .cho-chip{ display:inline-flex; align-items:center; gap:5px; background:rgba(250,199,117,.15); color:#FAC775; padding:5px 10px; border-radius:20px; font-size:12px; font-weight:600; margin-top:6px; }
+#choferScreen .cho-hint{ text-align:center; font-size:12.5px; color:#8a8f7f; margin:0; }
+#choferScreen .cho-verbar{ display:flex; justify-content:space-between; align-items:center; padding:6px 4px 0; }
+#choferScreen .cho-verbar span:first-child{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#a7a49b; }
+#choferScreen .cho-verbar span:last-child{ font-size:11px; color:#8a8f7f; }
 @media (max-width:380px){
-  #choferScreen .cho-id b{ font-size:21px; }
-  #choferScreen .cho-rcard .info b{ font-size:18px; }
-  #choferScreen .cho-bigbtn span{ font-size:20px; }
+  #choferScreen .cho-rc-head .nm{ font-size:18px; }
+  #choferScreen .cho-bigbtn span{ font-size:17px; }
 }
 /* ===== MODO CHOFER EN RUTA: ocultar TODO el chrome del animador ===== */
 body.chofer-ruta-activa #panel,
