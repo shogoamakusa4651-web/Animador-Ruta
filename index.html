@@ -345,17 +345,55 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
 /* Barra superior del chofer y botones de acción */
 #choBar{ box-sizing:border-box; }
 #choActs{ box-sizing:border-box; }
-#choActs button{ box-sizing:border-box; min-height:78px; }
+/* ===== EN RUTA (rediseño Torre de Control) ===== */
+/* Barra de progreso de la etapa */
+#choActs .cho-prog{ display:flex; flex-direction:column; gap:6px; }
+#choActs .cho-prog-top{ display:flex; justify-content:space-between; align-items:center; font-size:11.5px; }
+#choActs .cho-prog-top span{ color:#9fb3c8; font-weight:600; }
+#choActs .cho-prog-top b{ color:#7fd4a3; font-family:'IBM Plex Mono',monospace; font-weight:600; }
+#choActs .cho-prog-bar{ height:8px; border-radius:4px; background:#1d2530; overflow:hidden; }
+#choActs .cho-prog-bar i{ display:block; height:100%; background:linear-gradient(90deg,#1f7a45,#3ddc84); transition:width .4s; }
+/* Botones anchos (próxima etapa / asistente) */
+#choActs .cho-widebtn{ border:none; border-radius:12px; padding:14px; font-size:15px; font-weight:700; font-family:'IBM Plex Sans',sans-serif; color:#fff; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; min-height:0; }
+#choActs .cho-widebtn i{ font-size:20px; }
+#choActs .cho-widebtn.verde{ background:#1f7a45; }
+#choActs .cho-widebtn.azul{ background:#1b3a5c; color:#cfe3f5; }
+#choActs .cho-widebtn:active{ transform:scale(.99); }
+/* Fila de km del desvío (estado pausa) */
+#choActs .cho-pausarow{ display:flex; justify-content:space-between; align-items:center; padding:0 4px; }
+#choActs .cho-pausarow span{ color:#9fb3c8; font-size:12.5px; }
+#choActs .cho-pausarow b{ color:#e6b45a; font-family:'IBM Plex Mono',monospace; font-size:17px; font-weight:600; }
+/* Grilla de acciones */
+#choActs .cho-actgrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#choActs .cho-actbtn{ background:#131a24; border:1px solid #222c38; border-radius:12px; padding:0; min-height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; cursor:pointer; color:#e8edf2; font-family:'IBM Plex Sans',sans-serif; transition:transform .12s,background .12s; }
+#choActs .cho-actbtn:active{ transform:scale(.97); background:#182131; }
+#choActs .cho-actbtn i{ font-size:22px; }
+#choActs .cho-actbtn span{ font-size:12px; font-weight:600; color:#e8edf2; }
+/* Banner de instrucción (turnCard reestilizado a ancho completo, bajo la barra) */
+body.chofer-ruta-activa #turnCard{ top:64px !important; left:0 !important; right:0 !important; max-width:none !important; width:auto !important;
+  border-radius:0 !important; background:#14532d !important; border:none !important; box-shadow:0 4px 14px rgba(0,0,0,.35) !important;
+  padding:14px 16px !important; flex-direction:row !important; align-items:center !important; gap:14px !important; backdrop-filter:none !important; }
+body.chofer-ruta-activa #turnCard .turn-min{ display:none !important; }
+body.chofer-ruta-activa #turnCard .turn-label{ display:none !important; }
+body.chofer-ruta-activa #turnCard .turn-row{ display:flex !important; align-items:center !important; gap:14px !important; flex:1 !important; }
+body.chofer-ruta-activa #turnCard .turn-arrow{ width:56px !important; height:56px !important; border-radius:14px !important; background:#1f7a45 !important; color:#fff !important; display:flex !important; align-items:center !important; justify-content:center !important; font-size:32px !important; text-shadow:none !important; flex:none !important; }
+body.chofer-ruta-activa #turnCard .turn-distance{ font-family:'IBM Plex Mono',monospace !important; font-size:13px !important; font-weight:600 !important; color:#9fdcb6 !important; text-transform:uppercase; letter-spacing:.04em; }
+body.chofer-ruta-activa #turnCard .turn-detail{ font-family:'Archivo',sans-serif !important; font-weight:700 !important; font-size:22px !important; color:#fff !important; line-height:1.1 !important; }
+body.chofer-ruta-activa #turnCard .turn-note{ display:none !important; }
+/* Píldora GPS flotante sobre el mapa */
+#choGpsPill{ position:fixed; top:78px; right:12px; z-index:6001; display:none; align-items:center; gap:6px; background:rgba(8,14,24,.88); border:1px solid rgba(61,220,132,.4); border-radius:16px; padding:5px 11px; font-size:11px; font-weight:600; color:#9fdcb6; font-family:'IBM Plex Sans',sans-serif; }
+body.chofer-ruta-activa #choGpsPill{ display:flex; }
+#choGpsPill .dot{ width:7px; height:7px; border-radius:50%; background:#3ddc84; }
+#choGpsPill.warn{ border-color:rgba(230,180,90,.5); color:#e6b45a; } #choGpsPill.warn .dot{ background:#e6b45a; }
+#choGpsPill.bad{ border-color:rgba(224,90,60,.5); color:#e5895a; } #choGpsPill.bad .dot{ background:#e05a3c; }
+#choActs button{ box-sizing:border-box; }
 /* Responsive móvil */
 @media (max-width:640px){
-  #choBar{ padding:10px 12px !important; }
+  #choBar{ padding:11px 14px !important; }
   #choBar b{ font-size:15px !important; }
-  #choActs{ padding:8px !important; gap:8px !important; }
-  #choActs button{ padding:14px 6px !important; min-height:70px; border-radius:12px !important; }
-  #choActs button i{ font-size:28px !important; }
-  #choActs button span{ font-size:13px !important; }
-  #choferScreen .cho-view{ padding:14px; }
-  #choferScreen .cho-bigbtn{ padding:22px; }
+  #choActs .cho-actbtn{ min-height:62px; }
+  #choActs .cho-actbtn i{ font-size:22px; }
+  #choActs .cho-actbtn span{ font-size:12px; }
 }
 </style>
 <!-- ===== PANTALLA DEL CHOFER ===== -->
@@ -4464,19 +4502,23 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     let bar=document.getElementById('choBar');
     if(!bar){
       bar=document.createElement('div'); bar.id='choBar';
-      bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:6000;background:#042C53;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:-apple-system,Segoe UI,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.4);';
+      bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:6000;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:IBM Plex Sans,-apple-system,Segoe UI,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.3);';
       document.body.appendChild(bar);
     }
+    const _pausa = choferPausado || ((typeof choferAccion!=='undefined')&&!!choferAccion.enCurso);
+    bar.style.background = _pausa ? '#7a5a14' : '#0f2418';
     const hayEtapas=choferTurno.totalEtapas>1;
     const nomEt=(choferTurno.etapas[choferTurno.etapaIdx]&&choferTurno.etapas[choferTurno.etapaIdx].nombre)||('Etapa '+(choferTurno.etapaIdx+1));
-    const subtit = hayEtapas ? (esc(nomEt)+' · '+(choferTurno.etapaIdx+1)+' de '+choferTurno.totalEtapas) : 'Sigue la línea de tu ruta';
-    bar.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'
-      +'<i class="ti ti-map-pin" style="font-size:22px;color:#85B7EB;"></i>'
-      +'<div><b style="font-size:16px;">'+esc((r&&r.nombre)||'Ruta')+'</b><div style="font-size:12px;color:#85B7EB;">'+subtit+'</div></div></div>'
-      +'<div style="display:flex;align-items:center;gap:8px;">'
-      +'<div style="display:flex;align-items:center;gap:5px;background:'+(choferPausado?'#7A5C12':'#0C447C')+';padding:6px 10px;border-radius:8px;font-size:12px;color:#FAC775;"><i class="ti ti-bulb"></i> '+(choferPausado?'En pausa':'Activa')+'</div>'
-      +'<button id="choBarPausa" style="width:40px;height:40px;border-radius:9px;background:'+(choferPausado?'#1F9D55':'#B0843C')+';border:none;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-'+(choferPausado?'player-play':'player-pause')+'"></i></button>'
-      +'<button id="choBarExit" style="width:40px;height:40px;border-radius:9px;background:#0C447C;border:none;color:#85B7EB;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-logout"></i></button>'
+    let subtit = hayEtapas ? (esc(nomEt)+' · '+(choferTurno.etapaIdx+1)+' de '+choferTurno.totalEtapas) : 'Sigue la línea de tu ruta';
+    if((typeof choferAccion!=='undefined')&&choferAccion.enCurso==='lleno')subtit='RUTA EN PAUSA · botando basura';
+    else if((typeof choferAccion!=='undefined')&&choferAccion.enCurso==='combustible')subtit='RUTA EN PAUSA · combustible';
+    const acc1=_pausa?'#ffe9b8':'#9fdcb6';
+    bar.innerHTML='<div style="display:flex;align-items:center;gap:10px;min-width:0;">'
+      +'<i class="ti ti-'+(_pausa?'player-pause-filled':'map-pin')+'" style="font-size:22px;color:'+acc1+';flex:none;"></i>'
+      +'<div style="min-width:0;"><b style="font-family:Archivo,sans-serif;font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc((r&&r.nombre)||'Ruta')+'</b><div style="font-size:12px;color:'+acc1+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+subtit+'</div></div></div>'
+      +'<div style="display:flex;align-items:center;gap:8px;flex:none;">'
+      +'<button id="choBarPausa" style="width:40px;height:40px;border-radius:10px;background:'+(choferPausado?'#1f7a45':'rgba(255,255,255,.1)')+';border:none;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-'+(choferPausado?'player-play':'player-pause')+'"></i></button>'
+      +'<button id="choBarExit" style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.1);border:none;color:'+acc1+';font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><i class="ti ti-logout"></i></button>'
       +'</div>';
     const bx=document.getElementById('choBarExit'); if(bx)bx.onclick=confirmarSalidaChofer;
     const bp=document.getElementById('choBarPausa'); if(bp)bp.onclick=togglePausaChofer;
@@ -4518,27 +4560,41 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     let acts=document.getElementById('choActs');
     if(!acts){
       acts=document.createElement('div'); acts.id='choActs';
-      acts.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:6000;display:flex;flex-direction:column;gap:8px;padding:10px;font-family:-apple-system,Segoe UI,sans-serif;';
+      acts.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:6000;display:flex;flex-direction:column;gap:10px;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));background:#0e131b;border-top:1px solid #1d2530;font-family:IBM Plex Sans,-apple-system,Segoe UI,sans-serif;';
       document.body.appendChild(acts);
     }
     const sig=choferTurno.etapaIdx+1;
     const hayProxima = choferTurno.totalEtapas>1 && (sig<choferTurno.totalEtapas);
     const nomSig=(choferTurno.etapas[sig]&&choferTurno.etapas[sig].nombre)||('Etapa '+(sig+1));
     let html='';
+    // Barra de progreso de la etapa (rediseño): % + km recorridos
+    const _tot=(typeof waypoints!=='undefined'&&waypoints.length)?waypoints.length:0;
+    const _pg=_tot?Math.max(0,Math.min(100,Math.round((doneWps.size/_tot)*100))):0;
+    const _km=(typeof kmRuta!=='undefined')?(Number(kmRuta)||0):0;
+    html+='<div class="cho-prog"><div class="cho-prog-top"><span>Progreso de la etapa</span><b>'+_pg+'% · '+_km.toFixed(1)+' km</b></div>'
+      +'<div class="cho-prog-bar"><i style="width:'+_pg+'%"></i></div></div>';
+    // Estado PAUSA (botando basura / combustible): botón prominente para volver a la ruta
+    const _enAccion=(typeof choferAccion!=='undefined')?choferAccion.enCurso:null;
+    if(_enAccion==='lleno'||_enAccion==='combustible'){
+      const _kmDesv=(typeof kmVertedero!=='undefined'&&_enAccion==='lleno')?(Number(kmVertedero)||0):((typeof kmCombustible!=='undefined')?(Number(kmCombustible)||0):0);
+      html+='<div class="cho-pausarow"><span>Km del desvío (ida y vuelta)</span><b>'+_kmDesv.toFixed(1)+' km</b></div>';
+      html+='<button id="choVolver" class="cho-widebtn verde" style="height:58px;font-size:16px;"><i class="ti ti-navigation"></i> '+(_enAccion==='lleno'?'YA BOTÉ — LLÉVAME DE VUELTA':'YA CARGUÉ — LLÉVAME DE VUELTA')+'</button>';
+      html+='<div style="text-align:center;color:#5f7186;font-size:11.5px;">El asistente te guía al punto exacto donde pausaste</div>';
+    }
     // Fila 1 (si aplica): Continuar a la próxima etapa, ancho completo
     if(hayProxima){
-      html+='<button id="choProxEtapa" style="background:#1F9D55;color:#fff;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 3px 12px rgba(31,157,85,.35);"><i class="ti ti-arrow-right-circle" style="font-size:22px;"></i> Continuar a '+esc(nomSig)+'</button>';
+      html+='<button id="choProxEtapa" class="cho-widebtn verde"><i class="ti ti-arrow-right-circle"></i> Continuar a '+esc(nomSig)+'</button>';
     }
     // Fila ASISTENCIA: botón ancho para activar/desactivar la guía GPS (ORS) hacia inicio/reintegro
     const asistOn = guiaActiva;
-    html+='<button id="choAsistGps" style="background:'+(asistOn?'#1F9D55':'#0C447C')+';color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">'
-      +'<i class="ti ti-'+(asistOn?'navigation-off':'navigation')+'" style="font-size:20px;"></i> '+(asistOn?'Desactivar asistente de llegada':'Activar asistente para llegar / reintegrarme')+'</button>';
-    // Fila: los 4 botones de acción en grilla 2x2
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-      +botonChofer('choLleno','#EF9F27','#412402','ti-trash','Capacidad máxima')
-      +botonChofer('choCombustible','#2F7DC2','#fff','ti-gas-station','Combustible')
-      +botonChofer('choReporte','#E24B4A','#fff','ti-alert-triangle','Reporte')
-      +botonChofer('choObstaculo','#8B5CF6','#fff','ti-barrier-block','Obstáculo')
+    html+='<button id="choAsistGps" class="cho-widebtn'+(asistOn?' verde':' azul')+'">'
+      +'<i class="ti ti-'+(asistOn?'navigation-off':'navigation')+'"></i> '+(asistOn?'Desactivar asistente de llegada':'Activar asistente para llegar / reintegrarme')+'</button>';
+    // Fila: los 4 botones de acción en grilla 2x2, tarjetas oscuras con iconos de color
+    html+='<div class="cho-actgrid">'
+      +botonChofer('choLleno','#7fd4a3','','ti-trash','Botar basura')
+      +botonChofer('choCombustible','#6ea8ff','','ti-gas-station','Combustible')
+      +botonChofer('choReporte','#e56b5a','','ti-alert-triangle','Reporte')
+      +botonChofer('choObstaculo','#e6b45a','','ti-barrier-block','Obstáculo')
       +'</div>';
     acts.innerHTML=html;
     bindChofBtn('choLleno', ()=>accionLleno());
@@ -4546,10 +4602,34 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     bindChofBtn('choReporte', ()=>accionAlerta('reporte','Reporte de avería o urgencia'));
     bindChofBtn('choObstaculo', ()=>accionAlerta('obstaculo','Obstáculo que impide la ruta'));
     bindChofBtn('choAsistGps', ()=>toggleAsistenciaGps());
+    bindChofBtn('choVolver', ()=>{ if((typeof choferAccion!=='undefined')&&choferAccion.enCurso==='combustible')accionCombustible(); else accionLleno(); });
     if(hayProxima){ const cp=document.getElementById('choProxEtapa'); if(cp)cp.onclick=function(){
       confirmarChofer({titulo:'Continuar a la próxima etapa', mensaje:'¿Quieres adelantar a '+esc(nomSig)+' ahora? Se avisará al centro de control.', textoOk:'Sí, continuar', colorOk:'#1F9D55', onOk:()=>{ avanzarEtapaChofer(true); }}); }; }
+    // Píldora GPS flotante (precisión de señal)
+    if(!document.getElementById('choGpsPill')){
+      const gp=document.createElement('div'); gp.id='choGpsPill';
+      gp.innerHTML='<span class="dot"></span><span id="choGpsPillTx">GPS</span>';
+      document.body.appendChild(gp);
+    }
+    try{ actualizarChoferHUD(); }catch(_){}
     // Si el chofer pulsó "Probar ruta (simulador)" en la pantalla de inicio, arrancar la simulación
     if(window._choIniciarEnSim){ window._choIniciarEnSim=false; setTimeout(()=>{ try{ if(!choSimOn && waypoints&&waypoints.length>1) iniciarSimulacion(); }catch(_){} }, 1200); }
+  }
+  // Actualiza el HUD del chofer en ruta: barra de progreso + píldora GPS (sin reconstruir toda la barra)
+  function actualizarChoferHUD(){
+    if(currentUserRole!=='chofer' || !choferTurno.activo) return;
+    try{
+      const tot=(typeof waypoints!=='undefined'&&waypoints.length)?waypoints.length:0;
+      const pg=tot?Math.max(0,Math.min(100,Math.round((doneWps.size/tot)*100))):0;
+      const km=(typeof kmRuta!=='undefined')?(Number(kmRuta)||0):0;
+      const bar=document.querySelector('#choActs .cho-prog-bar i'); if(bar)bar.style.width=pg+'%';
+      const tx=document.querySelector('#choActs .cho-prog-top b'); if(tx)tx.textContent=pg+'% · '+km.toFixed(1)+' km';
+      const pill=document.getElementById('choGpsPill'); const pt=document.getElementById('choGpsPillTx');
+      if(pill&&pt){ const acc=(typeof lastAccuracy==='number')?lastAccuracy:null;
+        if(acc==null){ pill.className='bad'; pt.textContent='Buscando GPS'; }
+        else { pt.textContent='GPS ±'+Math.round(acc)+'m'; pill.className = acc<15?'':(acc<=40?'warn':'bad'); }
+      }
+    }catch(_){}
   }
   function montarBotonProximaEtapa(){ /* integrado en montarBarraChofer */ }
   // Activar/desactivar el asistente GPS (ORS). Al desactivar, resetea para tomar el nuevo punto al reactivar.
@@ -4837,10 +4917,11 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     try{ if('geolocation' in navigator && watchId===null){ watchId=navigator.geolocation.watchPosition(onGpsUpdate,onGpsError,{enableHighAccuracy:true,maximumAge:1000,timeout:15000}); } }catch(_){}
   }
   let _simBackup=null;
-  function botonChofer(id,bg,fg,icon,label){
-    return '<button id="'+id+'" style="background:'+bg+';border:none;border-radius:14px;padding:16px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;min-height:84px;">'
-      +'<i class="ti '+icon+'" style="font-size:32px;color:'+fg+';"></i>'
-      +'<span style="color:'+fg+';font-size:14px;font-weight:600;text-align:center;line-height:1.1;">'+label+'</span></button>';
+  function botonChofer(id,iconColor,_fg,icon,label){
+    // Tarjeta oscura con icono de color (rediseño Torre de Control)
+    return '<button id="'+id+'" class="cho-actbtn">'
+      +'<i class="ti '+icon+'" style="color:'+iconColor+';"></i>'
+      +'<span>'+label+'</span></button>';
   }
   function bindChofBtn(id,fn){ const b=document.getElementById(id); if(b)b.onclick=fn; }
   // ===== Modal de confirmación reutilizable (con X, clic fuera no hace nada) =====
@@ -4934,6 +5015,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         // Guiar de regreso al punto donde paró (por calles reales)
         if(puntoParada){ iniciarGuiaDestino(puntoParada,'regreso'); }
         else { tripPhase='ruta'; } // sin punto de parada, no hay regreso que contar
+        try{ montarBarraChofer(mgmtRutas[choferTurno.rutaId]); }catch(_){}
       }});
       return;
     }
@@ -4946,6 +5028,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       txChofer({status:'vertedero', evento:'lleno', alerta:'lleno'});
       speak('Posición marcada. Dirígete a botar la basura. Cuando termines, pulsa de nuevo el botón.');
       toast('De camino a botar basura');
+      try{ montarBarraChofer(mgmtRutas[choferTurno.rutaId]); }catch(_){}
     }});
   }
   // 4. COMBUSTIBLE → mismo patrón
@@ -4961,6 +5044,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
         toast('De vuelta a la ruta');
         if(puntoParada){ iniciarGuiaDestino(puntoParada,'regreso'); }
         else { tripPhase='ruta'; }
+        try{ montarBarraChofer(mgmtRutas[choferTurno.rutaId]); }catch(_){}
       }});
       return;
     }
@@ -4973,6 +5057,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
       txChofer({status:'combustible', evento:'combustible', alerta:'combustible'});
       speak('Posición marcada. Dirígete a poner combustible. Cuando termines, pulsa de nuevo el botón.');
       toast('De camino a combustible');
+      try{ montarBarraChofer(mgmtRutas[choferTurno.rutaId]); }catch(_){}
     }});
   }
   // 2 y 3. REPORTE / OBSTÁCULO → alerta al supervisor
@@ -5603,6 +5688,7 @@ body.chofer-ruta-activa #map{ position:fixed !important; inset:0 !important; wid
     }else{
       document.getElementById('gpsNext').textContent=nextWpIdx>=waypoints.length?'✓':'—';
     }
+    try{ actualizarChoferHUD(); }catch(_){}
   }
 
   // Tarjeta de próximo giro
