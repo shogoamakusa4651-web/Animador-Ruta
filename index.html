@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/store.js"></script>
-<script src="js/auth.js"></script>
-<link rel="stylesheet" href="css/styles.css" />
+<script src="js/utils.js?v=4.60"></script>
+<script src="js/store.js?v=4.60"></script>
+<script src="js/auth.js?v=4.60"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.60" />
 </head>
 <body>
 <div id="map"></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.59 · 2026-07-07'; // ← actualizar con cada release
+  const APP_VERSION='v4.60 · 2026-07-07'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
