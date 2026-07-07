@@ -876,7 +876,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.57 · 2026-07-06'; // ← actualizar con cada release
+  const APP_VERSION='v4.58 · 2026-07-06'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -5618,6 +5618,25 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   }
 
   let _voiceBusyUntil=0; // hasta cuándo está hablando una indicación de navegación (alta prioridad)
+  // ===== Selección de la mejor voz en español (nitidez por el Bluetooth del carro) =====
+  let _ttsVoice=null;
+  function _pickTtsVoice(){
+    try{
+      const vs=window.speechSynthesis.getVoices()||[];
+      if(!vs.length) return;
+      const pref=['es-do','es-mx','es-us','es-419','es-co','es-es','es']; // dominicano/latino primero
+      let best=null,bestRank=999;
+      vs.forEach(v=>{ const l=(v.lang||'').toLowerCase().replace('_','-');
+        for(let i=0;i<pref.length;i++){ if(l.indexOf(pref[i])===0){ if(i<bestRank){bestRank=i;best=v;} break; } } });
+      if(best)_ttsVoice=best;
+    }catch(_){}
+  }
+  if('speechSynthesis' in window){
+    _pickTtsVoice();
+    try{ window.speechSynthesis.onvoiceschanged=_pickTtsVoice; }catch(_){}
+    // Mantener vivo el motor: Chrome/Android lo pausa solo tras ~15s → la voz se corta por Bluetooth
+    setInterval(()=>{ try{ const s=window.speechSynthesis; if(s && (s.speaking||s.pending)) s.resume(); }catch(_){} }, 8000);
+  }
   function speak(text, prio){
     // prio: 'nav' (giros, alta prioridad) | 'estado' (punto cumplido, baja) | undefined (normal)
     if(!voiceOn || !('speechSynthesis' in window))return;
@@ -5627,8 +5646,11 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     try{
       // Navegación y normal sí cortan lo anterior; estado solo habla si no hay nav sonando
       if(prio!=='estado') window.speechSynthesis.cancel();
+      // Des-atascar el motor si Android lo dejó en pausa (clave tras conectar el Bluetooth)
+      try{ window.speechSynthesis.resume(); }catch(_){}
       const u=new SpeechSynthesisUtterance(text);
       u.lang='es-DO';u.rate=1.0;u.pitch=1.0;u.volume=1.0;
+      if(_ttsVoice){ try{ u.voice=_ttsVoice; }catch(_){} }
       // Estimar duración para bloquear interrupciones de estado (~95ms por carácter)
       if(prio==='nav'){ _voiceBusyUntil=ahora+Math.max(2500, text.length*95); }
       window.speechSynthesis.speak(u);
