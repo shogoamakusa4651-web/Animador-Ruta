@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.60"></script>
-<script src="js/store.js?v=4.60"></script>
-<script src="js/auth.js?v=4.60"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.60" />
+<script src="js/utils.js?v=4.61"></script>
+<script src="js/store.js?v=4.61"></script>
+<script src="js/auth.js?v=4.61"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.61" />
 </head>
 <body>
 <div id="map"></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.60 · 2026-07-07'; // ← actualizar con cada release
+  const APP_VERSION='v4.61 · 2026-07-07'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -4336,7 +4336,24 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       +'</div>';
     document.body.appendChild(mdl);
     document.getElementById('choSalPausar').onclick=function(){ guardarProgresoChofer(); mdl.remove(); logout(); };
-    document.getElementById('choSalTerminar').onclick=function(){ limpiarProgresoChofer(); mdl.remove(); logout(); };
+    document.getElementById('choSalTerminar').onclick=function(){
+      mdl.remove();
+      // GENERAR EL REPORTE con el avance logrado antes de cerrar (aunque la ruta no llegó al final)
+      try{
+        if(!choSimOn && choferTurno.activo && currentRutaId && waypoints && waypoints.length && (reachedStart || doneWps.size>0)){
+          const r=calculateRating();
+          tripEndedAt=new Date().toISOString();
+          saveTrip(buildReport(r));
+          persistirReporteChofer(r);
+          toast('Reporte del recorrido enviado ✓ ('+r.routeCompletion+'% cubierto)');
+          try{ speak('Turno terminado. Reporte enviado al centro de control con '+r.routeCompletion+' por ciento cubierto.'); }catch(_){}
+        }
+      }catch(e){ console.warn('terminar turno:',e); }
+      try{ stopGps(); }catch(_){}
+      choferTurno.activo=false;
+      limpiarProgresoChofer();
+      logout();
+    };
     document.getElementById('choSalCancelar').onclick=function(){ mdl.remove(); };
   }
 
@@ -6560,9 +6577,15 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     document.getElementById('ratingModal').classList.remove('hide');
     speak('Su calificación es de '+r.score+' puntos sobre 100. '+ratingMessage(r.score));
 
-    // Guardar viaje
+    // Guardar viaje (local + Firebase)
     saveTrip(buildReport(r));
-    // Persistir en Firebase (antes solo quedaba en el teléfono del chofer)
+    persistirReporteChofer(r);
+    stopGps();
+    clearPendingTrip();
+  }
+  // Escribe el viaje + reporte a Firebase con el avance actual (usado por auto-completado Y por "Terminar turno")
+  function persistirReporteChofer(r){
+    if(choSimOn) return; // en simulación nunca se registra
     try{
       if(fbDb && currentRutaId && waypoints && waypoints.length){
         const _n=new Date(); const _f=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
@@ -6576,9 +6599,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         fbDb.ref('rutas/'+currentRutaId+'/reportes').push({ tipo:'chofer', choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, fecha:_f, inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), rating:r.score, routeCompletion:r.routeCompletion, ratingLevel:ratingLabel(r.score).lbl, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_kmTot)*100)/100, distancia:_kmTot, kmRuta:_kmRuta, kmVertedero:_kmVert, kmCombustible:_kmComb, viajesVertedero:dumpCount, viajesCombustible:fuelCount, cobertura:r.routeCompletion, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, texto:'Recorrido real: '+r.routeCompletion+'% cubierto'+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):' · sin omisiones')+(dumpCount?(' · '+dumpCount+' viaje(s) al vertedero'):'')+(fuelCount?(' · '+fuelCount+' parada(s) de combustible'):'')+'.', sim:false, ts:Date.now() });
       }
     }catch(e){ console.warn('persist viaje',e); }
-    stopGps();
     try{ if(fbDb&&choferCode&&waypoints&&waypoints.length)fbDb.ref('live/'+txId()).update({status:'termino',cov:covEnc(doneWps,waypoints.length),progress:r.routeCompletion,ts:Date.now()}); }catch(_){ }
-    clearPendingTrip();
   }
   function totalDistanceOf(path){
     let t=0;
