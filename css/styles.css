@@ -1044,9 +1044,28 @@
   .rt-mact button.prim{border:none;background:#14532d;color:#fff;font-weight:600;}
   .rt-mact button i{font-size:15px;}
   body.dark .rt-mact button{background:#2A2822;color:#ECEAE3;border-color:rgba(255,255,255,.12);}
-  /* Mini-strip de historial (puntos por día) */
-  .rt-strip{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
-  .rt-strip i{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-family:'IBM Plex Mono',monospace;cursor:pointer;}
+  /* Cajas de datos del modal Ruta-Día (mockup) */
+  .rt-statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0;}
+  .rt-stat{background:#fafaf7;border:1px solid #eceae3;border-radius:9px;padding:10px 12px;}
+  .rt-stat .l{font-size:11px;color:#8a8f7f;}
+  .rt-stat .v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#1a1f16;margin-top:2px;}
+  body.dark .rt-stat{background:#211F1B;border-color:rgba(255,255,255,.08);}
+  body.dark .rt-stat .v{color:#ECEAE3;}
+  @media(max-width:640px){ .rt-statgrid{grid-template-columns:1fr 1fr;} }
+  /* Placeholder de mapa con rayas diagonales (mockup) */
+  .rt-mapph{margin-top:12px;border-radius:8px;height:150px;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:'IBM Plex Mono',monospace;color:#8a8f7f;background:#fafaf7 repeating-linear-gradient(45deg,rgba(0,0,0,.025) 0 6px,transparent 6px 18px);border:1px solid #eceae3;}
+  .rt-mapph.dark{background:#0e1726 repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 2px,transparent 2px 14px);color:#5c6c80;border:none;}
+  /* Mini-strip de historial — puntos circulares numerados (mockup) */
+  .rt-strip{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .rt-strip i{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;font-family:'IBM Plex Mono',monospace;cursor:pointer;font-style:normal;transition:transform .1s;}
+  .rt-strip i:hover{transform:scale(1.15);}
+  .rt-strip i.cur{box-shadow:0 0 0 2px #14532d;}
+  .rt-striplbl{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:#454a3e;margin-top:14px;}
+  .rt-striplbl small{font-weight:400;text-transform:none;letter-spacing:0;color:#8a8f7f;margin-left:6px;}
+  /* Link "Sin justificar" en filas (mockup) */
+  .rt-sinjust{margin-left:auto;font-size:12.5px;color:#b3362a;font-weight:600;flex:none;cursor:pointer;}
+  .rt-sinjust.ok{color:#1f7a45;font-weight:500;}
+  .rt-sinjust:hover{text-decoration:underline;}
   /* Tabla de informe / periodo */
   .rt-tbl{width:100%;border-collapse:collapse;font-size:13px;}
   .rt-tbl th,.rt-tbl td{text-align:left;padding:8px 10px;border-bottom:1px solid #eceae3;}

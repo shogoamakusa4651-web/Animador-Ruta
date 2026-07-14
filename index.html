@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.63"></script>
-<script src="js/store.js?v=4.63"></script>
-<script src="js/auth.js?v=4.63"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.63" />
+<script src="js/utils.js?v=4.64"></script>
+<script src="js/store.js?v=4.64"></script>
+<script src="js/auth.js?v=4.64"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.64" />
 </head>
 <body>
 <div id="map"></div>
@@ -873,7 +873,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.63 · 2026-07-07'; // ← actualizar con cada release
+  const APP_VERSION='v4.64 · 2026-07-14'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -3116,10 +3116,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     prog.forEach(id=>{ const r=mgmtRutas[id]||{}; const st=_rtEstadoDia(r,_rtDiaSel);
       const cls=st.estado; const badge = st.estado==='ok'?['ok','Completada']:(st.tipo==='no_salio'?['bad','No salió']:(st.estado==='mid'?['mid','Incompleta'+(st.pct!=null?' '+Math.round(st.pct)+'%':'')]:['bad','Incompleta'+(st.pct!=null?' '+Math.round(st.pct)+'%':'')]));
       h+='<div class="rt-rcard '+cls+'" data-open="'+esc(id)+'" style="cursor:pointer;"><div class="top"><div class="nm">'+esc(r.nombre||id)+'</div><span class="rt-badge '+badge[0]+'">'+badge[1]+'</span></div>';
-      // meta
+      // meta (formato mockup: Prog · Real · km)
       let meta='';
       if(st.estado==='ok'||st.tipo==='abandono'){ const hor=(st.ini&&st.fin)?(_rtHora(st.ini)+' → '+_rtHora(st.fin)):(st.fin?('abandono '+_rtHora(st.fin)):''); meta=(st.chofer||'—')+' · '+(st.ficha||'—')+' · '+(st.km?st.km.toFixed(1):'0')+(st.tipo==='abandono'&&st.kmTot?('/'+st.kmTot.toFixed(1)):'')+' km'+(hor?' · '+hor:''); }
-      else { meta='Programada · nunca se despachó'; }
+      else { meta='Prog: '+(r.horaSalida||'06:00 a. m.')+' · Real: — · 0'+(st.kmTot?('/'+st.kmTot.toFixed(0)):'')+' km'; }
       h+='<div class="meta">'+esc(meta)+'</div>';
       if(st.estado==='ok'){ h+='<div class="datos"><span><i class="ti ti-map-pin-check" style="color:#1f7a45"></i> Trazado verificado '+(st.pct!=null?Math.round(st.pct):100)+'%</span><span><i class="ti ti-trash"></i> '+(st.botadas||0)+' botada'+((st.botadas||0)===1?'':'s')+'</span></div>'; }
       else {
@@ -3240,65 +3240,81 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const r=mgmtRutas[id]||{}; const st=_rtEstadoDia(r,fecha);
     const incumple=(st.estado!=='ok');
     const jf=_rtJustif(id,fecha);
-    const pctNo=(st.pct!=null)?Math.max(0,100-Math.round(st.pct)):(st.tipo==='no_salio'?100:null);
-    let body='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'+_rtBadgeEstado(st.estado,st.tipo,st.pct)
-      +(pctNo?('<span class="rt-badge bad">'+pctNo+'% sin recorrer</span>'):'')+'</div>';
-    const hor=(st.ini&&st.fin)?(_rtHora(st.ini)+' → '+_rtHora(st.fin)):(st.fin?('abandono '+_rtHora(st.fin)):'—');
-    body+='<table class="rt-tbl"><tr><th>Animador</th><td>'+esc(st.chofer||'—')+'</td><th class="num">Ficha</th><td class="num">'+esc(st.ficha||'—')+'</td></tr>'
-      +'<tr><th>Horario real</th><td>'+esc(hor)+'</td><th class="num">Km verif.</th><td class="num">'+(st.km?st.km.toFixed(1):'0')+(st.kmTot?(' / '+st.kmTot.toFixed(1)):'')+'</td></tr>'
-      +'<tr><th>Trazado</th><td>'+(st.pct!=null?Math.round(st.pct)+'%':'—')+'</td><th class="num">Botadas</th><td class="num">'+(st.botadas||0)+'</td></tr></table>';
-    if(incumple){ body+='<div class="rt-motivo" style="cursor:default;margin-top:12px;"><i class="ti ti-note"></i><span>'+(jf?('Justificado — '+esc(jf.motivo)+(jf.nota?(': '+esc(jf.nota)):'')):(st.motivo?('Motivo: '+esc(st.motivo)):'Sin justificar'))+'</span></div>'; }
-    body+='<div class="rt-mapph" style="margin-top:12px;background:#0e1726;border-radius:8px;height:150px;display:flex;align-items:center;justify-content:center;color:#5c6c80;font-size:12px;font-family:monospace;">'+(st.estado==='ok'||st.tipo==='abandono'?'[ trazado GPS del recorrido ]':'Sin recorrido registrado')+'</div>';
-    // Mini-strip historial del mes
-    body+='<div style="margin-top:14px;font-size:12px;color:#6b7263;font-weight:600;">Historial del mes · '+esc(r.nombre||id)+'</div>';
-    body+='<div class="rt-strip">'+_rtStripMes(id)+'</div>';
-    _rtModal({ titulo:(r.nombre||id), sub:_rtFechaLarga(fecha), body:body, acts:_rtAccionesDetalle(incumple),
+    // Cajas de datos (mockup): Salida prog. · Salida real · Km verificados · Animador
+    const salProg=(r.horaSalida||'06:00 a. m.');
+    const salReal=st.ini?_rtHora(st.ini):'—';
+    const kmTx=(st.km?st.km.toFixed(1):'0')+'/'+(st.kmTot?st.kmTot.toFixed(1):'—');
+    let body='<div class="rt-statgrid">'
+      +'<div class="rt-stat"><div class="l">Salida prog.</div><div class="v">'+esc(salProg)+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Salida real</div><div class="v">'+esc(salReal)+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Km verificados</div><div class="v">'+esc(kmTx)+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Animador</div><div class="v">'+esc(st.chofer||'—')+'</div></div>'
+      +'</div>';
+    if(jf){ body+='<div class="rt-motivo" style="cursor:default;"><i class="ti ti-note"></i><span>Justificado — '+esc(jf.motivo)+(jf.nota?(': '+esc(jf.nota)):'')+'</span></div>'; }
+    body+='<div class="rt-mapph">'+(st.estado==='ok'||st.tipo==='abandono'?'[ trazado GPS del recorrido ]':'[ sin recorrido registrado — la ruta no salió ]')+'</div>';
+    // Mini-strip historial del mes (puntos numerados, mockup)
+    const mesLbl=_rtMes.toLocaleDateString('es-DO',{month:'long'});
+    body+='<div class="rt-striplbl">Esta ruta en '+esc(mesLbl)+'<small>click en un punto salta a ese día</small></div>';
+    body+='<div class="rt-strip">'+_rtStripMes(id,fecha)+'</div>';
+    _rtModal({ titulo:(r.nombre||id)+' — '+_rtFechaLarga(fecha), sub:'', body:body,
+      acts:'<button data-act="print"><i class="ti ti-printer"></i>Imprimir</button>'
+        +'<button data-act="gps"><i class="ti ti-map-pin"></i>Recorrido GPS</button>'
+        +(incumple?'<button data-act="justif" style="border-color:#14532d;color:#14532d;font-weight:600;"><i class="ti ti-writing"></i>Justificar incumplimiento</button>':'')
+        +(incumple?'<button data-act="reprog"><i class="ti ti-calendar-plus"></i>Reprogramar</button>':''),
       onReady:(ov)=>{
+        // Badge de estado junto al título (mockup)
+        const tEl=ov.querySelector('.rt-mhead .t'); if(tEl)tEl.insertAdjacentHTML('beforeend',' '+_rtBadgeEstado(st.estado,st.tipo,st.pct));
         ov.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>_rtEjecAccion(b.dataset.act,{id:id,fecha:fecha,scope:'diaruta'}));
         ov.querySelectorAll('.rt-strip i[data-d]').forEach(el=>el.onclick=()=>{ _rtCerrarModal(); _rtModalRutaDia(id,el.dataset.d); });
       }});
   }
-  function _rtStripMes(id){
+  function _rtStripMes(id,fechaActual){
     const y=_rtMes.getFullYear(),m=_rtMes.getMonth(); const diasMes=new Date(y,m+1,0).getDate(); const hoyStr=_rtDkey(new Date());
     const col={ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936'}; let h='';
     for(let dia=1;dia<=diasMes;dia++){ const ds=_rtDkey(new Date(y,m,dia)); if(ds>hoyStr)break;
       if(!(mgmtRutas[id]&&(mgmtRutas[id].freq||[]).includes(_rtLetra(new Date(ds+'T12:00:00')))))continue;
-      const st=_rtEstadoDia(mgmtRutas[id]||{},ds); h+='<i data-d="'+ds+'" title="'+ds+'" style="background:'+col[st.estado]+'">'+dia+'</i>'; }
+      const st=_rtEstadoDia(mgmtRutas[id]||{},ds); h+='<i data-d="'+ds+'" class="'+(ds===fechaActual?'cur':'')+'" title="'+ds+'" style="background:'+col[st.estado]+'">'+dia+'</i>'; }
     return h||'<span style="font-size:12px;color:#8a8f7f;">Sin días programados</span>';
   }
-  // §4/§7 · Modal Ruta-Periodo (días incumplidos de una ruta)
+  // Fila de incumplimiento estilo mockup: ● Fecha · RUTA · [Sin justificar]
+  function _rtFilaIncump(x,conRuta){
+    const col={ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936'}[x.estado]||'#cd4936';
+    return '<div class="rt-diarow" data-d="'+x.fecha+'" data-id="'+esc(x.id)+'"><span class="dot" style="background:'+col+';border-radius:50%;"></span>'
+      +'<b style="font-size:13px;min-width:150px;">'+_rtFechaLarga(x.fecha)+'</b>'
+      +(conRuta?('<span style="font-size:13px;color:#454a3e;">'+esc(x.nombre)+'</span>'):'<span style="font-size:12px;color:#6b7263;">'+(x.tipo==='no_salio'?'No salió':('Incompleta'+(x.pct!=null?' '+Math.round(x.pct)+'%':'')))+'</span>')
+      +'<span class="rt-sinjust'+(x.motivo?' ok':'')+'" data-j="'+esc(x.id)+'" data-jd="'+x.fecha+'">'+(x.motivo?esc(x.motivo):'Sin justificar')+'</span></div>';
+  }
+  function _rtWireFilasIncump(ov){
+    ov.querySelectorAll('.rt-diarow[data-d]').forEach(el=>el.onclick=(e)=>{ if(e.target.closest('.rt-sinjust'))return; _rtCerrarModal(); _rtModalRutaDia(el.dataset.id,el.dataset.d); });
+    ov.querySelectorAll('.rt-sinjust[data-j]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); _rtCerrarModal(); _rtJustificar(el.dataset.j,el.dataset.jd); });
+  }
+  // §4/§7 · Modal Ruta-Periodo (días incumplidos de una ruta) — mockup
   function _rtModalRutaPeriodo(id){
     const [rIni,rFin]=_rtRango(); const ag=_rtAgregado(rIni,rFin);
-    const dias=ag.diasIncump.filter(x=>x.id===id).sort((a,b)=>a.fecha<b.fecha?1:-1);
-    const r=mgmtRutas[id]||{}; const pr=ag.porRuta[id]||{prog:0,ok:0};
-    let body='<table class="rt-tbl"><tr><th>Programados</th><td class="num">'+pr.prog+'</td><th>Cumplidos</th><td class="num" style="color:#1f7a45">'+pr.ok+'</td><th>Deuda</th><td class="num" style="color:#b3362a">'+(ag.deuda[id]||0)+'</td></tr></table>';
-    body+='<div style="margin-top:12px;font-weight:600;font-size:13px;">Días sin cumplir</div>';
-    if(!dias.length)body+='<div class="rt-empty2">Sin incumplimientos en este periodo. 🎉</div>';
-    dias.forEach(x=>{ const col={ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936'}[x.estado];
-      body+='<div class="rt-diarow" data-d="'+x.fecha+'"><span class="dot" style="background:'+col+'"></span>'
-        +'<div style="flex:1;"><b style="font-size:13px;">'+_rtFechaLarga(x.fecha)+'</b><div style="font-size:12px;color:#6b7263;">'+(x.tipo==='no_salio'?'No salió':('Incompleta'+(x.pct!=null?' '+Math.round(x.pct)+'%':'')))+(x.motivo?(' · '+esc(x.motivo)):' · sin justificar')+'</div></div>'
-        +'<i class="ti ti-chevron-right" style="color:#9a9f8f;"></i></div>'; });
-    _rtModal({ titulo:(r.nombre||id), sub:'Deuda del periodo', body:body,
-      acts:'<button data-act="csv" class="prim"><i class="ti ti-download"></i>Exportar deuda de esta ruta</button><button data-act="filtrar"><i class="ti ti-filter"></i>Filtrar calendario por esta ruta</button>',
+    const dias=ag.diasIncump.filter(x=>x.id===id).sort((a,b)=>a.fecha<b.fecha?-1:1);
+    const r=mgmtRutas[id]||{};
+    const mesLbl=_rtMes.toLocaleDateString('es-DO',{month:'long',year:'numeric'});
+    let body='';
+    if(!dias.length)body='<div class="rt-empty2">Sin incumplimientos en este periodo. 🎉</div>';
+    dias.forEach(x=>{ body+=_rtFilaIncump(x,false); });
+    _rtModal({ titulo:(r.nombre||id)+' — deuda del periodo', sub:dias.length+' incumplimientos en '+(mesLbl.charAt(0).toUpperCase()+mesLbl.slice(1))+' · click en un día abre su detalle', body:body,
+      acts:'<button data-act="print"><i class="ti ti-printer"></i>Imprimir</button><button data-act="csv"><i class="ti ti-download"></i>Exportar deuda CSV</button><button data-act="filtrar" style="border-color:#14532d;color:#14532d;font-weight:600;"><i class="ti ti-filter"></i>Filtrar calendario por esta ruta</button>',
       onReady:(ov)=>{
-        ov.querySelectorAll('.rt-diarow[data-d]').forEach(el=>el.onclick=()=>{ _rtCerrarModal(); _rtModalRutaDia(id,el.dataset.d); });
+        _rtWireFilasIncump(ov);
+        ov.querySelector('[data-act="print"]').onclick=()=>window.print();
         ov.querySelector('[data-act="csv"]').onclick=()=>_rtEjecAccion('csv',{id:id,scope:'rutaperiodo'});
         ov.querySelector('[data-act="filtrar"]').onclick=()=>{ _rtFiltro=id; _rtCerrarModal(); buildReportesTC(); };
       }});
   }
-  // §7 · Todos los incumplimientos del periodo (KPI deuda)
+  // §7 · Todos los incumplimientos del periodo (KPI deuda) — mockup
   function _rtModalIncumplimientos(){
     const [rIni,rFin]=_rtRango(); const ag=_rtAgregado(rIni,rFin);
-    const porR={}; ag.diasIncump.forEach(x=>{ (porR[x.id]=porR[x.id]||{nombre:x.nombre,items:[]}).items.push(x); });
+    const mesLbl=_rtMes.toLocaleDateString('es-DO',{month:'long',year:'numeric'});
     let body='';
     if(!ag.diasIncump.length)body='<div class="rt-empty2">Sin incumplimientos en el periodo. Todo cumplido 🎉</div>';
-    Object.keys(porR).sort((a,b)=>porR[b].items.length-porR[a].items.length).forEach(id=>{
-      const g=porR[id]; body+='<div style="margin-top:14px;font-weight:700;font-size:13px;color:#b3362a;">'+esc(g.nombre)+' · '+g.items.length+' día(s)</div>';
-      g.items.sort((a,b)=>a.fecha<b.fecha?1:-1).forEach(x=>{ const col={ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936'}[x.estado];
-        body+='<div class="rt-diarow" data-d="'+x.fecha+'" data-id="'+esc(id)+'"><span class="dot" style="background:'+col+'"></span><div style="flex:1;"><b style="font-size:13px;">'+_rtFechaLarga(x.fecha)+'</b><div style="font-size:12px;color:#6b7263;">'+(x.tipo==='no_salio'?'No salió':('Incompleta'+(x.pct!=null?' '+Math.round(x.pct)+'%':'')))+(x.motivo?(' · '+esc(x.motivo)):' · sin justificar')+'</div></div><i class="ti ti-chevron-right" style="color:#9a9f8f;"></i></div>'; });
-    });
-    _rtModal({ titulo:'Incumplimientos del periodo', sub:ag.diasIncump.length+' en total', body:body, wide:true,
-      onReady:(ov)=>{ ov.querySelectorAll('.rt-diarow[data-d]').forEach(el=>el.onclick=()=>{ _rtCerrarModal(); _rtModalRutaDia(el.dataset.id,el.dataset.d); }); }});
+    ag.diasIncump.slice().sort((a,b)=>a.fecha<b.fecha?-1:1).forEach(x=>{ body+=_rtFilaIncump(x,true); });
+    _rtModal({ titulo:'Todos los incumplimientos del periodo', sub:ag.diasIncump.length+' incumplimientos en '+(mesLbl.charAt(0).toUpperCase()+mesLbl.slice(1))+' · click en un día abre su detalle', body:body, wide:true,
+      onReady:(ov)=>{ _rtWireFilasIncump(ov); }});
   }
   // §6.3 · Justificar incumplimiento
   function _rtJustificar(id,fecha){
@@ -3364,17 +3380,21 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     _rtVerInforme(inf);
   }
   function _rtHistorialInformes(){
-    _rtModal({ titulo:'Historial de informes', body:'<div class="rt-empty2">Cargando…</div>',
+    _rtModal({ titulo:'Historial de informes', sub:'guardados en Firebase', body:'<div class="rt-empty2">Cargando…</div>',
       onReady:(ov)=>{
         const bodyEl=ov.querySelector('.rt-mbody');
         fbDb.ref('informes').orderByChild('fechaGeneracion').once('value').then(s=>{
           const o=s.val()||{}; const arr=Object.keys(o).map(k=>Object.assign({id:k},o[k])).sort((a,b)=>(b.fechaGeneracion||0)-(a.fechaGeneracion||0));
           if(!arr.length){ bodyEl.innerHTML='<div class="rt-empty2">Aún no hay informes generados — genera el primero con el botón Informe.</div>'; return; }
           let h='<div class="rt-inflist">';
-          arr.forEach(inf=>{ const f=new Date(inf.fechaGeneracion||0).toLocaleDateString('es-DO',{day:'numeric',month:'numeric',year:'numeric'})+' '+new Date(inf.fechaGeneracion||0).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
+          arr.forEach(inf=>{ const f=new Date(inf.fechaGeneracion||0).toLocaleDateString('es-DO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+new Date(inf.fechaGeneracion||0).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
             const cp=(inf.snapshot&&inf.snapshot.cumpl!=null)?inf.snapshot.cumpl+'%':'—';
-            h+='<div class="rt-infrow" data-id="'+esc(inf.id)+'"><div class="info"><b>Informe '+esc(inf.periodo||'')+'</b><small>generado '+f+' · '+esc(inf.generadoPor||'')+' · '+esc(inf.filtroNombre||'Todas')+'</small></div>'
-              +'<span class="pct">'+cp+'</span><div class="acts"><button data-a="del" title="Eliminar">🗑</button></div></div>'; });
+            h+='<div class="rt-infrow" data-id="'+esc(inf.id)+'">'
+              +'<div style="width:38px;height:44px;border:1px solid #dcdad2;border-radius:5px;background:#fff;position:relative;flex:none;"><div style="position:absolute;bottom:0;left:0;right:0;height:9px;background:#1f7a45;border-radius:0 0 4px 4px;"></div></div>'
+              +'<div class="info"><b>Informe de cumplimiento — '+esc(inf.periodo||'')+'</b><small>Generado '+f+' · '+esc(inf.generadoPor||'')+' · '+esc(inf.filtroNombre||'Todas las rutas')+'</small></div>'
+              +'<span class="pct" style="background:#fdf3e3;color:#b07d1e;">'+cp+'</span>'
+              +'<span style="font-size:13px;font-weight:600;color:#14532d;flex:none;">Abrir →</span>'
+              +'<div class="acts"><button data-a="del" title="Eliminar">🗑</button></div></div>'; });
           h+='</div>'; bodyEl.innerHTML=h;
           bodyEl.querySelectorAll('.rt-infrow').forEach(row=>{
             row.onclick=(e)=>{ if(e.target.closest('[data-a="del"]'))return; const inf=arr.find(x=>x.id===row.dataset.id); if(inf){_rtCerrarModal();_rtVerInforme(inf);} };
