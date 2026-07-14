@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.61"></script>
-<script src="js/store.js?v=4.61"></script>
-<script src="js/auth.js?v=4.61"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.61" />
+<script src="js/utils.js?v=4.62"></script>
+<script src="js/store.js?v=4.62"></script>
+<script src="js/auth.js?v=4.62"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.62" />
 </head>
 <body>
 <div id="map"></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.61 · 2026-07-07'; // ← actualizar con cada release
+  const APP_VERSION='v4.62 · 2026-07-07'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -3112,6 +3112,9 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       h+='<div class="meta">'+esc(meta)+'</div>';
       if(st.estado==='ok'){ h+='<div class="datos"><span><i class="ti ti-map-pin-check" style="color:#1f7a45"></i> Trazado verificado '+(st.pct!=null?Math.round(st.pct):100)+'%</span><span><i class="ti ti-trash"></i> '+(st.botadas||0)+' botada'+((st.botadas||0)===1?'':'s')+'</span></div>'; }
       else {
+        // % NO RECORRIDO pendiente de atención (reclamación)
+        const pctNo = (st.pct!=null)?Math.max(0,100-Math.round(st.pct)):(st.tipo==='no_salio'?100:null);
+        if(pctNo!=null&&pctNo>0)h+='<div class="rt-atencion"><i class="ti ti-alert-hexagon"></i><b>'+pctNo+'% sin recorrer</b> · pendiente de atención</div>';
         const mt = st.motivo?('Motivo registrado: '+esc(st.motivo)):'Sin motivo registrado — toca para agregar';
         h+='<div class="rt-motivo" data-mot="'+esc(id)+'"><i class="ti ti-note"></i><span>'+mt+'</span></div>';
         if(st.tipo==='abandono')h+='<button class="rt-vermapa" data-ver="'+esc(id)+'"><i class="ti ti-map-search"></i> Ver recorrido en el mapa</button>';
@@ -4344,7 +4347,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           const r=calculateRating();
           tripEndedAt=new Date().toISOString();
           saveTrip(buildReport(r));
-          persistirReporteChofer(r);
+          guardarReporteChofer(true);
           toast('Reporte del recorrido enviado ✓ ('+r.routeCompletion+'% cubierto)');
           try{ speak('Turno terminado. Reporte enviado al centro de control con '+r.routeCompletion+' por ciento cubierto.'); }catch(_){}
         }
@@ -4603,6 +4606,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         voiceOn=true;
         nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpConfirmTick=0;
         _wpCerca={};
+        _reporteKey=null; _autoRepTs=0; // nuevo turno → nueva clave de reporte
         truckHeading=null; _headHist=[];
         limpiarProgresoVerde();
         dibujarEtapasEspera(idx);
@@ -6149,6 +6153,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           txChofer({ status:(tripPhase==='vertedero'?'vertedero':(tripPhase==='combustible'?'combustible':(choferPausado?'pausado':'en_ruta'))),
             progress:prog, etapa:(choferTurno.etapaIdx+1), totalEtapas:choferTurno.totalEtapas, acc:Math.round(acc) });
           guardarProgresoChofer(); // memoria de ruta (no se pierde si sale de la app)
+          // AUTO-GUARDADO DEL REPORTE cada ~45s: el reporte existe aunque el chofer cierre la app al 5%
+          if(ahora-_autoRepTs>=45000 && (reachedStart||doneWps.size>0)){ _autoRepTs=ahora; try{ guardarReporteChofer(false); }catch(_){} }
         }
       }catch(_){}
     }
@@ -6579,27 +6585,42 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 
     // Guardar viaje (local + Firebase)
     saveTrip(buildReport(r));
-    persistirReporteChofer(r);
+    guardarReporteChofer(true);
     stopGps();
     clearPendingTrip();
   }
-  // Escribe el viaje + reporte a Firebase con el avance actual (usado por auto-completado Y por "Terminar turno")
-  function persistirReporteChofer(r){
-    if(choSimOn) return; // en simulación nunca se registra
+  // ===== REPORTE AUTO-GUARDADO =====
+  // Clave estable por turno: el reporte se ACTUALIZA (no se duplica) mientras el chofer maneja
+  // y se finaliza al terminar. Así el reporte existe aunque cierre la app al 5%.
+  let _reporteKey=null, _autoRepTs=0;
+  function guardarReporteChofer(final){
+    if(choSimOn) return;                                   // nunca en simulación
+    if(!fbDb || currentUserRole!=='chofer' || !choferTurno.activo) return;
+    if(!currentRutaId || !waypoints || !waypoints.length) return;
+    if(!reachedStart && doneWps.size===0) return;          // aún no hay nada que reportar
     try{
-      if(fbDb && currentRutaId && waypoints && waypoints.length){
-        const _n=new Date(); const _f=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
-        const _cov=covEnc(doneWps,waypoints.length);
-        const _omit=(typeof pendingSegments==='function')?pendingSegments().length:Math.max(0,waypoints.length-doneWps.size);
-        const _dist=Math.round((realPath.length>1?totalDistanceOf(realPath):0)/10)/100;
-        const _kmIni=Number((currentRuta||{}).kmInicio)||0;
-        const _r=currentRuta||{};
-        const _kmRuta=Math.round(kmRuta*100)/100, _kmVert=Math.round(kmVertedero*100)/100, _kmComb=Math.round(kmCombustible*100)/100, _kmTot=Math.round((_kmRuta+_kmVert+_kmComb)*100)/100||_dist;
-        fbDb.ref('rutas/'+currentRutaId+'/viajes/'+_f).push({ inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, progress:r.routeCompletion, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_kmTot)*100)/100, distancia:_kmTot, kmRuta:_kmRuta, kmVertedero:_kmVert, kmCombustible:_kmComb, viajesVertedero:dumpCount, viajesCombustible:fuelCount, paradas:waypoints.length, cobertura:r.routeCompletion, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, sim:false });
-        fbDb.ref('rutas/'+currentRutaId+'/reportes').push({ tipo:'chofer', choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, fecha:_f, inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), rating:r.score, routeCompletion:r.routeCompletion, ratingLevel:ratingLabel(r.score).lbl, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_kmTot)*100)/100, distancia:_kmTot, kmRuta:_kmRuta, kmVertedero:_kmVert, kmCombustible:_kmComb, viajesVertedero:dumpCount, viajesCombustible:fuelCount, cobertura:r.routeCompletion, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, texto:'Recorrido real: '+r.routeCompletion+'% cubierto'+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):' · sin omisiones')+(dumpCount?(' · '+dumpCount+' viaje(s) al vertedero'):'')+(fuelCount?(' · '+fuelCount+' parada(s) de combustible'):'')+'.', sim:false, ts:Date.now() });
-      }
-    }catch(e){ console.warn('persist viaje',e); }
-    try{ if(fbDb&&choferCode&&waypoints&&waypoints.length)fbDb.ref('live/'+txId()).update({status:'termino',cov:covEnc(doneWps,waypoints.length),progress:r.routeCompletion,ts:Date.now()}); }catch(_){ }
+      const r=calculateRating();
+      if(!_reporteKey) _reporteKey='r'+Date.now();
+      const _n=new Date(); const _f=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
+      const _cov=covEnc(doneWps,waypoints.length);
+      const _omit=(typeof pendingSegments==='function')?pendingSegments().length:Math.max(0,waypoints.length-doneWps.size);
+      const _dist=Math.round((realPath.length>1?totalDistanceOf(realPath):0)/10)/100;
+      const _kmIni=Number((currentRuta||{}).kmInicio)||0;
+      const _r=currentRuta||{};
+      const _kmRuta=Math.round(kmRuta*100)/100, _kmVert=Math.round(kmVertedero*100)/100, _kmComb=Math.round(kmCombustible*100)/100, _kmTot=Math.round((_kmRuta+_kmVert+_kmComb)*100)/100||_dist;
+      const comp=r.routeCompletion; const pctNo=Math.max(0,100-comp);
+      const base={ inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_kmTot)*100)/100, distancia:_kmTot, kmRuta:_kmRuta, kmVertedero:_kmVert, kmCombustible:_kmComb, viajesVertedero:dumpCount, viajesCombustible:fuelCount, cobertura:comp, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, sim:false };
+      // viaje (bajo la fecha, clave estable → se actualiza, no duplica)
+      fbDb.ref('rutas/'+currentRutaId+'/viajes/'+_f+'/'+_reporteKey).update(Object.assign({},base,{ progress:comp, paradas:waypoints.length }));
+      // reporte (con % no recorrido pendiente de atención)
+      fbDb.ref('rutas/'+currentRutaId+'/reportes/'+_reporteKey).update(Object.assign({},base,{
+        tipo:'chofer', fecha:_f, rating:r.score, routeCompletion:comp, ratingLevel:ratingLabel(r.score).lbl,
+        pctNoRecorrido:pctNo, requiereAtencion:(pctNo>0), atendida:false,
+        enCurso:!final, ts:Date.now(),
+        texto:'Recorrido real: '+comp+'% cubierto'+(pctNo>0?(' · '+pctNo+'% SIN RECORRER (pendiente de atención)'):'')+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):'')+(dumpCount?(' · '+dumpCount+' viaje(s) al vertedero'):'')+(fuelCount?(' · '+fuelCount+' parada(s) de combustible'):'')+'.'
+      }));
+      try{ const lu={cov:_cov,progress:comp,ts:Date.now()}; if(final)lu.status='termino'; fbDb.ref('live/'+txId()).update(lu); }catch(_){}
+    }catch(e){ console.warn('guardarReporteChofer',e); }
   }
   function totalDistanceOf(path){
     let t=0;
