@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.64"></script>
-<script src="js/store.js?v=4.64"></script>
-<script src="js/auth.js?v=4.64"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.64" />
+<script src="js/utils.js?v=4.65"></script>
+<script src="js/store.js?v=4.65"></script>
+<script src="js/auth.js?v=4.65"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.65" />
 </head>
 <body>
 <div id="map"></div>
@@ -873,7 +873,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.64 · 2026-07-14'; // ← actualizar con cada release
+  const APP_VERSION='v4.65 · 2026-07-14'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2996,16 +2996,16 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const desp = !!(r.envios&&r.envios[dateStr]);
     let pct = rep? (rep.routeCompletion!=null?Number(rep.routeCompletion):(rep.rating!=null?Number(rep.rating):null)) : null;
     if(hasViaje){
-      let km=0,omit=0,botadas=0,ini=null,fin=null,chofer=null,ficha=null;
-      Object.keys(viajes).forEach(k=>{ const v=viajes[k]||{}; km=Math.max(km,Number(v.distancia)||0); omit+=Number(v.omitidos)||0; botadas++; if(v.inicio&&(!ini||v.inicio<ini))ini=v.inicio; if(v.fin&&(!fin||v.fin>fin))fin=v.fin; chofer=v.choferCode||chofer; ficha=v.ficha||ficha; });
-      if(rep){ chofer=rep.choferCode||chofer; ficha=rep.ficha||ficha; if(!ini)ini=rep.inicio||rep.ts; if(!fin)fin=rep.fin; }
+      let km=0,omit=0,botadas=0,ini=null,fin=null,chofer=null,ficha=null,cov=null;
+      Object.keys(viajes).forEach(k=>{ const v=viajes[k]||{}; km=Math.max(km,Number(v.distancia)||0); omit+=Number(v.omitidos)||0; botadas++; if(v.inicio&&(!ini||v.inicio<ini))ini=v.inicio; if(v.fin&&(!fin||v.fin>fin))fin=v.fin; chofer=v.choferCode||chofer; ficha=v.ficha||ficha; if(v.cov)cov=v.cov; });
+      if(rep){ chofer=rep.choferCode||chofer; ficha=rep.ficha||ficha; if(!ini)ini=rep.inicio||rep.ts; if(!fin)fin=rep.fin; if(!cov&&rep.cov)cov=rep.cov; }
       const incompleta = (omit>0)||(pct!=null&&pct<90);
       let kmTot=0; try{ if(r.etapas&&r.etapas.length)r.etapas.forEach(e=>kmTot+=kmOf(decode(e.wp||''))); else kmTot=kmOf(decode(r.wp||'')); }catch(_){}
-      return { estado: incompleta?'mid':'ok', pct:pct, km:km, kmTot:kmTot, botadas:botadas, chofer:chofer, ficha:ficha||r.camion, ini:ini, fin:fin, motivo:(rep&&rep.motivo)||null };
+      return { estado: incompleta?'mid':'ok', pct:pct, km:km, kmTot:kmTot, botadas:botadas, chofer:chofer, ficha:ficha||r.camion, ini:ini, fin:fin, cov:cov, motivo:(rep&&rep.motivo)||null };
     }
     // Sin viaje: despachada→abandonada (incompleta), o nunca despachada→no salió
     let kmTot=0; try{ if(r.etapas&&r.etapas.length)r.etapas.forEach(e=>kmTot+=kmOf(decode(e.wp||''))); else kmTot=kmOf(decode(r.wp||'')); }catch(_){}
-    return { estado:'bad', tipo: desp?'abandono':'no_salio', pct:(desp?pct:null), km:0, kmTot:kmTot, chofer:(rep&&rep.choferCode)||r.choferCode||null, ficha:r.camion, motivo:(rep&&rep.motivo)||null };
+    return { estado:'bad', tipo: desp?'abandono':'no_salio', pct:(desp?pct:null), km:0, kmTot:kmTot, chofer:(rep&&rep.choferCode)||r.choferCode||null, ficha:r.camion, cov:(rep&&rep.cov)||null, motivo:(rep&&rep.motivo)||null };
   }
   // Rutas programadas un día (respeta filtro), solo fechas <= hoy
   function _rtProgramadas(dateStr){
@@ -3203,7 +3203,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const f=ov.querySelector('button,select,textarea,input'); if(f)try{f.focus();}catch(_){}
     return ov;
   }
-  function _rtCerrarModal(){ const ov=document.getElementById('rtOvModal'); if(ov)ov.remove(); if(_rtEscHandler){document.removeEventListener('keydown',_rtEscHandler);_rtEscHandler=null;} }
+  function _rtCerrarModal(){ try{_rtCerrarGpsMap();}catch(_){} const ov=document.getElementById('rtOvModal'); if(ov)ov.remove(); if(_rtEscHandler){document.removeEventListener('keydown',_rtEscHandler);_rtEscHandler=null;} }
   // Justificación guardada de una ruta-día
   function _rtJustif(id,fecha){ const r=mgmtRutas[id]||{}; return (r.justificaciones&&r.justificaciones[fecha])||null; }
   // Agregado del periodo (reutilizable para KPIs, modales de periodo e informes)
@@ -3347,7 +3347,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(act==='print'){ window.print(); return; }
     if(act==='justif'){ _rtCerrarModal(); _rtJustificar(ctx.id,ctx.fecha); return; }
     if(act==='reprog'){ _rtCerrarModal(); _rtReprogramar(ctx.id,ctx.fecha); return; }
-    if(act==='gps'){ _rtCerrarModal(); setSection('monitoreo'); return; }
+    if(act==='gps'){ _rtCerrarModal(); if(ctx.fecha)_rtVerRecorridoGps(ctx.id,ctx.fecha); else setSection('monitoreo'); return; }
     if(act==='csv'){
       const rows=[['Fecha','Ruta','Estado','Chofer','Ficha','Km','Motivo']];
       if(ctx.scope==='diaruta'){ const st=_rtEstadoDia(mgmtRutas[ctx.id]||{},ctx.fecha); const jf=_rtJustif(ctx.id,ctx.fecha); rows.push([ctx.fecha,(mgmtRutas[ctx.id]||{}).nombre||ctx.id,(st.estado==='ok'?'completada':(st.tipo==='no_salio'?'no_salio':'incompleta')),(st.chofer||''),(st.ficha||''),(st.km?st.km.toFixed(1):''),((jf&&jf.motivo)||st.motivo||'')]); }
@@ -3355,6 +3355,42 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       _rtDescargarCsv(rows.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\n'),'detalle_'+(ctx.fecha||ctx.id||'')+'.csv'); return;
     }
   }
+  // §6.2 · RECORRIDO GPS HISTÓRICO: dibuja el trazado guardado (cov) de esa ruta ese día en un mapa propio.
+  // El dato viene del campo `cov` que cada viaje/reporte guarda en Firebase — no depende del mapa en vivo.
+  let _rtGpsMap=null;
+  function _rtVerRecorridoGps(id,fecha){
+    const r=mgmtRutas[id]||{}; const st=_rtEstadoDia(r,fecha);
+    // Trazado de la ruta: wp directo, o etapas concatenadas (misma convención que el monitoreo en vivo)
+    let pts=decode(r.wp||'')||[];
+    if((!pts||pts.length<2)&&r.etapas&&r.etapas.length){ pts=[]; r.etapas.forEach(e=>{ const p=decode(e.wp||'')||[]; pts=pts.concat(p); }); }
+    const sinTraz=(!pts||pts.length<2);
+    const kmTx=(st.km?st.km.toFixed(1):'0')+(st.kmTot?('/'+st.kmTot.toFixed(1)):'')+' km';
+    let body='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">'+_rtBadgeEstado(st.estado,st.tipo,st.pct)
+      +'<span style="font-size:12.5px;color:#6b7263;font-family:IBM Plex Mono,monospace;">'+esc((st.chofer||'—')+' · '+kmTx)+'</span>'
+      +'<span style="margin-left:auto;display:flex;gap:12px;font-size:12px;color:#6b7263;"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#1f7a45;margin-right:5px;"></i>Recorrido</span><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#cd4936;margin-right:5px;"></i>Sin recorrer</span></span></div>';
+    body+= sinTraz ? '<div class="rt-empty2">Esta ruta no tiene trazado guardado.</div>'
+      : '<div id="rtGpsMap" style="height:440px;border-radius:10px;overflow:hidden;border:1px solid #dcdad2;"></div>';
+    if(!st.cov && !sinTraz && st.estado!=='ok') body+='<div style="font-size:12px;color:#8a8f7f;margin-top:8px;">Este día no tiene cobertura guardada (registro anterior a la v4.62) — se muestra la ruta completa en rojo.</div>';
+    _rtModal({ titulo:'Recorrido GPS — '+(r.nombre||id), sub:_rtFechaLarga(fecha), body:body, wide:true,
+      acts:'<button data-act="volver"><i class="ti ti-arrow-left"></i>Volver al detalle</button>',
+      onReady:(ov)=>{
+        ov.querySelector('[data-act="volver"]').onclick=()=>{ _rtCerrarModal(); _rtModalRutaDia(id,fecha); };
+        if(sinTraz)return;
+        setTimeout(()=>{ try{
+          const dens=densificarRuta(pts,12);
+          const bits=st.cov?covDec(st.cov,dens.length):new Array(dens.length).fill(st.estado==='ok');
+          _rtGpsMap=L.map('rtGpsMap',{zoomControl:true,attributionControl:false});
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(_rtGpsMap);
+          L.polyline(dens,{color:'#FFFFFF',weight:8,opacity:.85,lineCap:'round',lineJoin:'round',interactive:false}).addTo(_rtGpsMap);
+          covSegs(dens,bits,false).forEach(s=>L.polyline(s,{color:'#cd4936',weight:5,opacity:.95,lineCap:'round',lineJoin:'round',interactive:false}).addTo(_rtGpsMap));
+          covSegs(dens,bits,true).forEach(s=>L.polyline(s,{color:'#1f7a45',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(_rtGpsMap));
+          L.marker(dens[0],{interactive:false,icon:L.divIcon({html:'<div style="background:#14532d;color:#fff;font:700 10px sans-serif;padding:2px 7px;border-radius:10px;white-space:nowrap;">INICIO</div>',className:'',iconSize:[0,0]})}).addTo(_rtGpsMap);
+          _rtGpsMap.fitBounds(L.latLngBounds(dens).pad(0.15));
+          setTimeout(()=>{ try{_rtGpsMap.invalidateSize();}catch(_){} },220);
+        }catch(e){ console.warn('gps hist',e); } },60);
+      }});
+  }
+  function _rtCerrarGpsMap(){ if(_rtGpsMap){ try{_rtGpsMap.remove();}catch(_){} _rtGpsMap=null; } }
   // ===== §5 · INFORMES PERSISTENTES =====
   function _rtInformeConfig(){
     const [rIni,rFin]=_rtRango(); const mesLbl=_rtMes.toLocaleDateString('es-DO',{month:'long',year:'numeric'});
