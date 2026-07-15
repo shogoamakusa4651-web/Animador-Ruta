@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.65"></script>
-<script src="js/store.js?v=4.65"></script>
-<script src="js/auth.js?v=4.65"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.65" />
+<script src="js/utils.js?v=4.66"></script>
+<script src="js/store.js?v=4.66"></script>
+<script src="js/auth.js?v=4.66"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.66" />
 </head>
 <body>
 <div id="map"></div>
@@ -873,7 +873,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.65 · 2026-07-14'; // ← actualizar con cada release
+  const APP_VERSION='v4.66 · 2026-07-14'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2997,11 +2997,22 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     let pct = rep? (rep.routeCompletion!=null?Number(rep.routeCompletion):(rep.rating!=null?Number(rep.rating):null)) : null;
     if(hasViaje){
       let km=0,omit=0,botadas=0,ini=null,fin=null,chofer=null,ficha=null,cov=null;
-      Object.keys(viajes).forEach(k=>{ const v=viajes[k]||{}; km=Math.max(km,Number(v.distancia)||0); omit+=Number(v.omitidos)||0; botadas++; if(v.inicio&&(!ini||v.inicio<ini))ini=v.inicio; if(v.fin&&(!fin||v.fin>fin))fin=v.fin; chofer=v.choferCode||chofer; ficha=v.ficha||ficha; if(v.cov)cov=v.cov; });
+      const covs=[],choferes=[]; let paradasN=0;
+      Object.keys(viajes).forEach(k=>{ const v=viajes[k]||{}; km=Math.max(km,Number(v.distancia)||0); omit+=Number(v.omitidos)||0; botadas++; if(v.inicio&&(!ini||v.inicio<ini))ini=v.inicio; if(v.fin&&(!fin||v.fin>fin))fin=v.fin; chofer=v.choferCode||chofer; if(v.choferCode&&choferes.indexOf(v.choferCode)<0)choferes.push(v.choferCode); ficha=v.ficha||ficha; if(v.cov){cov=v.cov;covs.push(v.cov);} if(v.paradas)paradasN=Math.max(paradasN,Number(v.paradas)||0); });
       if(rep){ chofer=rep.choferCode||chofer; ficha=rep.ficha||ficha; if(!ini)ini=rep.inicio||rep.ts; if(!fin)fin=rep.fin; if(!cov&&rep.cov)cov=rep.cov; }
-      const incompleta = (omit>0)||(pct!=null&&pct<90);
+      // FUSIÓN: si varios camiones trabajaron el día (ej. rescate), el estado del día es la UNIÓN de coberturas
+      if(covs.length>1 && paradasN>0){
+        try{
+          const uni=new Array(paradasN).fill(false);
+          covs.forEach(c=>{ const b=covDec(c,paradasN); b.forEach((x,i)=>{ if(x)uni[i]=true; }); });
+          let cnt=0; uni.forEach(x=>{ if(x)cnt++; });
+          const uniPct=Math.round(cnt/paradasN*100);
+          if(pct==null||uniPct>pct){ pct=uniPct; cov=covEnc(new Set(uni.map((x,i)=>x?i:-1).filter(i=>i>=0)),paradasN); }
+        }catch(_){}
+      }
+      const incompleta = (pct!=null?pct<90:(omit>0));
       let kmTot=0; try{ if(r.etapas&&r.etapas.length)r.etapas.forEach(e=>kmTot+=kmOf(decode(e.wp||''))); else kmTot=kmOf(decode(r.wp||'')); }catch(_){}
-      return { estado: incompleta?'mid':'ok', pct:pct, km:km, kmTot:kmTot, botadas:botadas, chofer:chofer, ficha:ficha||r.camion, ini:ini, fin:fin, cov:cov, motivo:(rep&&rep.motivo)||null };
+      return { estado: incompleta?'mid':'ok', pct:pct, km:km, kmTot:kmTot, botadas:botadas, chofer:(choferes.length>1?choferes.join(' + '):chofer), ficha:ficha||r.camion, ini:ini, fin:fin, cov:cov, camiones:choferes.length||1, motivo:(rep&&rep.motivo)||null };
     }
     // Sin viaje: despachada→abandonada (incompleta), o nunca despachada→no salió
     let kmTot=0; try{ if(r.etapas&&r.etapas.length)r.etapas.forEach(e=>kmTot+=kmOf(decode(e.wp||''))); else kmTot=kmOf(decode(r.wp||'')); }catch(_){}
@@ -3010,7 +3021,9 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // Rutas programadas un día (respeta filtro), solo fechas <= hoy
   function _rtProgramadas(dateStr){
     const d=new Date(dateStr+'T12:00:00'); const L=_rtLetra(d); const out=[];
-    Object.keys(mgmtRutas||{}).forEach(id=>{ if(_rtFiltro&&id!==_rtFiltro)return; const r=mgmtRutas[id]||{}; if((r.freq||[]).includes(L))out.push(id); });
+    Object.keys(mgmtRutas||{}).forEach(id=>{ if(_rtFiltro&&id!==_rtFiltro)return; const r=mgmtRutas[id]||{};
+      // Programada por frecuencia, o REPROGRAMADA a este día desde otro
+      if((r.freq||[]).includes(L) || (r.reprogramaciones&&r.reprogramaciones[dateStr]))out.push(id); });
     return out;
   }
   function _rtRango(){
@@ -3121,7 +3134,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       if(st.estado==='ok'||st.tipo==='abandono'){ const hor=(st.ini&&st.fin)?(_rtHora(st.ini)+' → '+_rtHora(st.fin)):(st.fin?('abandono '+_rtHora(st.fin)):''); meta=(st.chofer||'—')+' · '+(st.ficha||'—')+' · '+(st.km?st.km.toFixed(1):'0')+(st.tipo==='abandono'&&st.kmTot?('/'+st.kmTot.toFixed(1)):'')+' km'+(hor?' · '+hor:''); }
       else { meta='Prog: '+(r.horaSalida||'06:00 a. m.')+' · Real: — · 0'+(st.kmTot?('/'+st.kmTot.toFixed(0)):'')+' km'; }
       h+='<div class="meta">'+esc(meta)+'</div>';
-      if(st.estado==='ok'){ h+='<div class="datos"><span><i class="ti ti-map-pin-check" style="color:#1f7a45"></i> Trazado verificado '+(st.pct!=null?Math.round(st.pct):100)+'%</span><span><i class="ti ti-trash"></i> '+(st.botadas||0)+' botada'+((st.botadas||0)===1?'':'s')+'</span></div>'; }
+      if(st.estado==='ok'){ h+='<div class="datos"><span><i class="ti ti-map-pin-check" style="color:#1f7a45"></i> Trazado verificado '+(st.pct!=null?Math.round(st.pct):100)+'%</span><span><i class="ti ti-trash"></i> '+(st.botadas||0)+' botada'+((st.botadas||0)===1?'':'s')+'</span>'+((st.camiones||1)>1?'<span><i class="ti ti-lifebuoy" style="color:#b07d1e"></i> Cubierta por '+st.camiones+' camiones</span>':'')+'</div>'; }
       else {
         // % NO RECORRIDO pendiente de atención (reclamación)
         const pctNo = (st.pct!=null)?Math.max(0,100-Math.round(st.pct)):(st.tipo==='no_salio'?100:null);
@@ -3259,7 +3272,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     _rtModal({ titulo:(r.nombre||id)+' — '+_rtFechaLarga(fecha), sub:'', body:body,
       acts:'<button data-act="print"><i class="ti ti-printer"></i>Imprimir</button>'
         +'<button data-act="gps"><i class="ti ti-map-pin"></i>Recorrido GPS</button>'
-        +(incumple?'<button data-act="justif" style="border-color:#14532d;color:#14532d;font-weight:600;"><i class="ti ti-writing"></i>Justificar incumplimiento</button>':'')
+        +(incumple?'<button data-act="cubrir" class="prim"><i class="ti ti-lifebuoy"></i>Cubrir lo pendiente</button>':'')
+        +(incumple?'<button data-act="justif" style="border-color:#14532d;color:#14532d;font-weight:600;"><i class="ti ti-writing"></i>Justificar</button>':'')
         +(incumple?'<button data-act="reprog"><i class="ti ti-calendar-plus"></i>Reprogramar</button>':''),
       onReady:(ov)=>{
         // Badge de estado junto al título (mockup)
@@ -3332,6 +3346,36 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       }; }});
   }
   // §6.4 · Reprogramar
+  // DESPACHO DE RESCATE: otro camión/chofer cubre HOY el % pendiente de una ruta-día.
+  // covBase = lo ya recorrido; el chofer de rescate lo verá en verde y trabajará solo lo rojo.
+  function _rtCubrirPendiente(id,fecha){
+    const r=mgmtRutas[id]||{}; const st=_rtEstadoDia(r,fecha);
+    const pctPend=(st.pct!=null)?Math.max(0,100-Math.round(st.pct)):100;
+    const hoyStr=_rtDkey(new Date());
+    const choOpts=Object.keys(mgmtChoferes||{}).filter(c=>(mgmtChoferes[c]||{}).active!==false)
+      .map(c=>'<option value="'+esc(c)+'">'+esc(c)+((mgmtChoferes[c]||{}).name?(' · '+esc(mgmtChoferes[c].name)):'')+'</option>').join('');
+    const camOpts=Object.keys(mgmtCamiones||{}).filter(k=>camActivo((mgmtCamiones[k]||{}).estado))
+      .map(k=>{ const f=(mgmtCamiones[k]||{}).ficha||k; return '<option value="'+esc(f)+'">'+esc(f)+'</option>'; }).join('');
+    const body='<div class="rt-atencion" style="margin-top:0;"><i class="ti ti-alert-hexagon"></i><b>'+pctPend+'% sin recorrer</b> · se despachará solo lo pendiente</div>'
+      +'<div class="rt-form"><label>Chofer que cubre</label><select id="cpCho">'+(choOpts||'<option value="">— sin choferes activos —</option>')+'</select>'
+      +'<label>Camión</label><select id="cpCam">'+(camOpts||'<option value="">— sin camiones operativos —</option>')+'</select>'
+      +'<div style="font-size:12px;color:#6b7263;margin-top:10px;">El chofer verá la ruta HOY en su celular con lo ya recogido en verde. Su guía lo lleva directo a la zona pendiente'+(fecha!==hoyStr?(' · al terminar, la deuda del '+fecha+' quedará saldada con constancia'):' · al terminar, el día quedará completado por 2 camiones')+'.</div></div>';
+    _rtModal({ titulo:'Cubrir lo pendiente — '+(r.nombre||id), sub:'Deuda del '+_rtFechaLarga(fecha), body:body,
+      acts:'<button data-act="ok" class="prim"><i class="ti ti-lifebuoy"></i>Despachar rescate</button>',
+      onReady:(ov)=>{ ov.querySelector('[data-act="ok"]').onclick=()=>{
+        const cho=(document.getElementById('cpCho')||{}).value; const cam=(document.getElementById('cpCam')||{}).value;
+        if(!cho){ toast('Elige el chofer que cubre'); return; }
+        const obj={ origFecha:fecha, covBase:st.cov||null, pctPendiente:pctPend, choferCode:cho, camion:cam||null,
+          creadoPor:(currentUserName||'Administración'), ts:Date.now(), estado:'pendiente' };
+        try{
+          fbDb.ref('rutas/'+id+'/rescates/'+hoyStr).set(obj)
+            .then(()=>{ toast('Rescate despachado a '+cho+' ✓'); })
+            .catch(()=>{ toast('No se pudo despachar (revisa reglas de Firebase)'); });
+          mgmtRutas[id].rescates=mgmtRutas[id].rescates||{}; mgmtRutas[id].rescates[hoyStr]=obj;
+        }catch(_){ toast('No se pudo despachar'); }
+        _rtCerrarModal();
+      }; }});
+  }
   function _rtReprogramar(id,fecha){
     const body='<div class="rt-form"><label>Nueva fecha para «'+esc((mgmtRutas[id]||{}).nombre||id)+'»</label><input type="date" id="rpFecha" min="'+_rtDkey(new Date())+'"><div style="font-size:12px;color:#6b7263;margin-top:8px;">Se dejará constancia "Reprogramada desde el '+fecha+'".</div></div>';
     _rtModal({ titulo:'Reprogramar ruta', sub:_rtFechaLarga(fecha), body:body,
@@ -3348,6 +3392,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(act==='justif'){ _rtCerrarModal(); _rtJustificar(ctx.id,ctx.fecha); return; }
     if(act==='reprog'){ _rtCerrarModal(); _rtReprogramar(ctx.id,ctx.fecha); return; }
     if(act==='gps'){ _rtCerrarModal(); if(ctx.fecha)_rtVerRecorridoGps(ctx.id,ctx.fecha); else setSection('monitoreo'); return; }
+    if(act==='cubrir'){ _rtCerrarModal(); _rtCubrirPendiente(ctx.id,ctx.fecha); return; }
     if(act==='csv'){
       const rows=[['Fecha','Ruta','Estado','Chofer','Ficha','Km','Motivo']];
       if(ctx.scope==='diaruta'){ const st=_rtEstadoDia(mgmtRutas[ctx.id]||{},ctx.fecha); const jf=_rtJustif(ctx.id,ctx.fecha); rows.push([ctx.fecha,(mgmtRutas[ctx.id]||{}).nombre||ctx.id,(st.estado==='ok'?'completada':(st.tipo==='no_salio'?'no_salio':'incompleta')),(st.chofer||''),(st.ficha||''),(st.km?st.km.toFixed(1):''),((jf&&jf.motivo)||st.motivo||'')]); }
@@ -4584,10 +4629,15 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const out=[];
     Object.keys(mgmtRutas||{}).forEach(id=>{
       const r=mgmtRutas[id]||{};
+      // RESCATE: cubrir lo pendiente de otra ruta/camión — aparece aunque la ruta sea de otro chofer
+      const resc=r.rescates && r.rescates[hoyStr];
+      if(resc && resc.estado!=='completado' && resc.choferCode && (resc.choferCode===code || fbKey(resc.choferCode)===fbKey(code))){
+        out.push({id:id,r:r,rescate:resc}); return;
+      }
       const mine=(r.choferCode && (r.choferCode===code || fbKey(r.choferCode)===fbKey(code)));
       if(!mine)return;
-      // SOLO si el centro de control la ENVIÓ/DESPACHÓ hoy (control y seguridad)
-      const enviada=(r.envios && r.envios[hoyStr]);
+      // Despachada hoy, o REPROGRAMADA para hoy desde otro día
+      const enviada=(r.envios && r.envios[hoyStr]) || (r.reprogramaciones && r.reprogramaciones[hoyStr]);
       if(enviada)out.push({id:id,r:r});
     });
     return out;
@@ -4709,6 +4759,20 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       let km=0; try{ if(r.etapas&&r.etapas.length){ r.etapas.forEach(e=>{ km+=kmOf(decode(e.wp||'')); }); } else { km=kmOf(decode(r.wp||'')); } }catch(_){}
       const hrs=km>0?(km/7.5):0; const hTxt=hrs>0?('~'+Math.floor(hrs)+':'+String(Math.round((hrs%1)*60)).padStart(2,'0')):'—';
       let envTxt='—'; try{ if(r.envios&&r.envios[hoy]){ const e=r.envios[hoy]; const ts=(typeof e==='object')?(e.ts||e.t||null):(typeof e==='number'?e:null); if(ts)envTxt=new Date(ts).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}); } }catch(_){}
+      // RESCATE: cabecera ámbar con el % pendiente que este chofer debe cubrir
+      if(o.rescate){
+        const pend=(o.rescate.pctPendiente!=null)?o.rescate.pctPendiente:100;
+        return '<div class="cho-rcard'+(sel?' sel':'')+'" data-rid="'+esc(o.id)+'">'
+          +'<div class="cho-rc-head" style="background:#7a5a14;"><i class="ti ti-lifebuoy ic" style="color:#ffe9b8;" aria-hidden="true"></i>'
+            +'<div style="flex:1;min-width:0;"><div class="ov" style="color:#ffe9b8;">RESCATE · CUBRIR LO PENDIENTE</div><div class="nm">'+esc(r.nombre||'Ruta')+'</div></div>'
+            +'<div class="chip">'+pend+'% pendiente</div></div>'
+          +'<div class="cho-rc-stats">'
+            +'<div><div class="v">'+(km>0?km.toFixed(1):'—')+'</div><div class="l">km de ruta</div></div>'
+            +'<div><div class="v">'+pend+'%</div><div class="l">por cubrir</div></div>'
+            +'<div><div class="v">'+esc(o.rescate.camion||'—')+'</div><div class="l">camión</div></div>'
+          +'</div>'
+          +'<div style="padding:0 18px 12px;font-size:12px;color:#a58840;">Lo ya recogido saldrá en verde. Tu guía te lleva solo por lo rojo.</div></div>';
+      }
       const ov = completada?'COMPLETADA HOY · puedes repetirla':'RUTA DESPACHADA HOY';
       return '<div class="cho-rcard'+(sel?' sel':'')+(completada?' done':'')+'" data-rid="'+esc(o.id)+'">'
         +'<div class="cho-rc-head"><i class="ti ti-'+(completada?'circle-check':'route')+' ic" aria-hidden="true"></i>'
@@ -4765,6 +4829,13 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     // Vincular con las variables que usa el motor de reportes/calificación
     currentRutaId=rutaId; currentRuta=mgmtRutas[rutaId]||null; tripStartedAt=new Date().toISOString();
     dumpCount=0; fuelCount=0; kmRuta=0; kmVertedero=0; kmCombustible=0;
+    // ¿Es un despacho de RESCATE para este chofer hoy? (cubrir lo pendiente de otro camión)
+    _choRescate=null;
+    try{
+      const _hh=new Date(); const _hs=_hh.getFullYear()+'-'+String(_hh.getMonth()+1).padStart(2,'0')+'-'+String(_hh.getDate()).padStart(2,'0');
+      const _rc=(currentRuta&&currentRuta.rescates)?currentRuta.rescates[_hs]:null;
+      if(_rc && _rc.estado!=='completado' && _rc.choferCode && (_rc.choferCode===choferCode || fbKey(_rc.choferCode)===fbKey(choferCode||''))){ _choRescate=Object.assign({fecha:_hs},_rc); }
+    }catch(_){}
     // PEDIR GPS PRIMERO (antes de todo, para que el permiso salga de inmediato)
     if(!('geolocation' in navigator)){ toast('Este teléfono no tiene GPS'); speak('Este teléfono no tiene GPS'); }
     else if(location.protocol!=='https:' && location.hostname!=='localhost'){ toast('El GPS requiere conexión segura HTTPS'); console.warn('[chofer] no HTTPS:', location.protocol); }
@@ -4891,6 +4962,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   }
   let _progresoPend=null;
   let _choProgresoHoy=null; // null=sin chequear, false=no hay, {...}=hay progreso guardado
+  let _choRescate=null;     // despacho de rescate activo: {covBase, origFecha, ...} — cubrir lo pendiente de otro camión
   function cargarEtapaChofer(idx, r){
     r=r||mgmtRutas[choferTurno.rutaId];
     const et=choferTurno.etapas[idx]; if(!et)return;
@@ -4911,6 +4983,20 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         // Vista inicial: mostrar la RUTA COMPLETA (panorama), no pegado al camión
         followOn=false;
         setTimeout(()=>centrarVistaChofer(), 300);
+        // MODO RESCATE: pre-marcar lo que el primer camión YA recorrió (covBase) — verde de entrada,
+        // el chofer solo trabaja lo rojo y su progreso arranca donde el otro lo dejó
+        if(_choRescate && _choRescate.covBase && idx===0){
+          try{
+            const bits=covDec(_choRescate.covBase, waypoints.length);
+            bits.forEach((b,i)=>{ if(b)doneWps.add(i); });
+            let primero=waypoints.length; for(let i=0;i<bits.length;i++){ if(!bits[i]){ primero=i; break; } }
+            nextWpIdx=Math.min(primero, waypoints.length);
+            dibujarProgresoVerde();
+            const pg=waypoints.length?Math.round(doneWps.size/waypoints.length*100):0;
+            speak('Modo rescate. El '+pg+' por ciento ya fue recogido por otro camión. Dirígete a la zona pendiente marcada en rojo.','nav');
+            toast('Rescate: cubre solo lo rojo ('+(100-pg)+'% pendiente)');
+          }catch(e){ console.warn('rescate covBase:',e); }
+        }
         // Si hay progreso guardado de HOY para esta etapa, RETOMARLO (no perder lo avanzado)
         if(_progresoPend && _progresoPend.rutaId===choferTurno.rutaId && _progresoPend.etapaIdx===idx){
           try{
@@ -5130,7 +5216,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     }
     // Decidir destino: si aún no llegó al inicio → al inicio; si se salió → al punto de reintegro; si va normal → al próximo punto
     let destino=null, tipo='inicio';
-    if(!reachedStart && waypoints.length){ destino=waypoints[0]; tipo='inicio'; }
+    if(!reachedStart && waypoints.length){ destino=waypoints[Math.min(nextWpIdx||0,waypoints.length-1)]; tipo='inicio'; }
     else if(deviated && nextWpIdx<waypoints.length){ destino=waypoints[nextWpIdx]; tipo='reintegro'; }
     else if(nextWpIdx<waypoints.length){ destino=waypoints[nextWpIdx]; tipo='reintegro'; }
     if(!destino){ toast('No hay a dónde guiar'); return; }
@@ -6514,14 +6600,16 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     }
 
     // Guía al punto de inicio (punto de encuentro) con ruta de manejo real (ORS)
+    // En RESCATE el "inicio" es el PRIMER PUNTO PENDIENTE (lo anterior ya fue recogido por el otro camión)
     if(waypoints.length && !reachedStart){
-      const dStart=haversine(p,waypoints[0]);
+      const _pIni=waypoints[Math.min(nextWpIdx||0,waypoints.length-1)]||waypoints[0];
+      const dStart=haversine(p,_pIni);
       const g=document.getElementById('startGuide');
       if(dStart>25){
-        if(g){ const tx=g.querySelector('.sg-tx'); if(tx)tx.textContent='🚩 Dirígete al punto de inicio · '+(dStart<1000?Math.round(dStart)+' m':(dStart/1000).toFixed(1)+' km'); g.classList.add('show'); }
+        if(g){ const tx=g.querySelector('.sg-tx'); if(tx)tx.textContent='🚩 Dirígete al punto de '+(_choRescate?'rescate':'inicio')+' · '+(dStart<1000?Math.round(dStart)+' m':(dStart/1000).toFixed(1)+' km'); g.classList.add('show'); }
         // ORS NO se activa solo. El chofer lo activa con el botón "Llévame al inicio" si lo necesita.
       }
-      else { reachedStart=true; if(g)g.classList.remove('show'); detenerGuia(); speak('Llegó al punto de inicio, comienza la ruta'); }
+      else { reachedStart=true; if(g)g.classList.remove('show'); detenerGuia(); speak(_choRescate?'Llegaste a la zona pendiente. Comienza el rescate.':'Llegó al punto de inicio, comienza la ruta'); }
     }
     // Actualizar la guía activa (giros por voz, detección de llegada)
     if(guiaActiva){ actualizarGuia(p); }
@@ -6918,6 +7006,19 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         texto:'Recorrido real: '+comp+'% cubierto'+(pctNo>0?(' · '+pctNo+'% SIN RECORRER (pendiente de atención)'):'')+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):'')+(dumpCount?(' · '+dumpCount+' viaje(s) al vertedero'):'')+(fuelCount?(' · '+fuelCount+' parada(s) de combustible'):'')+'.'
       }));
       try{ const lu={cov:_cov,progress:comp,ts:Date.now()}; if(final)lu.status='termino'; fbDb.ref('live/'+txId()).update(lu); }catch(_){}
+      // CIERRE DE RESCATE: marcar el rescate como completado y saldar la deuda del día original
+      if(final && _choRescate){
+        try{
+          fbDb.ref('rutas/'+currentRutaId+'/rescates/'+_choRescate.fecha).update({estado:'completado', finTs:Date.now(), covFinal:_cov, pctFinal:comp});
+          if(_choRescate.origFecha && _choRescate.origFecha!==_f){
+            // La deuda de aquel día queda cubierta: justificación automática con constancia
+            fbDb.ref('rutas/'+currentRutaId+'/justificaciones/'+_choRescate.origFecha).set({
+              motivo:'Cubierta por rescate', nota:'Pendiente cubierto el '+_f+' por '+(choferCode||'chofer')+' ('+comp+'%)', por:'Sistema · rescate', ts:Date.now()
+            });
+          }
+          _choRescate=null;
+        }catch(e){ console.warn('cierre rescate',e); }
+      }
     }catch(e){ console.warn('guardarReporteChofer',e); }
   }
   function totalDistanceOf(path){
