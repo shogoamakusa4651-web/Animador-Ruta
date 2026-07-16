@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.70"></script>
-<script src="js/store.js?v=4.70"></script>
-<script src="js/auth.js?v=4.70"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.70" />
+<script src="js/utils.js?v=4.71"></script>
+<script src="js/store.js?v=4.71"></script>
+<script src="js/auth.js?v=4.71"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.71" />
 </head>
 <body>
 <div id="map"></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.70 · 2026-07-15'; // ← actualizar con cada release
+  const APP_VERSION='v4.71 · 2026-07-15'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1779,7 +1779,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   }
   function subscribeUnits(){
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
-    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); _procesarAlertasDesdeLive(supLast); try{actualizarEstadoServicio();}catch(_){} if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); },300); }); }
+    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); _procesarAlertasDesdeLive(supLast); try{actualizarEstadoServicio();}catch(_){} if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); try{ if(typeof ccDrawRoutes==='function')ccDrawRoutes(); }catch(_){} },300); }); }
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
     // Alertas persistentes desde alertas_chofer (respaldo) — no sobreescribe claves LIVE_
     window._alertasVistas=window._alertasVistas||{};
@@ -1950,6 +1950,9 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     }
     document.body.classList.add('adm-shell');
     document.body.classList.remove('cc-full'); // salir del modo mapa completo al cambiar de sección
+    // Rutas del día en el mapa del Centro de Control: dibujar al entrar, limpiar al salir
+    if(name==='inicio'){ window._ccFit=true; }
+    else { try{ if(typeof ccClearRoutes==='function')ccClearRoutes(); }catch(_){} }
     // re-disparar animación de entrada
     document.body.classList.remove('sec-anim'); void document.body.offsetWidth; document.body.classList.add('sec-anim');
     ['inicio','monitoreo','rutas','recursos','admin','reportes'].forEach(s=>document.body.classList.toggle('sec-'+s,s===name));
@@ -2128,6 +2131,83 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   }
   function quitarBannerAlerta(key){ const b=document.getElementById('alBan_'+key); if(b)b.remove(); }
   function fmtHace(ts){ const s=Math.floor((Date.now()-ts)/1000); if(s<60)return 'hace '+s+'s'; const m=Math.floor(s/60); if(m<60)return 'hace '+m+' min'; return 'hace '+Math.floor(m/60)+' h'; }
+  // ===== RUTAS DEL DÍA EN EL MAPA DEL CENTRO DE CONTROL =====
+  // Dibuja cada ruta programada hoy con su estado: gris punteado=sin enviar, ámbar=enviada,
+  // azul + verde progresivo=en curso, verde + rojo punteado=terminada con pendiente.
+  // Cada ruta es clickeable: tarjeta con estado y acciones (Enviar / Detalle / Camión de respaldo).
+  let ccLayers={}, ccPopup=null;
+  function ccClearRoutes(){ Object.keys(ccLayers).forEach(k=>{ try{map.removeLayer(ccLayers[k]);}catch(_){} }); ccLayers={}; }
+  function ccDrawRoutes(){
+    if(curSec!=='inicio' || currentUserRole==='chofer') return;
+    ccClearRoutes();
+    const _n=new Date(); const hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
+    const Lh=todayLetter(); const live=liveByRuta(); const all=supLast||{};
+    let bounds=null;
+    Object.keys(mgmtRutas||{}).forEach(id=>{
+      const r=mgmtRutas[id]||{};
+      if(!((r.freq||[]).includes(Lh) || (r.reprogramaciones&&r.reprogramaciones[hoy]) || (r.rescates&&r.rescates[hoy]))) return;
+      let pts=decode(r.wp||'')||[];
+      if((!pts||pts.length<2)&&r.etapas&&r.etapas.length){ pts=[]; r.etapas.forEach(e=>{ pts=pts.concat(decode(e.wp||'')||[]); }); }
+      if(!pts||pts.length<2) return;
+      pts=densificarRuta(pts,12);
+      const t=live[id];
+      const viajesHoy=(r.viajes&&r.viajes[hoy])||null;
+      const done=viajesHoy&&Object.keys(viajesHoy).length;
+      const env=r.envios&&r.envios[hoy];
+      const estado = t?'curso':(done?'completada':(env?'enviada':'pendiente'));
+      const g=L.layerGroup();
+      if(estado==='pendiente'){
+        L.polyline(pts,{color:'#9aa08f',weight:3,opacity:.85,dashArray:'6,8',lineCap:'round',interactive:false}).addTo(g);
+      } else if(estado==='enviada'){
+        L.polyline(pts,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+        L.polyline(pts,{color:'#c9a227',weight:3.5,opacity:.95,lineCap:'round',interactive:false}).addTo(g);
+      } else if(estado==='curso'){
+        L.polyline(pts,{color:'#fff',weight:7,opacity:.7,lineCap:'round',interactive:false}).addTo(g);
+        L.polyline(pts,{color:'#2E7DF2',weight:4,opacity:.9,lineCap:'round',interactive:false}).addTo(g);
+        if(t.cov){ try{ const bits=covDec(t.cov,pts.length); covSegs(pts,bits,true).forEach(s=>L.polyline(s,{color:'#27A35B',weight:5,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g)); }catch(_){}}
+      } else { // completada: verde lo recorrido, ROJO PUNTEADO lo que quedó pendiente
+        let cov=null; try{ Object.keys(viajesHoy).forEach(k=>{ if((viajesHoy[k]||{}).cov)cov=viajesHoy[k].cov; }); }catch(_){}
+        if(cov){ try{ const bits=covDec(cov,pts.length);
+          covSegs(pts,bits,false).forEach(s=>L.polyline(s,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g));
+          covSegs(pts,bits,true).forEach(s=>L.polyline(s,{color:'#27A35B',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
+        }catch(_){ L.polyline(pts,{color:'#27A35B',weight:5,opacity:.95,interactive:false}).addTo(g); } }
+        else { L.polyline(pts,{color:'#27A35B',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g); }
+      }
+      // Capa invisible ancha = objetivo de click fácil
+      const hit=L.polyline(pts,{color:'#000',opacity:0.02,weight:20,interactive:true});
+      hit.on('click',(e)=>{ try{ ccShowPopup(id,estado,e.latlng); }catch(_){} });
+      hit.addTo(g);
+      g.addTo(map); ccLayers[id]=g;
+      try{ const b=L.latLngBounds(pts); bounds=bounds?bounds.extend(b):b; }catch(_){}
+    });
+    if(window._ccFit && bounds){ try{ map.fitBounds(bounds.pad(0.12)); }catch(_){} window._ccFit=false; }
+  }
+  function ccShowPopup(id,estado,latlng){
+    const r=mgmtRutas[id]||{}; const t=liveByRuta()[id];
+    const pg=(t&&t.progress!=null)?Math.round(t.progress):null;
+    const _n=new Date(); const hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
+    // % del día (para completadas: buscar cobertura del reporte)
+    let pctDia=null; try{ const st=_rtEstadoDia(r,hoy); if(st&&st.pct!=null)pctDia=Math.round(st.pct); }catch(_){}
+    const lbl={ pendiente:['SIN ENVIAR','#b3453a'], enviada:['ENVIADA · esperando que inicie','#a3801f'],
+      curso:['EN CURSO'+(pg!=null?(' · '+pg+'%'):''),'#2E7DF2'],
+      completada:['TERMINADA'+(pctDia!=null?(' · '+pctDia+'% cubierto'):''), (pctDia!=null&&pctDia<90)?'#b3453a':'#1b5e3f'] }[estado];
+    const btn=(a,txt,bg,fg)=>'<button onclick="ccAct(\''+a+'\',\''+id+'\')" style="border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;background:'+bg+';color:'+fg+';font-family:inherit;">'+txt+'</button>';
+    let html='<div style="font-family:\'IBM Plex Sans\',sans-serif;min-width:215px;">'
+      +'<div style="font-weight:800;font-size:14px;color:#2b332a;">'+esc(r.nombre||id)+'</div>'
+      +'<div style="font-size:11.5px;color:'+lbl[1]+';font-weight:800;letter-spacing:.04em;margin:3px 0 5px;">'+lbl[0]+'</div>'
+      +'<div style="font-size:11.5px;color:#6d6a5c;font-family:ui-monospace,monospace;">'+esc((r.choferCode||'sin chofer')+' · '+(r.camion||'sin camión'))+'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">';
+    if(estado==='pendiente') html+=btn('enviar','📤 Enviar al chofer','#1b4332','#fff');
+    else html+=btn('detalle','Ver detalle','#e9e4d4','#2b332a');
+    if(estado!=='pendiente') html+=btn('respaldo','🛟 Camión de respaldo','#c9a227','#3a2f10');
+    html+='</div></div>';
+    try{ ccPopup=L.popup({closeButton:true,maxWidth:290}).setLatLng(latlng).setContent(html).openOn(map); }catch(_){}
+  }
+  window.ccAct=function(a,id){
+    try{ if(ccPopup)map.closePopup(ccPopup); }catch(_){}
+    if(a==='enviar'||a==='detalle'){ try{ openRouteDetail(id); }catch(_){} }
+    else if(a==='respaldo'){ const _n=new Date(); const hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0'); try{ _rtCubrirPendiente(id,hoy); }catch(e){ console.warn('respaldo',e); } }
+  };
   function buildInicio(){
     const host=document.getElementById('iniBody'); if(!host)return;
     const today=todayLetter();
@@ -2221,7 +2301,9 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       H+=kpi(critCount,'','Incidencias<br>críticas',critCount>0?'crit':'pos');
       H+='</div>';
       H+='<div class="tc-main">';
-      H+='<div class="tc-mapchips"><div class="tc-chip"><i class="ti ti-map-2"></i> Mapa en vivo</div><div class="tc-chip sec">'+(liveIds.length?(liveIds.length+' camión'+(liveIds.length!==1?'es':'')+' en vivo'):'Sin camiones activos ahora')+'</div></div>';
+      H+='<div class="tc-mapchips"><div class="tc-chip"><i class="ti ti-map-2"></i> Mapa en vivo</div><div class="tc-chip sec">'+(liveIds.length?(liveIds.length+' camión'+(liveIds.length!==1?'es':'')+' en vivo'):'Sin camiones activos ahora')+'</div>'
+        +'<div class="tc-chip sec" style="gap:10px;"><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#9aa08f;vertical-align:middle;"></i> Sin enviar</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#c9a227;vertical-align:middle;"></i> Enviada</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#2E7DF2;vertical-align:middle;"></i> En curso</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#27A35B;vertical-align:middle;"></i> Recorrido</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#cd4936;vertical-align:middle;"></i> Pendiente</span></div>'
+        +'<div class="tc-chip sec">Toca una ruta para ver estado y acciones</div></div>';
       H+='<button class="tc-mapfull" data-go="mon"><i class="ti ti-maximize"></i> Mapa completo</button>';
       H+='<div class="tc-dock">';
       H+='<div class="tc-dock-h"><span class="t">Operación de hoy</span><span class="tc-badge'+(nSinEnviar?'':' zero')+'">'+nSinEnviar+' sin enviar</span></div>';
@@ -2268,6 +2350,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       host.querySelectorAll('.tc-orow[data-otra]').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.otra)));
       host.querySelectorAll('.tc-orow[data-live]').forEach(row=>row.addEventListener('click',()=>setSection('monitoreo')));
       try{ if(typeof subscribeUnits==='function')subscribeUnits(); }catch(_){}
+      try{ ccDrawRoutes(); }catch(e){ console.warn('ccDrawRoutes',e); }
       try{ if(map&&map.invalidateSize)setTimeout(()=>{ try{map.invalidateSize();}catch(_){} },80); }catch(_){}
       try{ actualizarEstadoServicio(); }catch(_){}
       return;
