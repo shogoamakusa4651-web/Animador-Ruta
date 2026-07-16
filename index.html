@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.68"></script>
-<script src="js/store.js?v=4.68"></script>
-<script src="js/auth.js?v=4.68"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.68" />
+<script src="js/utils.js?v=4.69"></script>
+<script src="js/store.js?v=4.69"></script>
+<script src="js/auth.js?v=4.69"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.69" />
 </head>
 <body>
 <div id="map"></div>
@@ -62,7 +62,7 @@
   </div>
 </div>
 <div class="user-menu" id="userMenu">
-  <div class="um-item" id="umTheme"><i class="ti ti-moon" aria-hidden="true"></i> <span id="umThemeTx">Modo oscuro</span></div>
+  <div class="um-item" id="umTheme" style="display:none;"><i class="ti ti-moon" aria-hidden="true"></i> <span id="umThemeTx">Tema Marfil</span></div>
   <div class="um-item" id="umLogout"><i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión</div>
 </div>
 <div class="map-cover" id="mapCover"><div id="iniBody"></div></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.68 · 2026-07-15'; // ← actualizar con cada release
+  const APP_VERSION='v4.69 · 2026-07-15'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2002,7 +2002,9 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // Debounce para auto-actualizaciones de inicio desde listeners de live (evita parpadeo de animaciones)
   let _bITimer=null;
   function buildInicioSoft(){ try{ actualizarEstadoServicio(); }catch(_){} if(curSec!=='inicio')return; clearTimeout(_bITimer); _bITimer=setTimeout(buildInicio,3500); }
-  function applyTheme(t){ document.body.classList.toggle('dark',t==='dark'); const tx=document.getElementById('umThemeTx'); if(tx)tx.textContent=(t==='dark'?'Modo claro':'Modo oscuro'); const ic=document.querySelector('#umTheme i'); if(ic)ic.className='ti ti-'+(t==='dark'?'sun':'moon'); try{localStorage.setItem('animador_theme',t);}catch(_){ } }
+  // El tema del panel es Marfil (claro) SIEMPRE: el diseño no tiene variante oscura.
+  // Se fuerza 'light' e ignora cualquier preferencia vieja guardada para evitar la mezcla de interfaces.
+  function applyTheme(t){ document.body.classList.remove('dark'); const tx=document.getElementById('umThemeTx'); if(tx)tx.textContent='Tema Marfil'; try{localStorage.setItem('animador_theme','light');}catch(_){ } }
   function toggleTheme(){ applyTheme(document.body.classList.contains('dark')?'light':'dark'); }
   function shellSetup(){
     const HELP={
