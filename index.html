@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.66"></script>
-<script src="js/store.js?v=4.66"></script>
-<script src="js/auth.js?v=4.66"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.66" />
+<script src="js/utils.js?v=4.67"></script>
+<script src="js/store.js?v=4.67"></script>
+<script src="js/auth.js?v=4.67"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.67" />
 </head>
 <body>
 <div id="map"></div>
@@ -36,8 +36,7 @@
 <nav class="shell-nav" id="shellNav">
   <div class="shell-logo"><span class="ic"><i class="ti ti-recycle" aria-hidden="true"></i></span><span class="tx"><b>Animador de Ruta</b><small>Ayuntamiento de La Vega</small></span></div>
   <div class="shell-navitems">
-    <div class="nav-item" data-sec="inicio"><i class="ti ti-home" aria-hidden="true"></i>Inicio</div>
-    <div class="nav-item" data-sec="monitoreo"><i class="ti ti-radar-2" aria-hidden="true"></i>Monitoreo</div>
+    <div class="nav-item" data-sec="inicio"><i class="ti ti-radar-2" aria-hidden="true"></i>Centro de Control</div>
     <div class="nav-item" data-sec="rutas"><i class="ti ti-route" aria-hidden="true"></i>Rutas</div>
     <div class="nav-item" data-sec="admin"><i class="ti ti-settings" aria-hidden="true"></i>Administración</div>
     <div class="nav-item" data-sec="reportes" id="navReportes"><i class="ti ti-file-analytics" aria-hidden="true"></i>Reportes <span class="nav-badge hide" id="navQuejasBadge">0</span></div>
@@ -873,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.66 · 2026-07-14'; // ← actualizar con cada release
+  const APP_VERSION='v4.67 · 2026-07-15'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1931,7 +1930,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   }
 
   // ===== APP SHELL =====
-  const SEC_TITLE={inicio:'Inicio',monitoreo:'Monitoreo',rutas:'Rutas',recursos:'Recursos',admin:'Administración',reportes:'Reportes'};
+  const SEC_TITLE={inicio:'Centro de Control',monitoreo:'Mapa completo',rutas:'Rutas',recursos:'Recursos',admin:'Administración',reportes:'Reportes'};
   let curSec=null;
   function setSection(name){
     // Guardia de permisos: si el rol no puede ver la sección, redirige a la primera permitida
@@ -2224,17 +2223,27 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       H+='<div class="tc-mapchips"><div class="tc-chip"><i class="ti ti-map-2"></i> Mapa en vivo</div><div class="tc-chip sec">'+(liveIds.length?(liveIds.length+' camión'+(liveIds.length!==1?'es':'')+' en vivo'):'Sin camiones activos ahora')+'</div></div>';
       H+='<button class="tc-mapfull" data-go="mon"><i class="ti ti-maximize"></i> Mapa completo</button>';
       H+='<div class="tc-dock">';
-      H+='<div class="tc-dock-h"><span class="t">Despacho de hoy</span><span class="tc-badge'+(nSinEnviar?'':' zero')+'">'+nSinEnviar+' sin enviar</span></div>';
+      H+='<div class="tc-dock-h"><span class="t">Operación de hoy</span><span class="tc-badge'+(nSinEnviar?'':' zero')+'">'+nSinEnviar+' sin enviar</span></div>';
       H+='<div class="tc-dock-list">';
-      if(!cola.length){ H+='<div class="tc-empty">No hay rutas programadas hoy.</div>'; }
+      if(!cola.length){ H+='<div class="tc-vacio">No hay rutas programadas hoy.</div>'; }
       else { cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const cls=x.s==='curso'?'curso':(x.s==='completada'?'done':'');
         const t=live[x.id]; const pg=(t&&t.progress!=null)?(' · '+t.progress+'%'):'';
         const meta=(r.choferCode||'sin chofer')+' · '+(r.camion||'sin camión')+' · '+st[0];
         H+='<div class="tc-rcard '+cls+'" data-id="'+esc(x.id)+'"><div class="info"><div class="nm">'+esc(r.nombre||'(sin nombre)')+pg+'</div><div class="mt">'+esc(meta)+'</div></div>';
         if(x.s!=='completada')H+='<button class="tc-rbtn'+(x.s==='curso'?' ghost':'')+'" data-id="'+esc(x.id)+'" data-s="'+x.s+'">'+st[2]+'</button>';
         H+='</div>'; }); }
-      let otro=''; ids.filter(id=>todayIds.indexOf(id)<0).sort((a,b)=>(((rutas[a]||{}).nombre||'').localeCompare((rutas[b]||{}).nombre||''))).forEach(id=>{ otro+='<option value="'+esc(id)+'">'+esc((rutas[id]||{}).nombre||'(sin nombre)')+' · '+esc(((rutas[id]||{}).freq||[]).join('·')||'sin días')+'</option>'; });
-      H+='<select class="tc-otro" id="iniExtra"><option value="">Despachar ruta de otro día…</option>'+otro+'</select>';
+      // VIAJES ACTIVOS (camiones transmitiendo ahora)
+      H+='<div class="tc-grouplbl">Viajes activos'+(liveIds.length?(' · '+liveIds.length):'')+'</div>';
+      if(!liveIds.length){ H+='<div class="tc-vacio">Sin viajes activos ahora. Cuando un camión salga, aparecerá aquí en vivo.</div>'; }
+      else { liveIds.forEach(id=>{ const r=rutas[id]||{}; const t=live[id]||{}; const pg=Math.max(0,Math.min(100,Number(t.progress)||0));
+        H+='<div class="tc-orow" data-live="'+esc(id)+'"><span style="width:8px;height:8px;border-radius:50%;background:#2d9e5f;flex:none;"></span><span style="flex:1;font-weight:600;">'+esc(r.nombre||id)+'</span><small>'+pg+'%</small></div>'; }); }
+      // OTRAS RUTAS (no programadas hoy) — lista con divisores, click = despachar/detalle
+      const otras=ids.filter(id=>todayIds.indexOf(id)<0).sort((a,b)=>(((rutas[a]||{}).nombre||'').localeCompare((rutas[b]||{}).nombre||'')));
+      H+='<div class="tc-grouplbl">Otras rutas · '+otras.length+'</div>';
+      if(!otras.length){ H+='<div class="tc-vacio">Todas las rutas están programadas hoy.</div>'; }
+      else { H+='<div style="background:var(--surface-3,#fff);border:1px solid var(--border-1,#e6e3da);border-radius:10px;padding:2px 10px;">';
+        otras.forEach(id=>{ H+='<div class="tc-orow" data-otra="'+esc(id)+'"><span style="flex:1;">'+esc((rutas[id]||{}).nombre||'(sin nombre)')+'</span><small>'+esc(((rutas[id]||{}).freq||[]).join('·')||'sin días')+'</small><i class="ti ti-chevron-right" style="color:var(--mt3,#9a9f8f);font-size:14px;"></i></div>'; });
+        H+='</div>'; }
       H+='</div>'; // tc-dock-list
       const opPct=tot?Math.round(disp/tot*100):0; const repPct=tot?(100-opPct):0;
       H+='<div class="tc-dock-foot">';
@@ -2249,7 +2258,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='mon')setSection('monitoreo'); else if(g==='admin')setSection('admin'); }));
       host.querySelectorAll('.tc-rbtn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
       host.querySelectorAll('.tc-rcard').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
-      const _ex=document.getElementById('iniExtra'); if(_ex)_ex.addEventListener('change',()=>{ if(_ex.value)openRouteDetail(_ex.value); _ex.value=''; });
+      host.querySelectorAll('.tc-orow[data-otra]').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.otra)));
+      host.querySelectorAll('.tc-orow[data-live]').forEach(row=>row.addEventListener('click',()=>setSection('monitoreo')));
       try{ if(typeof subscribeUnits==='function')subscribeUnits(); }catch(_){}
       try{ if(map&&map.invalidateSize)setTimeout(()=>{ try{map.invalidateSize();}catch(_){} },80); }catch(_){}
       try{ actualizarEstadoServicio(); }catch(_){}
@@ -3051,7 +3061,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     // ---- Toolbar ----
     const periodoLbl={mes:'Mes',semana:'Semana',trimestre:'Trimestre'};
     let h='<div class="rt-toolbar">';
-    h+='<div class="rt-seg">'+['semana','mes','trimestre'].map(p=>'<button class="'+(_rtPeriodo===p?'on':'')+'" data-per="'+p+'">'+periodoLbl[p]+'</button>').join('')+'</div>';
+    h+='<button class="rt-btn" id="rtSegTgl" style="border-radius:99px;">'+periodoLbl[_rtPeriodo]+' <i class="ti ti-chevron-down" style="font-size:13px;"></i></button>';
+    h+='<div class="rt-seg rt-segwrap'+(window._rtSegOpen?' open':'')+'">'+['semana','mes','trimestre'].map(p=>'<button class="'+(_rtPeriodo===p?'on':'')+'" data-per="'+p+'">'+periodoLbl[p]+'</button>').join('')+'</div>';
     const mesLbl=_rtMes.toLocaleDateString('es-DO',{month:'long',year:'numeric'});
     h+='<div class="rt-nav"><i class="ti ti-chevron-left" data-nav="-1"></i><b>'+mesLbl.charAt(0).toUpperCase()+mesLbl.slice(1)+'</b><i class="ti ti-chevron-right" data-nav="1"></i></div>';
     h+='<select class="rt-filter" id="rtFiltro"><option value="">Todas las rutas</option>'+ids.map(id=>'<option value="'+esc(id)+'"'+(_rtFiltro===id?' selected':'')+'>'+esc((mgmtRutas[id]||{}).nombre||id)+'</option>').join('')+'</select>';
@@ -3068,6 +3079,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       +'</div>';
     // ---- Main: calendario + panel ----
     h+='<div class="rt-main"><div class="rt-calwrap">';
+    h+='<div class="rt-calcard">';
     h+='<div class="rt-caltop"><div class="ttl">Calendario de cumplimiento · '+mesLbl.charAt(0).toUpperCase()+mesLbl.slice(1)+'</div>'
       +'<div class="rt-legend"><span><i style="background:#1f7a45"></i>Todo cumplido</span><span><i style="background:#d9a53f"></i>Parcial</span><span><i style="background:#cd4936"></i>Nada salió</span><span><i style="background:#e6e3da"></i>Sin programación</span></div></div>';
     h+='<div class="rt-dow"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>';
@@ -3080,7 +3092,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const ds=_rtDkey(new Date(y,m,dia));
       const prog=_rtProgramadas(ds);
       const futuro = ds>hoyStr;
-      if(!prog.length||futuro){ h+='<div class="rt-cell empty"><span class="dnum">'+dia+'</span></div>'; continue; }
+      if(!prog.length||futuro){ h+='<div class="rt-cell empty'+(futuro?' fut':'')+'"><span class="dnum">'+dia+'</span></div>'; continue; }
       let ok=0; const sts=prog.map(id=>_rtEstadoDia(mgmtRutas[id]||{},ds)); sts.forEach(s=>{ if(s.estado==='ok')ok++; });
       const barSpans=prog.map((id,i)=>{ const st=sts[i]; const nm=(mgmtRutas[id]||{}).nombre||id; const et=st.estado==='ok'?'cumplida':(st.tipo==='no_salio'?'no salió':'parcial'); const jf=_rtJustif(id,ds); return '<i data-rid="'+esc(id)+'" data-bardia="'+ds+'" title="'+esc(nm+' · '+et+(jf?' · justificada':''))+'" style="background:'+colBar[st.estado]+(jf&&st.estado!=='ok'?';background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.5) 0 2px,transparent 2px 4px)':'')+'"></i>'; }).join('');
       const cols=sts.map(s=>colBar[s.estado]);
@@ -3091,6 +3103,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         +'<span class="nm" style="color:'+peorCol+'">'+ok+'/'+prog.length+(sel?' · viendo':'')+'</span></div>';
     }
     h+='</div>'; // rt-grid
+    h+='</div>'; // rt-calcard
     h+='<div class="rt-hint">Cada barra = una ruta programada ese día · toca un día para ver el detalle →</div>';
     h+='</div>'; // rt-calwrap
     // Panel del día
@@ -3101,7 +3114,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     host.innerHTML=h;
     // Insertar deuda dentro del panel del día (pie)
     // Wiring
-    host.querySelectorAll('[data-per]').forEach(b=>b.addEventListener('click',()=>{ _rtPeriodo=b.dataset.per; buildReportesTC(); }));
+    const segT=document.getElementById('rtSegTgl'); if(segT)segT.addEventListener('click',()=>{ window._rtSegOpen=!window._rtSegOpen; buildReportesTC(); });
+    host.querySelectorAll('[data-per]').forEach(b=>b.addEventListener('click',()=>{ _rtPeriodo=b.dataset.per; window._rtSegOpen=false; buildReportesTC(); }));
     host.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{ _rtMes=new Date(_rtMes.getFullYear(),_rtMes.getMonth()+Number(b.dataset.nav),1); _rtDiaSel=null; buildReportesTC(); }));
     const fsel=document.getElementById('rtFiltro'); if(fsel)fsel.addEventListener('change',()=>{ _rtFiltro=fsel.value||null; buildReportesTC(); });
     host.querySelectorAll('.rt-cell[data-dia]').forEach(c=>c.addEventListener('click',()=>{ _rtDiaSel=c.dataset.dia; buildReportesTC(); }));

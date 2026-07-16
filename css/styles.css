@@ -1858,3 +1858,102 @@
   .cho-bigbtn.amarillo i, .cho-bigbtn.amarillo span{ color:#412402; }
   .cho-bigbtn.rojo{ background:#E24B4A; }
   .cho-bigbtn.rojo i, .cho-bigbtn.rojo span{ color:#fff; }
+
+/* ============================================================
+   MARFIL CALIDO - reestructuracion visual (handoff 2026-07-15)
+   Tokens + overrides. Cascade al final: gana sobre lo anterior.
+   ============================================================ */
+:root{
+  --surface-0:#f2efe6; --surface-1:#eeeadd; --surface-2:#ece8db; --surface-3:#f7f4ea; --surface-4:#f2efe4; --surface-inset:#e9e4d4;
+  --border-1:#e0dac8; --border-2:#ddd7c6; --border-gap:#e3ded0;
+  --mt1:#2b332a; --mt2:#6d6a5c; --mt3:#8b8779; --mtdis:#b5b09e;
+  --green-header:#14382a; --green-primary:#1b4332; --green-hover2:#2d6a4f; --green-text2:#1b5e3f; --green-tint:#d8e8dc; --green-sel:#e6efe6;
+  --mred:#b3453a; --mred-tint:#f0dcd7; --mamber:#a3801f; --amber-bar:#c9a227;
+  --warn-bg:#f0e8d2; --warn-row:#f6f1e0; --warn-border:#e2d5b0; --warn-text:#7a5c14; --warn-pill:#e8d9b5;
+  --on-green-muted:#c4d6ca; --on-green-sub:#9db8a8;
+  --critical-bg:#5a1f1f; --critical-border:#8a3a34; --critical-text:#f4c7c0;
+}
+/* ---- Header global ---- */
+body:not(.dark) .shell-nav{background:var(--green-header);}
+body:not(.dark) .shell-logo .ic{background:var(--green-hover2);}
+body:not(.dark) .shell-logo .tx small{color:var(--on-green-sub);letter-spacing:.14em;}
+body:not(.dark) .nav-item{color:var(--on-green-muted);}
+body:not(.dark) .nav-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+body:not(.dark) .nav-item.on{background:var(--surface-0);color:var(--green-header);font-weight:700;}
+body:not(.dark) .shell-status{background:var(--critical-bg);border-color:var(--critical-border);color:var(--critical-text);}
+body:not(.dark) .shell-status.ok{background:rgba(45,106,79,.35);border-color:var(--green-hover2);color:var(--green-tint);}
+body:not(.dark) .shell-user .av{background:var(--green-hover2);}
+/* ---- Footer claro ---- */
+body:not(.dark) .shell-foot{background:var(--surface-1);border-top:1px solid var(--border-2);color:var(--green-text2);}
+body:not(.dark) .shell-foot .ver{color:var(--mt3);font-family:ui-monospace,monospace;}
+body:not(.dark) .shell-foot .dot{background:#2d9e5f;}
+/* ---- Superficies de seccion: nunca blanco puro ---- */
+body:not(.dark) .map-cover, body:not(.dark) #secRutas, body:not(.dark) #secAdmin,
+body:not(.dark) #secReportes, body:not(.dark) #secRecursos{background:var(--surface-0);color:var(--mt1);}
+/* ---- Franja KPIs: celdas tonales con gap 1px ---- */
+body:not(.dark) .tc-kpis, body:not(.dark) .rt-kpis{background:var(--border-gap);border-bottom:1px solid var(--border-2);gap:1px;}
+body:not(.dark) .tc-kpi, body:not(.dark) .rt-kpi{background:var(--surface-2);border-right:none;}
+body:not(.dark) .tc-kpi .v, body:not(.dark) .rt-kpi .v{font-size:22px;font-weight:800;color:var(--mt1);}
+body:not(.dark) .tc-kpi .l, body:not(.dark) .rt-kpi .l{font-size:11px;color:var(--mt2);}
+body:not(.dark) .tc-kpi .v.crit, body:not(.dark) .rt-kpi .v.red{color:var(--mred);}
+body:not(.dark) .tc-kpi .v.warn{color:var(--mamber);}
+body:not(.dark) .tc-kpi .v.pos{color:var(--green-text2);}
+body:not(.dark) .rt-kpi .v.amber{color:var(--mred);}
+/* ---- CENTRO DE CONTROL: el dock pasa a RAIL IZQUIERDO 340px ---- */
+body:not(.dark) .tc-dock{left:0;right:auto;width:340px;background:var(--surface-1);border-left:none;border-right:1px solid var(--border-2);}
+body:not(.dark) .tc-mapchips{left:356px;}
+body:not(.dark) .tc-mapfull{right:16px;background:var(--green-primary);}
+body:not(.dark) .tc-mapfull:hover{background:var(--green-hover2);}
+body:not(.dark) .tc-dock-h{border-bottom-color:var(--border-2);}
+body:not(.dark) .tc-dock-h .t{font-size:15px;font-weight:800;color:var(--mt1);}
+body:not(.dark) .tc-badge{background:var(--warn-pill);color:var(--warn-text);}
+body:not(.dark) .tc-badge.zero{background:var(--green-tint);color:var(--green-text2);}
+body:not(.dark) .tc-rcard{background:var(--surface-3);border-color:var(--border-1);border-left-width:3px;}
+body:not(.dark) .tc-rcard .nm{font-size:13px;font-weight:700;color:var(--mt1);}
+body:not(.dark) .tc-rcard .mt{font-size:11px;color:var(--mt3);}
+body:not(.dark) .tc-rbtn{background:var(--green-primary);}
+body:not(.dark) .tc-rbtn:hover{background:var(--green-hover2);}
+body:not(.dark) .tc-rbtn.ghost{background:var(--surface-inset);color:var(--green-text2);}
+body:not(.dark) .tc-otro{border-color:var(--border-2);color:var(--mt2);background:var(--surface-3);}
+body:not(.dark) .tc-dock-foot{border-top-color:var(--border-2);background:var(--surface-inset);}
+body:not(.dark) .tc-fleetbar{background:#d7d0ba;}
+body:not(.dark) .tc-fleetbar i:first-child{background:linear-gradient(90deg,var(--green-hover2),#40916c);}
+.tc-grouplbl{font-size:10px;letter-spacing:.12em;font-weight:700;color:var(--mt3);text-transform:uppercase;margin:10px 2px 2px;}
+.tc-vacio{border:1px dashed var(--border-2);border-radius:10px;padding:14px;text-align:center;font-size:12px;color:var(--mt3);}
+.tc-orow{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border-1);font-size:12.5px;color:var(--mt1);cursor:pointer;}
+.tc-orow:last-of-type{border-bottom:none;}
+.tc-orow small{color:var(--mt3);font-family:ui-monospace,monospace;font-size:11px;}
+.tc-orow:hover{background:rgba(0,0,0,.03);}
+@media(max-width:768px){ body:not(.dark) .tc-dock{left:0;right:0;width:auto;border-right:none;} body:not(.dark) .tc-mapchips{left:10px;} }
+/* ---- REPORTES: calendario tonal ---- */
+body:not(.dark) .rt-toolbar{background:var(--surface-1);border-bottom-color:var(--border-2);}
+body:not(.dark) .rt-seg{border-color:var(--border-2);}
+body:not(.dark) .rt-seg button{background:var(--surface-3);color:var(--mt2);}
+body:not(.dark) .rt-seg button.on{background:var(--green-primary);color:#fff;}
+body:not(.dark) .rt-nav{border-color:var(--border-2);background:var(--surface-inset);color:var(--mt1);}
+body:not(.dark) .rt-filter,body:not(.dark) .rt-btn{background:var(--surface-3);border-color:var(--border-2);color:var(--mt1);}
+body:not(.dark) .rt-btn.prim{background:var(--green-primary);color:#fff;border:none;}
+.rt-segwrap{display:none;} .rt-segwrap.open{display:flex;}
+.rt-calcard{background:var(--surface-3);border:1px solid var(--border-1);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;}
+body:not(.dark) .rt-cell{background:var(--surface-4);border-color:var(--border-1);}
+body:not(.dark) .rt-cell.empty{background:#efece0;opacity:.65;border-color:var(--border-1);}
+body:not(.dark) .rt-cell.empty .dnum{color:var(--mtdis);}
+body:not(.dark) .rt-cell.sel{background:var(--green-sel);border:2px solid var(--green-hover2);box-shadow:none;}
+body:not(.dark) .rt-day{background:var(--surface-1);border-left-color:var(--border-2);}
+body:not(.dark) .rt-rcard{background:var(--surface-3);border-color:var(--border-1);}
+body:not(.dark) .rt-drow .bar{background:var(--surface-inset);}
+/* ---- Rutas / Administracion: paleta marfil sobre estructuras existentes ---- */
+body:not(.dark) .adm2-tabs{background:var(--surface-inset);border-radius:10px;padding:3px;}
+body:not(.dark) .adm2-tab{color:var(--mt2);}
+body:not(.dark) .adm2-tab.on{background:var(--surface-3);color:var(--mt1);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+body:not(.dark) .fld{background:var(--surface-3);border-color:var(--border-2);color:var(--mt1);}
+body:not(.dark) .mon-tinybtn{background:var(--surface-3);border-color:var(--border-2);color:var(--mt1);}
+body:not(.dark) .ru-new{background:var(--green-primary);color:#fff;}
+/* ---- Modales de reportes en marfil ---- */
+body:not(.dark) .rt-mcard{background:var(--surface-0);}
+body:not(.dark) .rt-mhead{background:var(--green-header);}
+body:not(.dark) .rt-mact{background:var(--surface-1);border-top-color:var(--border-2);}
+body:not(.dark) .rt-mact button{background:var(--surface-3);border-color:var(--border-2);}
+body:not(.dark) .rt-mact button.prim{background:var(--green-primary);border:none;}
+body:not(.dark) .rt-stat{background:var(--surface-4);border-color:var(--border-1);}
+body:not(.dark) .rt-infrow{background:var(--surface-3);border-color:var(--border-1);}
