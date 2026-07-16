@@ -2116,3 +2116,11 @@ body.dark .tc-orow small{color:var(--mt3);}
 body.dark .tc-orow:hover{background:rgba(255,255,255,.04);}
 /* ---- Ventana de informe: se mantiene clara (documento imprimible) ---- */
 body.dark #rtInforme{background:#101210;}
+/* ---- Chips de dia "Ver en el mapa" (Centro de Control) ---- */
+.cc-daychips{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.cc-daychip{width:32px;height:28px;border-radius:8px;border:1px solid var(--border-2);background:var(--surface-3);color:var(--mt2);font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s;}
+.cc-daychip.wide{width:auto;padding:0 11px;}
+.cc-daychip:hover{border-color:var(--green-hover2);}
+.cc-daychip.on{background:var(--green-primary);border-color:var(--green-primary);color:#fff;}
+body.dark .cc-daychip{background:var(--surface-3);border-color:var(--border-2);color:var(--mt2);}
+body.dark .cc-daychip.on{background:var(--green-primary);color:#fff;}
