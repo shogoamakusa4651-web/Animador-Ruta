@@ -1963,3 +1963,156 @@ body:not(.dark) .rt-mact button{background:var(--surface-3);border-color:var(--b
 body:not(.dark) .rt-mact button.prim{background:var(--green-primary);border:none;}
 body:not(.dark) .rt-stat{background:var(--surface-4);border-color:var(--border-1);}
 body:not(.dark) .rt-infrow{background:var(--surface-3);border-color:var(--border-1);}
+
+/* ============================================================
+   MARFIL NOCTURNO - variante oscura coherente del tema Marfil
+   Mismos componentes, tokens redefinidos bajo body.dark.
+   ============================================================ */
+body.dark{
+  --surface-0:#151814; --surface-1:#1a1e19; --surface-2:#1e221c; --surface-3:#22271f; --surface-4:#1d211b; --surface-inset:#14170f;
+  --border-1:#2e332a; --border-2:#343a30; --border-gap:#272c24;
+  --mt1:#e6e9df; --mt2:#a7ac9d; --mt3:#878c7d; --mtdis:#565b50;
+  --green-header:#0e2018; --green-primary:#2d6a4f; --green-hover2:#40916c; --green-text2:#7fd4a3; --green-tint:#1e3b2a; --green-sel:#1d3024;
+  --mred:#e07a6d; --mred-tint:#3a201c; --mamber:#d9b45a; --amber-bar:#c9a227;
+  --warn-bg:#2a2413; --warn-row:#2f2917; --warn-border:#4a3f1e; --warn-text:#e2c56f; --warn-pill:#4a3f1e;
+  --on-green-muted:#9db8a8; --on-green-sub:#6f8a7a;
+  --critical-bg:#4a1a1a; --critical-border:#7a332e; --critical-text:#f4c7c0;
+}
+/* ---- Header ---- */
+body.dark .shell-nav{background:var(--green-header);}
+body.dark .shell-logo .ic{background:var(--green-primary);}
+body.dark .shell-logo .tx small{color:var(--on-green-sub);letter-spacing:.14em;}
+body.dark .nav-item{color:var(--on-green-muted);}
+body.dark .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+body.dark .nav-item.on{background:var(--green-primary);color:#fff;font-weight:700;}
+body.dark .shell-status{background:var(--critical-bg);border-color:var(--critical-border);color:var(--critical-text);}
+body.dark .shell-status.ok{background:rgba(64,145,108,.25);border-color:var(--green-hover2);color:#9fdcb6;}
+body.dark .shell-user .av{background:var(--green-primary);}
+body.dark .shell-user{color:#c4d6ca;}
+/* ---- Footer ---- */
+body.dark .shell-foot{background:var(--surface-1);border-top:1px solid var(--border-2);color:var(--green-text2);}
+body.dark .shell-foot .ver{color:var(--mt3);font-family:ui-monospace,monospace;}
+body.dark .shell-foot .dot{background:#3ddc84;}
+/* ---- Superficies ---- */
+body.dark .map-cover, body.dark #secRutas, body.dark #secAdmin,
+body.dark #secReportes, body.dark #secRecursos{background:var(--surface-0);color:var(--mt1);}
+body.sec-inicio.dark .map-cover{background:transparent !important;}
+/* ---- KPIs ---- */
+body.dark .tc-kpis, body.dark .rt-kpis{background:var(--border-gap);border-bottom:1px solid var(--border-2);gap:1px;}
+body.dark .tc-kpi, body.dark .rt-kpi{background:var(--surface-2);border-right:none;}
+body.dark .tc-kpi .v, body.dark .rt-kpi .v{font-size:22px;font-weight:800;color:var(--mt1);}
+body.dark .tc-kpi .l, body.dark .rt-kpi .l{font-size:11px;color:var(--mt2);}
+body.dark .tc-kpi .v.crit, body.dark .rt-kpi .v.red{color:var(--mred);}
+body.dark .tc-kpi .v.warn{color:var(--mamber);}
+body.dark .tc-kpi .v.pos{color:var(--green-text2);}
+body.dark .rt-kpi .v.amber{color:var(--mred);}
+/* ---- Centro de Control: rail izquierdo ---- */
+body.dark .tc-dock{left:0;right:auto;width:340px;background:var(--surface-1);border-left:none;border-right:1px solid var(--border-2);}
+body.dark .tc-mapchips{left:356px;}
+body.dark .tc-mapfull{right:16px;background:var(--green-primary);}
+body.dark .tc-mapfull:hover{background:var(--green-hover2);}
+body.dark .tc-dock-h{border-bottom-color:var(--border-2);}
+body.dark .tc-dock-h .t{font-size:15px;font-weight:800;color:var(--mt1);}
+body.dark .tc-badge{background:var(--warn-pill);color:var(--warn-text);}
+body.dark .tc-badge.zero{background:var(--green-tint);color:var(--green-text2);}
+body.dark .tc-rcard{background:var(--surface-3);border-color:var(--border-1);border-left-width:3px;}
+body.dark .tc-rcard .nm{font-size:13px;font-weight:700;color:var(--mt1);}
+body.dark .tc-rcard .mt{font-size:11px;color:var(--mt3);}
+body.dark .tc-rbtn{background:var(--green-primary);}
+body.dark .tc-rbtn:hover{background:var(--green-hover2);}
+body.dark .tc-rbtn.ghost{background:var(--surface-inset);color:var(--green-text2);}
+body.dark .tc-otro{border-color:var(--border-2);color:var(--mt2);background:var(--surface-3);}
+body.dark .tc-dock-foot{border-top-color:var(--border-2);background:var(--surface-inset);}
+body.dark .tc-foot-row .lb{color:var(--mt1);}
+body.dark .tc-foot-row .vl{color:var(--mt2);}
+body.dark .tc-foot-sub{color:var(--mt2);}
+body.dark .tc-fleetbar{background:#2c3128;}
+body.dark .tc-fleetbar i:first-child{background:linear-gradient(90deg,var(--green-primary),#40916c);}
+body.dark .tc-chip{background:rgba(10,14,10,.88);border-color:rgba(255,255,255,.1);color:#cfe3d6;}
+@media(max-width:768px){ body.dark .tc-dock{left:0;right:0;width:auto;border-right:none;} body.dark .tc-mapchips{left:10px;} }
+/* ---- Reportes ---- */
+body.dark .rt-toolbar{background:var(--surface-1);border-bottom-color:var(--border-2);}
+body.dark .rt-seg{border-color:var(--border-2);}
+body.dark .rt-seg button{background:var(--surface-3);color:var(--mt2);}
+body.dark .rt-seg button.on{background:var(--green-primary);color:#fff;}
+body.dark .rt-nav{border-color:var(--border-2);background:var(--surface-inset);color:var(--mt1);}
+body.dark .rt-nav b{color:var(--mt1);}
+body.dark .rt-filter,body.dark .rt-btn{background:var(--surface-3);border-color:var(--border-2);color:var(--mt1);}
+body.dark .rt-btn.prim{background:var(--green-primary);color:#fff;border:none;}
+body.dark .rt-calcard{background:var(--surface-3);border-color:var(--border-1);}
+body.dark .rt-caltop .ttl{color:var(--mt1);}
+body.dark .rt-legend{color:var(--mt2);}
+body.dark .rt-dow{color:var(--mt3);}
+body.dark .rt-cell{background:var(--surface-4);border-color:var(--border-1);}
+body.dark .rt-cell .dnum{color:var(--mt3);}
+body.dark .rt-cell .nm{filter:brightness(1.35);}
+body.dark .rt-cell.empty{background:var(--surface-inset);opacity:.55;border-color:var(--border-1);}
+body.dark .rt-cell.empty .dnum{color:var(--mtdis);}
+body.dark .rt-cell.fut{background:var(--surface-inset);opacity:.55;}
+body.dark .rt-cell.fut .dnum{color:var(--mtdis);}
+body.dark .rt-cell.sel{background:var(--green-sel);border:2px solid var(--green-hover2);box-shadow:none;}
+body.dark .rt-cell:hover{border-color:var(--mt3);}
+body.dark .rt-hint{color:var(--mt3);}
+body.dark .rt-day{background:var(--surface-1);border-left:1px solid var(--border-2);}
+body.dark .rt-day-h{border-bottom-color:var(--border-2);}
+body.dark .rt-day-h .ov{color:var(--mt3);}
+body.dark .rt-day-h .t{color:var(--mt1);}
+body.dark .rt-rcard{background:var(--surface-3);border-color:var(--border-1);}
+body.dark .rt-rcard .nm{color:var(--mt1);}
+body.dark .rt-rcard .meta{color:var(--mt2);}
+body.dark .rt-rcard .datos{color:var(--mt2);}
+body.dark .rt-badge.ok{background:var(--green-tint);color:var(--green-text2);}
+body.dark .rt-badge.bad{background:var(--mred-tint);color:var(--mred);}
+body.dark .rt-badge.mid{background:var(--warn-pill);color:var(--warn-text);}
+body.dark .rt-atencion{background:var(--mred-tint);border-color:#5a2f28;color:var(--mred);}
+body.dark .rt-motivo{background:#2a201d;color:#d9a89e;}
+body.dark .rt-vermapa{background:var(--surface-3);border-color:var(--border-2);color:var(--green-text2);}
+body.dark .rt-verdia{background:var(--surface-3);border-color:var(--border-2);color:var(--green-text2);}
+body.dark .rt-deuda{border-top-color:var(--border-2);}
+body.dark .rt-deuda-h .lb{color:var(--mt1);}
+body.dark .rt-deuda-h .sub{color:var(--mt3);}
+body.dark .rt-drow .rn{color:var(--mt2);}
+body.dark .rt-drow:hover{background:rgba(255,255,255,.04);}
+body.dark .rt-drow .bar{background:var(--surface-inset);}
+body.dark .rt-day-empty,body.dark .rt-empty2{color:var(--mt3);}
+body.dark .rt-chip{background:var(--green-tint);color:var(--green-text2);border-color:var(--green-hover2);}
+/* ---- Modales ---- */
+body.dark .rt-mcard{background:var(--surface-0);}
+body.dark .rt-mhead{background:var(--green-header);}
+body.dark .rt-mact{background:var(--surface-1);border-top-color:var(--border-2);}
+body.dark .rt-mact button{background:var(--surface-3);border-color:var(--border-2);color:var(--mt1);}
+body.dark .rt-mact button.prim{background:var(--green-primary);border:none;color:#fff;}
+body.dark .rt-stat{background:var(--surface-4);border-color:var(--border-1);}
+body.dark .rt-stat .l{color:var(--mt3);}
+body.dark .rt-stat .v{color:var(--mt1);}
+body.dark .rt-striplbl{color:var(--mt2);}
+body.dark .rt-diarow{border-bottom-color:var(--border-1);}
+body.dark .rt-diarow:hover{background:rgba(255,255,255,.04);}
+body.dark .rt-diarow b{color:var(--mt1);}
+body.dark .rt-sinjust{color:var(--mred);}
+body.dark .rt-sinjust.ok{color:var(--green-text2);}
+body.dark .rt-infrow{background:var(--surface-3);border-color:var(--border-1);}
+body.dark .rt-infrow .info b{color:var(--mt1);}
+body.dark .rt-infrow .info small{color:var(--mt2);}
+body.dark .rt-infrow .pct{background:var(--warn-pill);color:var(--warn-text);}
+body.dark .rt-infrow .acts button{background:var(--surface-3);border-color:var(--border-2);color:var(--mt2);}
+body.dark .rt-tbl th{color:var(--mt3);}
+body.dark .rt-tbl td{color:var(--mt1);border-bottom-color:var(--border-1);}
+body.dark .rt-form label{color:var(--mt2);}
+body.dark .rt-form select,body.dark .rt-form textarea,body.dark .rt-form input{background:var(--surface-3);color:var(--mt1);border-color:var(--border-2);}
+body.dark .rt-mapph{background:#10140f repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 6px,transparent 6px 18px);border-color:var(--border-1);color:var(--mt3);}
+/* ---- Rutas / Administracion ---- */
+body.dark .adm2-tabs{background:var(--surface-inset);border-radius:10px;padding:3px;}
+body.dark .adm2-tab{color:var(--mt2);}
+body.dark .adm2-tab.on{background:var(--surface-3);color:var(--mt1);box-shadow:0 1px 3px rgba(0,0,0,.3);}
+body.dark .fld{background:var(--surface-3);border-color:var(--border-2);color:var(--mt1);}
+body.dark .mon-tinybtn{background:var(--surface-3);border-color:var(--border-2);color:var(--mt1);}
+body.dark .ru-new{background:var(--green-primary);color:#fff;}
+/* ---- Grupos del rail (usa tokens, refuerzo) ---- */
+body.dark .tc-grouplbl{color:var(--mt3);}
+body.dark .tc-vacio{border-color:var(--border-2);color:var(--mt3);}
+body.dark .tc-orow{border-bottom-color:var(--border-1);color:var(--mt1);}
+body.dark .tc-orow small{color:var(--mt3);}
+body.dark .tc-orow:hover{background:rgba(255,255,255,.04);}
+/* ---- Ventana de informe: se mantiene clara (documento imprimible) ---- */
+body.dark #rtInforme{background:#101210;}
