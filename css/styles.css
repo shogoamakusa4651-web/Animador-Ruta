@@ -1890,6 +1890,12 @@ body:not(.dark) .shell-foot .dot{background:#2d9e5f;}
 /* ---- Superficies de seccion: nunca blanco puro ---- */
 body:not(.dark) .map-cover, body:not(.dark) #secRutas, body:not(.dark) #secAdmin,
 body:not(.dark) #secReportes, body:not(.dark) #secRecursos{background:var(--surface-0);color:var(--mt1);}
+/* EXCEPCIÓN CRÍTICA: en Centro de Control el cover debe ser TRANSPARENTE para ver el mapa detrás */
+body.sec-inicio:not(.dark) .map-cover{background:transparent !important;}
+/* Modo mapa completo dentro del Centro de Control: colapsa el rail (sin cambiar de sección) */
+body.cc-full .tc-dock{display:none !important;}
+body.cc-full .tc-mapchips{left:16px !important;}
+body.cc-full .tc-kpis{display:none !important;}
 /* ---- Franja KPIs: celdas tonales con gap 1px ---- */
 body:not(.dark) .tc-kpis, body:not(.dark) .rt-kpis{background:var(--border-gap);border-bottom:1px solid var(--border-2);gap:1px;}
 body:not(.dark) .tc-kpi, body:not(.dark) .rt-kpi{background:var(--surface-2);border-right:none;}

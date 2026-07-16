@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.67"></script>
-<script src="js/store.js?v=4.67"></script>
-<script src="js/auth.js?v=4.67"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.67" />
+<script src="js/utils.js?v=4.68"></script>
+<script src="js/store.js?v=4.68"></script>
+<script src="js/auth.js?v=4.68"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.68" />
 </head>
 <body>
 <div id="map"></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.67 · 2026-07-15'; // ← actualizar con cada release
+  const APP_VERSION='v4.68 · 2026-07-15'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1949,6 +1949,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       if(typeof startFlag!=='undefined' && startFlag){ try{map.removeLayer(startFlag);}catch(_){} startFlag=null; }
     }
     document.body.classList.add('adm-shell');
+    document.body.classList.remove('cc-full'); // salir del modo mapa completo al cambiar de sección
     // re-disparar animación de entrada
     document.body.classList.remove('sec-anim'); void document.body.offsetWidth; document.body.classList.add('sec-anim');
     ['inicio','monitoreo','rutas','recursos','admin','reportes'].forEach(s=>document.body.classList.toggle('sec-'+s,s===name));
@@ -2255,7 +2256,13 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       H+='</div>'; // tc-main
       H+='</div>'; // ini-tc
       host.innerHTML=H;
-      host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='mon')setSection('monitoreo'); else if(g==='admin')setSection('admin'); }));
+      host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go;
+        if(g==='mon'){ // Mapa completo: colapsar el rail dentro del MISMO Centro de Control (no abrir la interfaz vieja)
+          const full=document.body.classList.toggle('cc-full');
+          k.innerHTML=full?'<i class="ti ti-minimize"></i> Ver panel':'<i class="ti ti-maximize"></i> Mapa completo';
+          try{ if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),80); }catch(_){}
+        }
+        else if(g==='admin')setSection('admin'); }));
       host.querySelectorAll('.tc-rbtn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
       host.querySelectorAll('.tc-rcard').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
       host.querySelectorAll('.tc-orow[data-otra]').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.otra)));
