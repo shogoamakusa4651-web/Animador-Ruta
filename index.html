@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.75" />
+<link rel="stylesheet" href="css/styles.css?v=4.76" />
 </head>
 <body>
 <div id="map"></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.75 · 2026-07-28'; // ← actualizar con cada release
+  const APP_VERSION='v4.76 · 2026-07-28'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -3440,6 +3440,22 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     return out;
   }
   function _rtDuracion(ms){ if(!ms||ms<=0)return '—'; const min=Math.round(ms/60000); if(min<60)return min+' min'; const h=Math.floor(min/60),m=min%60; return h+'h'+(m?(' '+m+'m'):''); }
+  // Si la ruta tiene varios viajes/etapas configurados y se pide UN día específico, completa la lista con
+  // los viajes que estaban esperados ese día pero NUNCA se registraron (nadie salió a hacerlos) — placeholder
+  // "_pendiente" en rojo, para que no desaparezcan del expediente y quede claro que falta despachar respaldo.
+  function _rtViajesEsperados(id,fecha){
+    const r=mgmtRutas[id]||{}; const reales=_rtViajesDeRuta(id,{fecha:fecha});
+    if(!r.etapas || !r.etapas.length) return reales;
+    const porIdx={}; reales.forEach(v=>{ porIdx[v.etapaIdx!=null?v.etapaIdx:0]=v; });
+    const out=[];
+    r.etapas.forEach((et,idx)=>{
+      if(porIdx[idx]) out.push(porIdx[idx]);
+      else out.push({ reporteKey:null, etapaIdx:idx, etapaNombre:(et&&et.nombre)||('Viaje '+(idx+1)), fecha:fecha,
+        routeCompletion:0, cobertura:0, dumpEtapa:0, fuelEtapa:0, kmEtapa:0, choferCode:null, requiereAtencion:true, atendida:false, _pendiente:true });
+    });
+    reales.forEach(v=>{ const idx=(v.etapaIdx!=null?v.etapaIdx:0); if(idx>=r.etapas.length) out.push(v); });
+    return out;
+  }
   function _rtEstadoViaje(v){
     const comp=(v.routeCompletion!=null?v.routeCompletion:v.cobertura)||0;
     if(v.atendida && v.resolucion==='completada') return {estado:'ok',tipo:null,pct:comp};
@@ -3450,28 +3466,38 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // Pantalla A: expediente de la ruta — totales acumulados + lista de viajes (sin filtrar por fecha salvo que se pida)
   function _rtModalExpedienteRuta(id,opts){
     opts=opts||{}; const r=mgmtRutas[id]||{};
-    const viajes=_rtViajesDeRuta(id,opts);
+    const viajes=opts.fecha ? _rtViajesEsperados(id,opts.fecha) : _rtViajesDeRuta(id,opts);
+    const registrados=viajes.filter(v=>!v._pendiente).length;
     let kmTot=0,dumpTot=0,fuelTot=0,pendientes=0;
     viajes.forEach(v=>{ kmTot+=(v.kmEtapa!=null?v.kmEtapa:(v.distancia||0)); dumpTot+=(v.dumpEtapa||0); fuelTot+=(v.fuelEtapa||0); if(v.requiereAtencion&&!v.atendida)pendientes++; });
     let body='<div class="rt-statgrid">'
-      +'<div class="rt-stat"><div class="l">Viajes registrados</div><div class="v">'+viajes.length+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Viajes registrados</div><div class="v">'+registrados+'</div></div>'
       +'<div class="rt-stat"><div class="l">Km recorridos (total)</div><div class="v">'+(Math.round(kmTot*10)/10)+'</div></div>'
       +'<div class="rt-stat"><div class="l">Viajes al vertedero</div><div class="v">'+dumpTot+'</div></div>'
       +'<div class="rt-stat"><div class="l">Paradas de combustible</div><div class="v">'+fuelTot+'</div></div>'
       +'</div>';
-    if(pendientes>0) body+='<div class="rt-atencion"><i class="ti ti-alert-hexagon"></i><b>'+pendientes+' viaje(s) con tramos sin recorrer</b> · pendientes de revisión de supervisor</div>';
+    if(pendientes>0) body+='<div class="rt-atencion"><i class="ti ti-alert-hexagon"></i><b>'+pendientes+' viaje(s) con tramos sin recorrer o no realizados</b> · pendientes de revisión de supervisor</div>';
     body+='<div class="rt-striplbl">Historial de viajes'+(opts.fecha?(' · '+_rtFechaLarga(opts.fecha)):(opts.rIni?(' · '+_rtFechaCorta(opts.rIni)+' al '+_rtFechaCorta(opts.rFin)):' · todas las fechas'))+'</div>';
     if(!viajes.length){ body+='<div class="rt-empty2">Esta ruta no tiene viajes registrados'+(opts.fecha?' en esta fecha':'')+'.</div>'; }
-    else { viajes.forEach(v=>{ const st=_rtEstadoViaje(v); const badge=_rtBadgeEstado(st.estado,st.tipo,null); const dur=_rtDuracion((v.fin||0)-(v.inicio||0));
+    else { viajes.forEach(v=>{
+      if(v._pendiente){
+        body+='<div class="rt-diarow" data-pend="1" data-vd="'+esc(v.fecha)+'"><span class="dot" style="background:#cd4936"></span>'
+          +'<div style="flex:1;"><b style="font-size:13px;">'+_rtFechaLarga(v.fecha)+'</b> <span style="font-size:12.5px;color:var(--mt2,#6b7263);">· '+esc(v.etapaNombre)+'</span> <span class="rt-badge bad">No se registró</span>'
+          +'<div style="font-size:12px;color:var(--mt2,#6b7263);font-family:IBM Plex Mono,monospace;">Ningún camión salió a cubrir este tramo · click para despachar respaldo</div></div>'
+          +'<i class="ti ti-lifebuoy" style="color:#cd4936;"></i></div>';
+        return;
+      }
+      const st=_rtEstadoViaje(v); const badge=_rtBadgeEstado(st.estado,st.tipo,null); const dur=_rtDuracion((v.fin||0)-(v.inicio||0));
       body+='<div class="rt-diarow" data-v="'+esc(v.reporteKey)+'" data-vd="'+esc(v.fecha)+'"><span class="dot" style="background:'+({ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936'}[st.estado])+'"></span>'
         +'<div style="flex:1;"><b style="font-size:13px;">'+_rtFechaLarga(v.fecha)+'</b> <span style="font-size:12.5px;color:var(--mt2,#6b7263);">· '+esc(v.etapaNombre||'Viaje')+'</span> '+badge
         +(v.requiereAtencion?(v.atendida?'<span class="rt-badge ok" style="margin-left:4px;">Revisado</span>':'<span class="rt-badge bad" style="margin-left:4px;">Requiere atención</span>'):'')
         +'<div style="font-size:12px;color:var(--mt2,#6b7263);font-family:IBM Plex Mono,monospace;">'+esc((v.choferCode||'—')+' · '+(v.kmEtapa!=null?v.kmEtapa.toFixed(1):'0')+' km · '+dur+(v.dumpEtapa?(' · '+v.dumpEtapa+' vertedero'):''))+'</div></div>'
         +'<i class="ti ti-chevron-right" style="color:var(--mt3,#9a9f8f);"></i></div>'; }); }
-    _rtModal({ titulo:(r.nombre||id)+' — Expediente de la ruta', sub:viajes.length+' viaje(s) registrados'+(opts.fecha?(' · '+_rtFechaLarga(opts.fecha)):''), body:body, wide:true,
+    _rtModal({ titulo:(r.nombre||id)+' — Expediente de la ruta', sub:registrados+' viaje(s) registrados'+(opts.fecha?(' · '+_rtFechaLarga(opts.fecha)):''), body:body, wide:true,
       acts:'<button data-act="volver"><i class="ti ti-arrow-left"></i>Volver</button><button data-act="print"><i class="ti ti-printer"></i>Imprimir</button><button data-act="csv" class="prim"><i class="ti ti-download"></i>Exportar CSV</button>',
       onReady:(ov)=>{
         ov.querySelectorAll('.rt-diarow[data-v]').forEach(el=>el.onclick=()=>{ _rtCerrarModal(); _rtModalViajeDetalle(id,el.dataset.vd,el.dataset.v); });
+        ov.querySelectorAll('.rt-diarow[data-pend]').forEach(el=>el.onclick=()=>{ _rtCerrarModal(); _rtCubrirPendiente(id,el.dataset.vd); });
         ov.querySelector('[data-act="volver"]').onclick=()=>{ _rtCerrarModal(); if(typeof opts._volver==='function')opts._volver(); else _rtAbrirHistorico(); };
         ov.querySelector('[data-act="print"]').onclick=()=>window.print();
         ov.querySelector('[data-act="csv"]').onclick=()=>{
@@ -3564,7 +3590,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // §3 · Modal Ruta-Día — si ya hay viajes registrados (Fase 2+) para este día, entra directo al expediente
   // filtrado a esa fecha (Nivel 2→3). Si no (datos anteriores a esta versión), cae al detalle antiguo por día.
   function _rtModalRutaDia(id,fecha){
-    if(_rtViajesDeRuta(id,{fecha:fecha}).length){ _rtModalExpedienteRuta(id,{fecha:fecha}); return; }
+    const _rEtapas=(mgmtRutas[id]||{}).etapas;
+    // Entra al expediente nuevo si ya hay viajes registrados ese día, o si la ruta tiene varios viajes
+    // configurados (aunque ese día no se haya registrado ninguno todavía — así el faltante también se ve).
+    if(_rtViajesDeRuta(id,{fecha:fecha}).length || (_rEtapas && _rEtapas.length>1)){ _rtModalExpedienteRuta(id,{fecha:fecha}); return; }
     const r=mgmtRutas[id]||{}; const st=_rtEstadoDia(r,fecha);
     const incumple=(st.estado!=='ok');
     const jf=_rtJustif(id,fecha);
