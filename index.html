@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.74" />
+<link rel="stylesheet" href="css/styles.css?v=4.75" />
 </head>
 <body>
 <div id="map"></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.74 · 2026-07-28'; // ← actualizar con cada release
+  const APP_VERSION='v4.75 · 2026-07-28'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -3154,12 +3154,20 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     let kmTot=0; try{ if(r.etapas&&r.etapas.length)r.etapas.forEach(e=>kmTot+=kmOf(decode(e.wp||''))); else kmTot=kmOf(decode(r.wp||'')); }catch(_){}
     return { estado:'bad', tipo: desp?'abandono':'no_salio', pct:(desp?pct:null), km:0, kmTot:kmTot, chofer:(rep&&rep.choferCode)||r.choferCode||null, ficha:r.camion, cov:(rep&&rep.cov)||null, motivo:(rep&&rep.motivo)||null };
   }
+  // ¿La ruta tuvo actividad REAL ese día, sin importar su frecuencia actual? (Fase 1)
+  // Evita que un cambio posterior en la frecuencia esconda reportes que ya existen en Firebase.
+  function _rtTuvoActividad(r,dateStr){
+    if(r.viajes && r.viajes[dateStr] && Object.keys(r.viajes[dateStr]).length) return true;
+    const reps=r.reportes||{}; for(const k in reps){ if((reps[k]||{}).fecha===dateStr) return true; }
+    if(r.envios && r.envios[dateStr]) return true;
+    return false;
+  }
   // Rutas programadas un día (respeta filtro), solo fechas <= hoy
   function _rtProgramadas(dateStr){
     const d=new Date(dateStr+'T12:00:00'); const L=_rtLetra(d); const out=[];
     Object.keys(mgmtRutas||{}).forEach(id=>{ if(_rtFiltro&&id!==_rtFiltro)return; const r=mgmtRutas[id]||{};
-      // Programada por frecuencia, o REPROGRAMADA a este día desde otro
-      if((r.freq||[]).includes(L) || (r.reprogramaciones&&r.reprogramaciones[dateStr]))out.push(id); });
+      // Programada por frecuencia, reprogramada a este día, rescate, o CUALQUIER actividad real guardada
+      if((r.freq||[]).includes(L) || (r.reprogramaciones&&r.reprogramaciones[dateStr]) || (r.rescates&&r.rescates[dateStr]) || _rtTuvoActividad(r,dateStr))out.push(id); });
     return out;
   }
   function _rtRango(){
@@ -3357,9 +3365,15 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const f=ov.querySelector('button,select,textarea,input'); if(f)try{f.focus();}catch(_){}
     return ov;
   }
-  function _rtCerrarModal(){ try{_rtCerrarGpsMap();}catch(_){} const ov=document.getElementById('rtOvModal'); if(ov)ov.remove(); if(_rtEscHandler){document.removeEventListener('keydown',_rtEscHandler);_rtEscHandler=null;} }
+  function _rtCerrarModal(){ try{_rtCerrarGpsMap();}catch(_){} try{_rtCerrarGpsMapV();}catch(_){} const ov=document.getElementById('rtOvModal'); if(ov)ov.remove(); if(_rtEscHandler){document.removeEventListener('keydown',_rtEscHandler);_rtEscHandler=null;} }
   // Justificación guardada de una ruta-día
-  function _rtJustif(id,fecha){ const r=mgmtRutas[id]||{}; return (r.justificaciones&&r.justificaciones[fecha])||null; }
+  // Justificación de un día (legado, formato plano) o de un VIAJE específico (nuevo, anidado por reporteKey)
+  function _rtJustif(id,fecha,reporteKey){
+    const r=mgmtRutas[id]||{}; const j=r.justificaciones&&r.justificaciones[fecha]; if(!j) return null;
+    if(reporteKey && j[reporteKey] && typeof j[reporteKey]==='object' && j[reporteKey].motivo) return j[reporteKey];
+    if(j.motivo) return j; // formato antiguo: un solo objeto plano bajo la fecha
+    return null;
+  }
   // Agregado del periodo (reutilizable para KPIs, modales de periodo e informes)
   function _rtAgregado(rIni,rFin){
     const hoyStr=_rtDkey(new Date());
@@ -3410,46 +3424,129 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         +'<span class="pct" style="background:'+col+'22;color:'+col+';">'+pct+'%</span>'
         +'<span style="font-size:13px;font-weight:600;color:var(--green-text2,#1b5e3f);flex:none;">Expediente →</span></div>'; });
     h+='</div>'; box.innerHTML=h;
-    box.querySelectorAll('[data-exp]').forEach(row=>row.addEventListener('click',()=>{ _rtExpedienteRuta(row.dataset.exp,rIni,rFin); }));
+    box.querySelectorAll('[data-exp]').forEach(row=>row.addEventListener('click',()=>{ _rtModalExpedienteRuta(row.dataset.exp,{rIni:rIni,rFin:rFin,_volver:_rtAbrirHistorico}); }));
   }
-  // Expediente completo de UNA ruta en el rango: cada día programado, con su estado y acceso al detalle
-  function _rtExpedienteRuta(id,rIni,rFin){
-    const r=mgmtRutas[id]||{}; const hoyStr=_rtDkey(new Date());
-    const dias=[]; let d=new Date(rIni+'T12:00:00'); const fin=new Date(rFin+'T12:00:00');
-    while(d<=fin){ const ds=_rtDkey(d); if(ds<=hoyStr){ const L=_rtLetra(d);
-      if((r.freq||[]).includes(L) || (r.reprogramaciones&&r.reprogramaciones[ds]) || (r.rescates&&r.rescates[ds])){
-        dias.push({fecha:ds, st:_rtEstadoDia(r,ds)});
-      } } d=new Date(d.getTime()+86400000); }
-    dias.sort((a,b)=>a.fecha<b.fecha?1:-1);
-    let ok=0,bad=0,mid=0,kmTot=0; dias.forEach(x=>{ if(x.st.estado==='ok')ok++; else if(x.st.estado==='mid')mid++; else bad++; kmTot+=x.st.km||0; });
+  // ===== NIVEL 2 · EXPEDIENTE POR RUTA =====
+  // 1 ruta = 1 expediente, sin importar el día: agrega TODOS los viajes de esa ruta (rutas/{id}/reportes,
+  // filtrados por tipo:'chofer'), no por fecha — así si el camión se manda a otra ruta el mismo día, cada
+  // expediente conserva SOLO lo suyo (el rutaId es la llave de nivel superior en Firebase).
+  function _rtViajesDeRuta(id,opts){
+    opts=opts||{}; const r=mgmtRutas[id]||{}; const reps=r.reportes||{};
+    let out=Object.keys(reps).filter(k=>reps[k]&&reps[k].tipo==='chofer').map(k=>Object.assign({reporteKey:k},reps[k]));
+    if(opts.fecha) out=out.filter(v=>v.fecha===opts.fecha);
+    if(opts.rIni) out=out.filter(v=>v.fecha>=opts.rIni);
+    if(opts.rFin) out=out.filter(v=>v.fecha<=opts.rFin);
+    out.sort((a,b)=>{ if(a.fecha!==b.fecha) return a.fecha<b.fecha?1:-1; return (b.inicio||0)-(a.inicio||0); });
+    return out;
+  }
+  function _rtDuracion(ms){ if(!ms||ms<=0)return '—'; const min=Math.round(ms/60000); if(min<60)return min+' min'; const h=Math.floor(min/60),m=min%60; return h+'h'+(m?(' '+m+'m'):''); }
+  function _rtEstadoViaje(v){
+    const comp=(v.routeCompletion!=null?v.routeCompletion:v.cobertura)||0;
+    if(v.atendida && v.resolucion==='completada') return {estado:'ok',tipo:null,pct:comp};
+    if(comp>=95) return {estado:'ok',tipo:null,pct:comp};
+    if(comp<=0) return {estado:'bad',tipo:'no_salio',pct:comp};
+    return {estado:'mid',tipo:null,pct:comp};
+  }
+  // Pantalla A: expediente de la ruta — totales acumulados + lista de viajes (sin filtrar por fecha salvo que se pida)
+  function _rtModalExpedienteRuta(id,opts){
+    opts=opts||{}; const r=mgmtRutas[id]||{};
+    const viajes=_rtViajesDeRuta(id,opts);
+    let kmTot=0,dumpTot=0,fuelTot=0,pendientes=0;
+    viajes.forEach(v=>{ kmTot+=(v.kmEtapa!=null?v.kmEtapa:(v.distancia||0)); dumpTot+=(v.dumpEtapa||0); fuelTot+=(v.fuelEtapa||0); if(v.requiereAtencion&&!v.atendida)pendientes++; });
     let body='<div class="rt-statgrid">'
-      +'<div class="rt-stat"><div class="l">Días programados</div><div class="v">'+dias.length+'</div></div>'
-      +'<div class="rt-stat"><div class="l">Completados</div><div class="v" style="color:#1f7a45">'+ok+'</div></div>'
-      +'<div class="rt-stat"><div class="l">Incompletos/no salió</div><div class="v" style="color:#b3362a">'+(mid+bad)+'</div></div>'
-      +'<div class="rt-stat"><div class="l">Km verificados</div><div class="v">'+Math.round(kmTot)+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Viajes registrados</div><div class="v">'+viajes.length+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Km recorridos (total)</div><div class="v">'+(Math.round(kmTot*10)/10)+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Viajes al vertedero</div><div class="v">'+dumpTot+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Paradas de combustible</div><div class="v">'+fuelTot+'</div></div>'
       +'</div>';
-    body+='<div class="rt-striplbl">Historial · '+_rtFechaCorta(rIni)+' al '+_rtFechaCorta(rFin)+'</div>';
-    if(!dias.length){ body+='<div class="rt-empty2">Sin días programados en este rango.</div>'; }
-    else { dias.forEach(x=>{ const st=x.st;
-      const badge = st.estado==='ok'?['ok','Completada']:(st.tipo==='no_salio'?['bad','No salió']:['mid','Incompleta'+(st.pct!=null?' '+Math.round(st.pct)+'%':'')]);
-      const jf=_rtJustif(id,x.fecha);
-      body+='<div class="rt-diarow" data-d="'+x.fecha+'"><span class="dot" style="background:'+({ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936'}[st.estado])+'"></span>'
-        +'<div style="flex:1;"><b style="font-size:13px;">'+_rtFechaLarga(x.fecha)+'</b> <span class="rt-badge '+badge[0]+'" style="margin-left:4px;">'+badge[1]+'</span>'
-        +'<div style="font-size:12px;color:var(--mt2,#6b7263);font-family:ui-monospace,monospace;">'+esc((st.chofer||'—')+' · '+(st.km?st.km.toFixed(1):'0')+' km'+(jf?(' · justificada: '+jf.motivo):''))+'</div></div>'
+    if(pendientes>0) body+='<div class="rt-atencion"><i class="ti ti-alert-hexagon"></i><b>'+pendientes+' viaje(s) con tramos sin recorrer</b> · pendientes de revisión de supervisor</div>';
+    body+='<div class="rt-striplbl">Historial de viajes'+(opts.fecha?(' · '+_rtFechaLarga(opts.fecha)):(opts.rIni?(' · '+_rtFechaCorta(opts.rIni)+' al '+_rtFechaCorta(opts.rFin)):' · todas las fechas'))+'</div>';
+    if(!viajes.length){ body+='<div class="rt-empty2">Esta ruta no tiene viajes registrados'+(opts.fecha?' en esta fecha':'')+'.</div>'; }
+    else { viajes.forEach(v=>{ const st=_rtEstadoViaje(v); const badge=_rtBadgeEstado(st.estado,st.tipo,null); const dur=_rtDuracion((v.fin||0)-(v.inicio||0));
+      body+='<div class="rt-diarow" data-v="'+esc(v.reporteKey)+'" data-vd="'+esc(v.fecha)+'"><span class="dot" style="background:'+({ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936'}[st.estado])+'"></span>'
+        +'<div style="flex:1;"><b style="font-size:13px;">'+_rtFechaLarga(v.fecha)+'</b> <span style="font-size:12.5px;color:var(--mt2,#6b7263);">· '+esc(v.etapaNombre||'Viaje')+'</span> '+badge
+        +(v.requiereAtencion?(v.atendida?'<span class="rt-badge ok" style="margin-left:4px;">Revisado</span>':'<span class="rt-badge bad" style="margin-left:4px;">Requiere atención</span>'):'')
+        +'<div style="font-size:12px;color:var(--mt2,#6b7263);font-family:IBM Plex Mono,monospace;">'+esc((v.choferCode||'—')+' · '+(v.kmEtapa!=null?v.kmEtapa.toFixed(1):'0')+' km · '+dur+(v.dumpEtapa?(' · '+v.dumpEtapa+' vertedero'):''))+'</div></div>'
         +'<i class="ti ti-chevron-right" style="color:var(--mt3,#9a9f8f);"></i></div>'; }); }
-    _rtModal({ titulo:(r.nombre||id)+' — Expediente', sub:dias.length+' recorridos · '+_rtFechaCorta(rIni)+' al '+_rtFechaCorta(rFin), body:body, wide:true,
-      acts:'<button data-act="volver"><i class="ti ti-arrow-left"></i>Volver a la búsqueda</button><button data-act="print"><i class="ti ti-printer"></i>Imprimir</button><button data-act="csv" class="prim"><i class="ti ti-download"></i>Exportar CSV</button>',
+    _rtModal({ titulo:(r.nombre||id)+' — Expediente de la ruta', sub:viajes.length+' viaje(s) registrados'+(opts.fecha?(' · '+_rtFechaLarga(opts.fecha)):''), body:body, wide:true,
+      acts:'<button data-act="volver"><i class="ti ti-arrow-left"></i>Volver</button><button data-act="print"><i class="ti ti-printer"></i>Imprimir</button><button data-act="csv" class="prim"><i class="ti ti-download"></i>Exportar CSV</button>',
       onReady:(ov)=>{
-        ov.querySelectorAll('.rt-diarow[data-d]').forEach(el=>el.onclick=()=>{ _rtCerrarModal(); _rtModalRutaDia(id,el.dataset.d); });
-        ov.querySelector('[data-act="volver"]').onclick=()=>{ _rtCerrarModal(); _rtAbrirHistorico(); };
+        ov.querySelectorAll('.rt-diarow[data-v]').forEach(el=>el.onclick=()=>{ _rtCerrarModal(); _rtModalViajeDetalle(id,el.dataset.vd,el.dataset.v); });
+        ov.querySelector('[data-act="volver"]').onclick=()=>{ _rtCerrarModal(); if(typeof opts._volver==='function')opts._volver(); else _rtAbrirHistorico(); };
         ov.querySelector('[data-act="print"]').onclick=()=>window.print();
         ov.querySelector('[data-act="csv"]').onclick=()=>{
-          const rows=[['Fecha','Estado','Chofer','Ficha','Km','%Cobertura','Motivo']];
-          dias.forEach(x=>{ const st=x.st; const jf=_rtJustif(id,x.fecha);
-            rows.push([x.fecha,(st.estado==='ok'?'completada':(st.tipo==='no_salio'?'no_salio':'incompleta')),(st.chofer||''),(st.ficha||''),(st.km?st.km.toFixed(1):''),(st.pct!=null?Math.round(st.pct):''),((jf&&jf.motivo)||st.motivo||'')]); });
-          _rtDescargarCsv(rows.map(r2=>r2.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\n'),'expediente_'+(r.nombre||id)+'_'+rIni+'_'+rFin+'.csv');
+          const rows=[['Fecha','Viaje','Estado','Chofer','Ficha','Km','Vertedero','Combustible','%Cobertura','Requiere atención']];
+          viajes.forEach(v=>{ const st=_rtEstadoViaje(v); rows.push([v.fecha,(v.etapaNombre||''),st.estado,(v.choferCode||''),(v.ficha||''),(v.kmEtapa!=null?v.kmEtapa.toFixed(1):''),(v.dumpEtapa||0),(v.fuelEtapa||0),(v.routeCompletion!=null?v.routeCompletion:''),(v.requiereAtencion?(v.atendida?'revisado':'sí'):'no')]); });
+          _rtDescargarCsv(rows.map(r2=>r2.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\n'),'expediente_'+(r.nombre||id)+'.csv');
         };
       }});
+  }
+  // Pantalla B: detalle de UN viaje — datos del tramo + validación del supervisor (Fase 4)
+  function _rtModalViajeDetalle(id,fecha,reporteKey){
+    const r=mgmtRutas[id]||{}; const v=(r.reportes&&r.reportes[reporteKey])||{};
+    const st=_rtEstadoViaje(v);
+    const comp=(v.routeCompletion!=null?v.routeCompletion:v.cobertura)||0;
+    const pctPend=Math.max(0,100-Math.round(comp));
+    const jf=_rtJustif(id,fecha,reporteKey);
+    const puedeValidar=(currentUserRole==='supervisor'||currentUserRole==='adm');
+    let body='<div class="rt-statgrid">'
+      +'<div class="rt-stat"><div class="l">Cobertura</div><div class="v">'+Math.round(comp)+'%</div></div>'
+      +'<div class="rt-stat"><div class="l">Duración</div><div class="v">'+_rtDuracion((v.fin||0)-(v.inicio||0))+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Km recorridos</div><div class="v">'+(v.kmEtapa!=null?v.kmEtapa.toFixed(1):'0')+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Animador</div><div class="v">'+esc(v.choferCode||'—')+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Viajes al vertedero</div><div class="v">'+(v.dumpEtapa||0)+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Paradas combustible</div><div class="v">'+(v.fuelEtapa||0)+'</div></div>'
+      +'</div>';
+    if(jf){ body+='<div class="rt-motivo" style="cursor:default;"><i class="ti ti-note"></i><span>Justificado — '+esc(jf.motivo)+(jf.nota?(': '+esc(jf.nota)):'')+'</span></div>'; }
+    if(pctPend>0){ body+='<div class="rt-atencion"><i class="ti ti-alert-hexagon"></i><b>'+pctPend+'% sin recorrer en este viaje</b>'+(v.atendida?(' · revisado por '+esc(v.revisadoPor||'—')+(v.resolucion?(' — '+esc(v.resolucion==='completada'?'confirmado sin basura pendiente':'respaldo despachado')):'')):' · pendiente de revisión de supervisor')+'</div>'; }
+    body+='<div class="rt-mapph">[ trazado GPS del viaje ]</div>';
+    let acts='<button data-act="volver"><i class="ti ti-arrow-left"></i>Volver al expediente</button>'
+      +'<button data-act="print"><i class="ti ti-printer"></i>Imprimir</button>'
+      +'<button data-act="gps"><i class="ti ti-map-pin"></i>Recorrido GPS</button>';
+    if(pctPend>0 && puedeValidar && !v.atendida){
+      acts+='<button data-act="completar" style="border-color:#14532d;color:#14532d;font-weight:600;"><i class="ti ti-check"></i>Confirmar completado (sin basura)</button>'
+        +'<button data-act="respaldo" class="prim"><i class="ti ti-lifebuoy"></i>Despachar respaldo</button>'
+        +'<button data-act="justifv"><i class="ti ti-writing"></i>Justificar</button>';
+    }
+    _rtModal({ titulo:(r.nombre||id)+' — '+esc(v.etapaNombre||'Viaje')+' · '+_rtFechaLarga(fecha), sub:'', body:body, acts:acts,
+      onReady:(ov)=>{
+        const tEl=ov.querySelector('.rt-mhead .t'); if(tEl)tEl.insertAdjacentHTML('beforeend',' '+_rtBadgeEstado(st.estado,st.tipo,null));
+        ov.querySelector('[data-act="volver"]').onclick=()=>{ _rtCerrarModal(); _rtModalExpedienteRuta(id,{fecha:fecha}); };
+        ov.querySelector('[data-act="print"]').onclick=()=>window.print();
+        const gpsBtn=ov.querySelector('[data-act="gps"]'); if(gpsBtn)gpsBtn.onclick=()=>{ _rtCerrarModal(); _rtVerRecorridoGpsViaje(id,fecha,reporteKey); };
+        const cBtn=ov.querySelector('[data-act="completar"]'); if(cBtn)cBtn.onclick=()=>_rtRevisarViaje(id,reporteKey,'completada',fecha);
+        const rBtn=ov.querySelector('[data-act="respaldo"]'); if(rBtn)rBtn.onclick=()=>{ _rtCerrarModal(); _rtCubrirPendiente(id,fecha); };
+        const jBtn=ov.querySelector('[data-act="justifv"]'); if(jBtn)jBtn.onclick=()=>{ _rtCerrarModal(); _rtJustificarViaje(id,fecha,reporteKey); };
+      }});
+  }
+  // Fase 4 · validación del supervisor: confirma que el % sin recorrer es legítimo (no había basura)
+  function _rtRevisarViaje(id,reporteKey,resolucion,fecha){
+    if(!(currentUserRole==='supervisor'||currentUserRole==='adm')){ toast('Solo un supervisor puede validar este viaje'); return; }
+    const obj={ atendida:true, resolucion:resolucion, revisadoPor:(currentUserName||'Supervisión'), revisadoTs:Date.now() };
+    try{
+      fbDb.ref('rutas/'+id+'/reportes/'+reporteKey).update(obj);
+      if(mgmtRutas[id]&&mgmtRutas[id].reportes&&mgmtRutas[id].reportes[reporteKey]) Object.assign(mgmtRutas[id].reportes[reporteKey],obj);
+    }catch(_){}
+    toast('Viaje confirmado como completado ✓'); _rtCerrarModal(); _rtModalViajeDetalle(id,fecha,reporteKey);
+  }
+  // Justificación de UN viaje (anidada por reporteKey — no pisa la de otro viaje del mismo día)
+  function _rtJustificarViaje(id,fecha,reporteKey){
+    const jf=_rtJustif(id,fecha,reporteKey)||{};
+    const opts=['Sin basura','Avería','Clima','Personal','Festivo','Otro'];
+    const body='<div class="rt-form"><label>Motivo</label><select id="jfvMotivo">'+opts.map(o=>'<option'+(jf.motivo===o?' selected':'')+'>'+o+'</option>').join('')+'</select>'
+      +'<label>Nota (opcional)</label><textarea id="jfvNota" placeholder="Detalle de lo ocurrido…">'+esc(jf.nota||'')+'</textarea></div>';
+    _rtModal({ titulo:'Justificar viaje', sub:(mgmtRutas[id]||{}).nombre+' · '+_rtFechaLarga(fecha), body:body,
+      acts:'<button data-act="guardar" class="prim"><i class="ti ti-check"></i>Guardar justificación</button>',
+      onReady:(ov)=>{ ov.querySelector('[data-act="guardar"]').onclick=()=>{
+        const motivo=document.getElementById('jfvMotivo').value; const nota=(document.getElementById('jfvNota').value||'').trim();
+        const obj={motivo:motivo,nota:nota||null,por:(currentUserName||'Administración'),ts:Date.now()};
+        try{
+          fbDb.ref('rutas/'+id+'/justificaciones/'+fecha+'/'+reporteKey).set(obj);
+          mgmtRutas[id].justificaciones=mgmtRutas[id].justificaciones||{}; mgmtRutas[id].justificaciones[fecha]=mgmtRutas[id].justificaciones[fecha]||{}; mgmtRutas[id].justificaciones[fecha][reporteKey]=obj;
+          if(currentUserRole==='supervisor'||currentUserRole==='adm') fbDb.ref('rutas/'+id+'/reportes/'+reporteKey).update({atendida:true,resolucion:'completada',revisadoPor:(currentUserName||'Supervisión'),revisadoTs:Date.now()});
+        }catch(_){}
+        toast('Justificación guardada ✓'); _rtCerrarModal(); _rtModalViajeDetalle(id,fecha,reporteKey);
+      }; }});
   }
   function _rtBadgeEstado(estado,tipo,pct){
     if(estado==='ok')return '<span class="rt-badge ok">Completada</span>';
@@ -3464,8 +3561,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       +(incumple?'<button data-act="justif" class="prim"><i class="ti ti-writing"></i>Justificar</button>':'')
       +(incumple?'<button data-act="reprog"><i class="ti ti-calendar-plus"></i>Reprogramar</button>':'');
   }
-  // §3 · Modal Ruta-Día
+  // §3 · Modal Ruta-Día — si ya hay viajes registrados (Fase 2+) para este día, entra directo al expediente
+  // filtrado a esa fecha (Nivel 2→3). Si no (datos anteriores a esta versión), cae al detalle antiguo por día.
   function _rtModalRutaDia(id,fecha){
+    if(_rtViajesDeRuta(id,{fecha:fecha}).length){ _rtModalExpedienteRuta(id,{fecha:fecha}); return; }
     const r=mgmtRutas[id]||{}; const st=_rtEstadoDia(r,fecha);
     const incumple=(st.estado!=='ok');
     const jf=_rtJustif(id,fecha);
@@ -3528,9 +3627,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(!dias.length)body='<div class="rt-empty2">Sin incumplimientos en este periodo. 🎉</div>';
     dias.forEach(x=>{ body+=_rtFilaIncump(x,false); });
     _rtModal({ titulo:(r.nombre||id)+' — deuda del periodo', sub:dias.length+' incumplimientos en '+(mesLbl.charAt(0).toUpperCase()+mesLbl.slice(1))+' · click en un día abre su detalle', body:body,
-      acts:'<button data-act="print"><i class="ti ti-printer"></i>Imprimir</button><button data-act="csv"><i class="ti ti-download"></i>Exportar deuda CSV</button><button data-act="filtrar" style="border-color:#14532d;color:#14532d;font-weight:600;"><i class="ti ti-filter"></i>Filtrar calendario por esta ruta</button>',
+      acts:'<button data-act="expediente" class="prim"><i class="ti ti-folder"></i>Ver expediente completo</button><button data-act="print"><i class="ti ti-printer"></i>Imprimir</button><button data-act="csv"><i class="ti ti-download"></i>Exportar deuda CSV</button><button data-act="filtrar" style="border-color:#14532d;color:#14532d;font-weight:600;"><i class="ti ti-filter"></i>Filtrar calendario por esta ruta</button>',
       onReady:(ov)=>{
         _rtWireFilasIncump(ov);
+        ov.querySelector('[data-act="expediente"]').onclick=()=>{ _rtCerrarModal(); _rtModalExpedienteRuta(id,{}); };
         ov.querySelector('[data-act="print"]').onclick=()=>window.print();
         ov.querySelector('[data-act="csv"]').onclick=()=>_rtEjecAccion('csv',{id:id,scope:'rutaperiodo'});
         ov.querySelector('[data-act="filtrar"]').onclick=()=>{ _rtFiltro=id; _rtCerrarModal(); buildReportesTC(); };
@@ -3652,6 +3752,42 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       }});
   }
   function _rtCerrarGpsMap(){ if(_rtGpsMap){ try{_rtGpsMap.remove();}catch(_){} _rtGpsMap=null; } }
+  // Recorrido GPS de UN viaje (Nivel 3): usa el trazado de la etapa correspondiente y el `cov` propio de ESE viaje.
+  let _rtGpsMapV=null;
+  function _rtVerRecorridoGpsViaje(id,fecha,reporteKey){
+    const r=mgmtRutas[id]||{}; const v=(r.reportes&&r.reportes[reporteKey])||{};
+    const idx=(v.etapaIdx!=null)?v.etapaIdx:0;
+    let pts=[];
+    if(r.etapas&&r.etapas[idx]) pts=decode(r.etapas[idx].wp||'')||[];
+    if(!pts||pts.length<2) pts=decode(r.wp||'')||[];
+    const sinTraz=(!pts||pts.length<2);
+    const st=_rtEstadoViaje(v);
+    let body='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">'+_rtBadgeEstado(st.estado,st.tipo,null)
+      +'<span style="font-size:12.5px;color:#6b7263;font-family:IBM Plex Mono,monospace;">'+esc((v.choferCode||'—')+' · '+(v.kmEtapa!=null?v.kmEtapa.toFixed(1):'0')+' km')+'</span>'
+      +'<span style="margin-left:auto;display:flex;gap:12px;font-size:12px;color:#6b7263;"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#1f7a45;margin-right:5px;"></i>Recorrido</span><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#cd4936;margin-right:5px;"></i>Sin recorrer</span></span></div>';
+    body+= sinTraz ? '<div class="rt-empty2">Este viaje no tiene trazado guardado.</div>'
+      : '<div id="rtGpsMapV" style="height:440px;border-radius:10px;overflow:hidden;border:1px solid #dcdad2;"></div>';
+    _rtModal({ titulo:'Recorrido GPS — '+esc(v.etapaNombre||'Viaje'), sub:(r.nombre||id)+' · '+_rtFechaLarga(fecha), body:body, wide:true,
+      acts:'<button data-act="volver"><i class="ti ti-arrow-left"></i>Volver al detalle</button>',
+      onReady:(ov)=>{
+        ov.querySelector('[data-act="volver"]').onclick=()=>{ _rtCerrarModal(); _rtModalViajeDetalle(id,fecha,reporteKey); };
+        if(sinTraz)return;
+        setTimeout(()=>{ try{
+          const dens=densificarRuta(pts,12);
+          const comp=(v.routeCompletion!=null?v.routeCompletion:v.cobertura)||0;
+          const bits=v.cov?covDec(v.cov,dens.length):new Array(dens.length).fill(comp>=95);
+          _rtGpsMapV=L.map('rtGpsMapV',{zoomControl:true,attributionControl:false});
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(_rtGpsMapV);
+          L.polyline(dens,{color:'#FFFFFF',weight:8,opacity:.85,lineCap:'round',lineJoin:'round',interactive:false}).addTo(_rtGpsMapV);
+          covSegs(dens,bits,false).forEach(s=>L.polyline(s,{color:'#cd4936',weight:5,opacity:.95,lineCap:'round',lineJoin:'round',interactive:false}).addTo(_rtGpsMapV));
+          covSegs(dens,bits,true).forEach(s=>L.polyline(s,{color:'#1f7a45',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(_rtGpsMapV));
+          L.marker(dens[0],{interactive:false,icon:L.divIcon({html:'<div style="background:#14532d;color:#fff;font:700 10px sans-serif;padding:2px 7px;border-radius:10px;white-space:nowrap;">INICIO</div>',className:'',iconSize:[0,0]})}).addTo(_rtGpsMapV);
+          _rtGpsMapV.fitBounds(L.latLngBounds(dens).pad(0.15));
+          setTimeout(()=>{ try{_rtGpsMapV.invalidateSize();}catch(_){} },220);
+        }catch(e){ console.warn('gps viaje',e); } },60);
+      }});
+  }
+  function _rtCerrarGpsMapV(){ if(_rtGpsMapV){ try{_rtGpsMapV.remove();}catch(_){} _rtGpsMapV=null; } }
   // ===== §5 · INFORMES PERSISTENTES =====
   function _rtInformeConfig(){
     const [rIni,rFin]=_rtRango(); const mesLbl=_rtMes.toLocaleDateString('es-DO',{month:'long',year:'numeric'});
@@ -5162,6 +5298,11 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         tripPhase: tripPhase||'ruta',
         accionEnCurso: (choferAccion&&choferAccion.enCurso)||null,
         puntoParada: puntoParada||null,
+        // Fase 2: línea base del viaje actual, para que si el chofer cierra y reabre la app
+        // el reporte siga siendo el mismo (no se duplica) y los deltas del tramo no se pierdan.
+        reporteKey: _reporteKey||null, etIni: _etIni||null,
+        etDumpBase: _etDumpBase||0, etFuelBase: _etFuelBase||0,
+        etKmRutaBase: _etKmRutaBase||0, etKmVertBase: _etKmVertBase||0, etKmCombBase: _etKmCombBase||0,
         fecha: hoyStr, ts: Date.now()
       });
     }catch(_){}
@@ -5195,6 +5336,11 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpConfirmTick=0;
         _wpCerca={};
         _reporteKey=null; _autoRepTs=0; // nuevo turno → nueva clave de reporte
+        // Línea base de ESTE viaje (Fase 2): todo lo que pase de aquí en adelante se resta
+        // contra esta foto para que dumpEtapa/fuelEtapa/kmEtapa sean del tramo, no del día completo.
+        _etIni=Date.now(); _etIdx=idx; _etNombre=(et&&et.nombre)||('Etapa '+(idx+1));
+        _etDumpBase=dumpCount||0; _etFuelBase=fuelCount||0;
+        _etKmRutaBase=kmRuta||0; _etKmVertBase=kmVertedero||0; _etKmCombBase=kmCombustible||0;
         truckHeading=null; _headHist=[];
         limpiarProgresoVerde();
         dibujarEtapasEspera(idx);
@@ -5224,6 +5370,15 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
             dumpCount=_progresoPend.dumpCount||0; fuelCount=_progresoPend.fuelCount||0;
             kmRuta=_progresoPend.kmRuta||0; kmVertedero=_progresoPend.kmVertedero||0; kmCombustible=_progresoPend.kmCombustible||0;
             if(_progresoPend.tripStartedAt)tripStartedAt=_progresoPend.tripStartedAt;
+            // Continuar el MISMO reporte del viaje (no crear uno nuevo) y su línea base real
+            if(_progresoPend.reporteKey){
+              _reporteKey=_progresoPend.reporteKey; _etIni=_progresoPend.etIni||_etIni;
+              _etDumpBase=_progresoPend.etDumpBase||0; _etFuelBase=_progresoPend.etFuelBase||0;
+              _etKmRutaBase=_progresoPend.etKmRutaBase||0; _etKmVertBase=_progresoPend.etKmVertBase||0; _etKmCombBase=_progresoPend.etKmCombBase||0;
+            } else {
+              // Progreso guardado antes de esta versión: sin línea base — arrancar en lo ya restaurado (nunca sobre-cuenta)
+              _etDumpBase=dumpCount; _etFuelBase=fuelCount; _etKmRutaBase=kmRuta; _etKmVertBase=kmVertedero; _etKmCombBase=kmCombustible;
+            }
             dibujarProgresoVerde();
             // ¿Estaba en el vertedero o en la bomba cuando cerró la app? Retomar esa fase.
             const fase=_progresoPend.tripPhase||'ruta';
@@ -7197,6 +7352,9 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // Clave estable por turno: el reporte se ACTUALIZA (no se duplica) mientras el chofer maneja
   // y se finaliza al terminar. Así el reporte existe aunque cierre la app al 5%.
   let _reporteKey=null, _autoRepTs=0;
+  // Línea base del VIAJE actual (etapa): permite guardar dumpEtapa/fuelEtapa/kmEtapa como DELTA
+  // contra los contadores acumulados del día, en vez de arrastrar lo de un tramo anterior.
+  let _etIni=null, _etIdx=0, _etNombre='', _etDumpBase=0, _etFuelBase=0, _etKmRutaBase=0, _etKmVertBase=0, _etKmCombBase=0;
   function guardarReporteChofer(final){
     if(choSimOn) return;                                   // nunca en simulación
     if(!fbDb || currentUserRole!=='chofer' || !choferTurno.activo) return;
@@ -7212,8 +7370,17 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const _kmIni=Number((currentRuta||{}).kmInicio)||0;
       const _r=currentRuta||{};
       const _kmRuta=Math.round(kmRuta*100)/100, _kmVert=Math.round(kmVertedero*100)/100, _kmComb=Math.round(kmCombustible*100)/100, _kmTot=Math.round((_kmRuta+_kmVert+_kmComb)*100)/100||_dist;
+      // Fase 2: deltas del VIAJE (etapa) actual — nunca negativos, nunca arrastran lo de otro tramo
+      const dumpEtapa=Math.max(0,(dumpCount||0)-(_etDumpBase||0));
+      const fuelEtapa=Math.max(0,(fuelCount||0)-(_etFuelBase||0));
+      const kmRutaEtapa=Math.max(0,Math.round(((kmRuta||0)-(_etKmRutaBase||0))*100)/100);
+      const kmVertEtapa=Math.max(0,Math.round(((kmVertedero||0)-(_etKmVertBase||0))*100)/100);
+      const kmCombEtapa=Math.max(0,Math.round(((kmCombustible||0)-(_etKmCombBase||0))*100)/100);
+      const kmEtapa=Math.round((kmRutaEtapa+kmVertEtapa+kmCombEtapa)*100)/100||_dist;
       const comp=r.routeCompletion; const pctNo=Math.max(0,100-comp);
-      const base={ inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_kmTot)*100)/100, distancia:_kmTot, kmRuta:_kmRuta, kmVertedero:_kmVert, kmCombustible:_kmComb, viajesVertedero:dumpCount, viajesCombustible:fuelCount, cobertura:comp, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, sim:false };
+      const base={ inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_kmTot)*100)/100, distancia:_kmTot, kmRuta:_kmRuta, kmVertedero:_kmVert, kmCombustible:_kmComb, viajesVertedero:dumpCount, viajesCombustible:fuelCount, cobertura:comp, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, sim:false,
+        // Fase 2 — específicos de ESTE viaje (etapa), no del día completo:
+        etapaIdx:_etIdx, etapaNombre:_etNombre, inicioEtapa:_etIni||null, dumpEtapa:dumpEtapa, fuelEtapa:fuelEtapa, kmEtapa:kmEtapa };
       // viaje (bajo la fecha, clave estable → se actualiza, no duplica)
       fbDb.ref('rutas/'+currentRutaId+'/viajes/'+_f+'/'+_reporteKey).update(Object.assign({},base,{ progress:comp, paradas:waypoints.length }));
       // reporte (con % no recorrido pendiente de atención)
@@ -7221,7 +7388,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         tipo:'chofer', fecha:_f, rating:r.score, routeCompletion:comp, ratingLevel:ratingLabel(r.score).lbl,
         pctNoRecorrido:pctNo, requiereAtencion:(pctNo>0), atendida:false,
         enCurso:!final, ts:Date.now(),
-        texto:'Recorrido real: '+comp+'% cubierto'+(pctNo>0?(' · '+pctNo+'% SIN RECORRER (pendiente de atención)'):'')+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):'')+(dumpCount?(' · '+dumpCount+' viaje(s) al vertedero'):'')+(fuelCount?(' · '+fuelCount+' parada(s) de combustible'):'')+'.'
+        texto:'Recorrido real: '+comp+'% cubierto'+(pctNo>0?(' · '+pctNo+'% SIN RECORRER (pendiente de atención)'):'')+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):'')+(dumpEtapa?(' · '+dumpEtapa+' viaje(s) al vertedero'):'')+(fuelEtapa?(' · '+fuelEtapa+' parada(s) de combustible'):'')+'.'
       }));
       try{ const lu={cov:_cov,progress:comp,ts:Date.now()}; if(final)lu.status='termino'; fbDb.ref('live/'+txId()).update(lu); }catch(_){}
       // CIERRE DE RESCATE: marcar el rescate como completado y saldar la deuda del día original
