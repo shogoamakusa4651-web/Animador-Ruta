@@ -25,10 +25,10 @@
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
-<script src="js/utils.js?v=4.72"></script>
-<script src="js/store.js?v=4.72"></script>
-<script src="js/auth.js?v=4.72"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.72" />
+<script src="js/utils.js?v=4.73"></script>
+<script src="js/store.js?v=4.73"></script>
+<script src="js/auth.js?v=4.73"></script>
+<link rel="stylesheet" href="css/styles.css?v=4.73" />
 </head>
 <body>
 <div id="map"></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.72 · 2026-07-16'; // ← actualizar con cada release
+  const APP_VERSION='v4.73 · 2026-07-28'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2157,7 +2157,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const estado = t?'curso':(done?'completada':(env?'enviada':'pendiente'));
       const g=L.layerGroup();
       if(estado==='pendiente'){
-        L.polyline(pts,{color:'#9aa08f',weight:3,opacity:.85,dashArray:'6,8',lineCap:'round',interactive:false}).addTo(g);
+        L.polyline(pts,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+        L.polyline(pts,{color:'#cd4936',weight:4,opacity:.95,dashArray:'9,7',lineCap:'round',interactive:false}).addTo(g);
       } else if(estado==='enviada'){
         L.polyline(pts,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
         L.polyline(pts,{color:'#c9a227',weight:3.5,opacity:.95,lineCap:'round',interactive:false}).addTo(g);
@@ -2324,7 +2325,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       H+='</div>';
       H+='<div class="tc-main">';
       H+='<div class="tc-mapchips"><div class="tc-chip"><i class="ti ti-map-2"></i> Mapa en vivo</div><div class="tc-chip sec">'+(liveIds.length?(liveIds.length+' camión'+(liveIds.length!==1?'es':'')+' en vivo'):'Sin camiones activos ahora')+'</div>'
-        +'<div class="tc-chip sec" style="gap:10px;"><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#9aa08f;vertical-align:middle;"></i> Sin enviar</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#c9a227;vertical-align:middle;"></i> Enviada</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#2E7DF2;vertical-align:middle;"></i> En curso</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#27A35B;vertical-align:middle;"></i> Recorrido</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#cd4936;vertical-align:middle;"></i> Pendiente</span></div>'
+        +'<div class="tc-chip sec" style="gap:10px;"><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#cd4936;vertical-align:middle;"></i> Sin enviar / pendiente</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#c9a227;vertical-align:middle;"></i> Enviada</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#2E7DF2;vertical-align:middle;"></i> En curso</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#27A35B;vertical-align:middle;"></i> Recorrido</span></div>'
         +'<div class="tc-chip sec">Toca una ruta para ver estado y acciones</div></div>';
       H+='<button class="tc-mapfull" data-go="mon"><i class="ti ti-maximize"></i> Mapa completo</button>';
       H+='<div class="tc-dock">';
@@ -3199,7 +3200,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     h+='<div class="rt-nav"><i class="ti ti-chevron-left" data-nav="-1"></i><b>'+mesLbl.charAt(0).toUpperCase()+mesLbl.slice(1)+'</b><i class="ti ti-chevron-right" data-nav="1"></i></div>';
     h+='<select class="rt-filter" id="rtFiltro"><option value="">Todas las rutas</option>'+ids.map(id=>'<option value="'+esc(id)+'"'+(_rtFiltro===id?' selected':'')+'>'+esc((mgmtRutas[id]||{}).nombre||id)+'</option>').join('')+'</select>';
     if(_rtFiltro)h+='<span class="rt-chip">Filtrando: '+esc((mgmtRutas[_rtFiltro]||{}).nombre||_rtFiltro)+'<span class="x" id="rtChipX">✕</span></span>';
-    h+='<div class="rt-tbtns"><button class="rt-btn" id="rtCsv"><i class="ti ti-download"></i>Exportar CSV</button><button class="rt-btn" id="rtHist"><i class="ti ti-history"></i>Historial</button><button class="rt-btn prim" id="rtInforme"><i class="ti ti-file-analytics"></i>Informe</button></div>';
+    h+='<div class="rt-tbtns"><button class="rt-btn" id="rtCsv"><i class="ti ti-download"></i>Exportar CSV</button><button class="rt-btn" id="rtArchivo"><i class="ti ti-archive"></i>Histórico</button><button class="rt-btn" id="rtHist"><i class="ti ti-history"></i>Informes</button><button class="rt-btn prim" id="rtInforme"><i class="ti ti-file-analytics"></i>Informe</button></div>';
     h+='</div>';
     // ---- KPIs ----
     h+='<div class="rt-kpis">'
@@ -3258,6 +3259,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const csv=document.getElementById('rtCsv'); if(csv)csv.addEventListener('click',_rtExportCsv);
     const inf=document.getElementById('rtInforme'); if(inf)inf.addEventListener('click',_rtInformeConfig);
     const hb=document.getElementById('rtHist'); if(hb)hb.addEventListener('click',_rtHistorialInformes);
+    const ab=document.getElementById('rtArchivo'); if(ab)ab.addEventListener('click',_rtAbrirHistorico);
     const cx=document.getElementById('rtChipX'); if(cx)cx.addEventListener('click',()=>{ _rtFiltro=null; buildReportesTC(); });
     _rtWireDeuda(deudaArr,maxDeuda);
     _rtWirePanel();
@@ -3381,6 +3383,81 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     return {totProg,totOk,kmVerif,deuda,porRuta,diasIncump,cumpl:totProg?Math.round(totOk/totProg*100):null,rIni:rIni,rFin:rFin};
   }
   function _rtFechaLarga(ds){ const d=new Date(ds+'T12:00:00'); const s=d.toLocaleDateString('es-DO',{weekday:'long',day:'numeric',month:'long'}); return s.charAt(0).toUpperCase()+s.slice(1); }
+  function _rtFechaCorta(ds){ const d=new Date(ds+'T12:00:00'); return d.toLocaleDateString('es-DO',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  // ===== CENTRO DE CONTROL HISTÓRICO =====
+  // Buscador por rango de fechas: agrupa por ruta, click en una ruta abre su expediente completo del rango.
+  function _rtAbrirHistorico(){
+    const hoy=_rtDkey(new Date());
+    const hace30=_rtDkey(new Date(Date.now()-29*86400000));
+    const desde=window._rtHistDesde||hace30, hasta=window._rtHistHasta||hoy;
+    const body='<div class="rt-form" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">'
+      +'<div style="flex:1;min-width:140px;"><label>Desde</label><input type="date" id="hDesde" value="'+desde+'" max="'+hoy+'"></div>'
+      +'<div style="flex:1;min-width:140px;"><label>Hasta</label><input type="date" id="hHasta" value="'+hasta+'" max="'+hoy+'"></div>'
+      +'<button data-act="buscar" style="border:none;background:var(--green-primary,#1b4332);color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;height:38px;">Buscar</button>'
+      +'</div><div id="hResultados" style="margin-top:14px;"></div>';
+    _rtModal({ titulo:'Centro histórico', sub:'Busca por rango de fechas · click en una ruta para ver su expediente', body:body, wide:true,
+      onReady:(ov)=>{
+        const run=()=>{ window._rtHistDesde=document.getElementById('hDesde').value; window._rtHistHasta=document.getElementById('hHasta').value; _rtRenderHistorico(ov); };
+        ov.querySelector('[data-act="buscar"]').onclick=run;
+        run();
+      }});
+  }
+  function _rtRenderHistorico(ov){
+    const box=ov.querySelector('#hResultados'); if(!box)return;
+    const rIni=window._rtHistDesde, rFin=window._rtHistHasta;
+    if(!rIni||!rFin||rIni>rFin){ box.innerHTML='<div class="rt-empty2">Rango de fechas inválido.</div>'; return; }
+    const ag=_rtAgregado(rIni,rFin);
+    const filas=Object.keys(ag.porRuta).map(id=>ag.porRuta[id]).sort((a,b)=>b.prog-a.prog);
+    if(!filas.length){ box.innerHTML='<div class="rt-empty2">No hay rutas programadas en ese rango.</div>'; return; }
+    let h='<div class="rt-inflist">';
+    filas.forEach(pr=>{ const pct=pr.prog?Math.round(pr.ok/pr.prog*100):0; const col=pct>=90?'#1f7a45':(pct>=60?'#b07d1e':'#b3362a');
+      h+='<div class="rt-infrow" data-exp="'+esc(pr.id)+'">'
+        +'<div style="width:38px;height:38px;border-radius:9px;background:var(--surface-inset,#e9e4d4);display:flex;align-items:center;justify-content:center;flex:none;"><i class="ti ti-folder" style="font-size:18px;color:var(--mt2,#6d6a5c);"></i></div>'
+        +'<div class="info"><b>'+esc(pr.nombre)+'</b><small>'+pr.prog+' día'+(pr.prog!==1?'s':'')+' programados · '+pr.ok+' cumplidos · '+Math.round(pr.km)+' km verificados</small></div>'
+        +'<span class="pct" style="background:'+col+'22;color:'+col+';">'+pct+'%</span>'
+        +'<span style="font-size:13px;font-weight:600;color:var(--green-text2,#1b5e3f);flex:none;">Expediente →</span></div>'; });
+    h+='</div>'; box.innerHTML=h;
+    box.querySelectorAll('[data-exp]').forEach(row=>row.addEventListener('click',()=>{ _rtExpedienteRuta(row.dataset.exp,rIni,rFin); }));
+  }
+  // Expediente completo de UNA ruta en el rango: cada día programado, con su estado y acceso al detalle
+  function _rtExpedienteRuta(id,rIni,rFin){
+    const r=mgmtRutas[id]||{}; const hoyStr=_rtDkey(new Date());
+    const dias=[]; let d=new Date(rIni+'T12:00:00'); const fin=new Date(rFin+'T12:00:00');
+    while(d<=fin){ const ds=_rtDkey(d); if(ds<=hoyStr){ const L=_rtLetra(d);
+      if((r.freq||[]).includes(L) || (r.reprogramaciones&&r.reprogramaciones[ds]) || (r.rescates&&r.rescates[ds])){
+        dias.push({fecha:ds, st:_rtEstadoDia(r,ds)});
+      } } d=new Date(d.getTime()+86400000); }
+    dias.sort((a,b)=>a.fecha<b.fecha?1:-1);
+    let ok=0,bad=0,mid=0,kmTot=0; dias.forEach(x=>{ if(x.st.estado==='ok')ok++; else if(x.st.estado==='mid')mid++; else bad++; kmTot+=x.st.km||0; });
+    let body='<div class="rt-statgrid">'
+      +'<div class="rt-stat"><div class="l">Días programados</div><div class="v">'+dias.length+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Completados</div><div class="v" style="color:#1f7a45">'+ok+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Incompletos/no salió</div><div class="v" style="color:#b3362a">'+(mid+bad)+'</div></div>'
+      +'<div class="rt-stat"><div class="l">Km verificados</div><div class="v">'+Math.round(kmTot)+'</div></div>'
+      +'</div>';
+    body+='<div class="rt-striplbl">Historial · '+_rtFechaCorta(rIni)+' al '+_rtFechaCorta(rFin)+'</div>';
+    if(!dias.length){ body+='<div class="rt-empty2">Sin días programados en este rango.</div>'; }
+    else { dias.forEach(x=>{ const st=x.st;
+      const badge = st.estado==='ok'?['ok','Completada']:(st.tipo==='no_salio'?['bad','No salió']:['mid','Incompleta'+(st.pct!=null?' '+Math.round(st.pct)+'%':'')]);
+      const jf=_rtJustif(id,x.fecha);
+      body+='<div class="rt-diarow" data-d="'+x.fecha+'"><span class="dot" style="background:'+({ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936'}[st.estado])+'"></span>'
+        +'<div style="flex:1;"><b style="font-size:13px;">'+_rtFechaLarga(x.fecha)+'</b> <span class="rt-badge '+badge[0]+'" style="margin-left:4px;">'+badge[1]+'</span>'
+        +'<div style="font-size:12px;color:var(--mt2,#6b7263);font-family:ui-monospace,monospace;">'+esc((st.chofer||'—')+' · '+(st.km?st.km.toFixed(1):'0')+' km'+(jf?(' · justificada: '+jf.motivo):''))+'</div></div>'
+        +'<i class="ti ti-chevron-right" style="color:var(--mt3,#9a9f8f);"></i></div>'; }); }
+    _rtModal({ titulo:(r.nombre||id)+' — Expediente', sub:dias.length+' recorridos · '+_rtFechaCorta(rIni)+' al '+_rtFechaCorta(rFin), body:body, wide:true,
+      acts:'<button data-act="volver"><i class="ti ti-arrow-left"></i>Volver a la búsqueda</button><button data-act="print"><i class="ti ti-printer"></i>Imprimir</button><button data-act="csv" class="prim"><i class="ti ti-download"></i>Exportar CSV</button>',
+      onReady:(ov)=>{
+        ov.querySelectorAll('.rt-diarow[data-d]').forEach(el=>el.onclick=()=>{ _rtCerrarModal(); _rtModalRutaDia(id,el.dataset.d); });
+        ov.querySelector('[data-act="volver"]').onclick=()=>{ _rtCerrarModal(); _rtAbrirHistorico(); };
+        ov.querySelector('[data-act="print"]').onclick=()=>window.print();
+        ov.querySelector('[data-act="csv"]').onclick=()=>{
+          const rows=[['Fecha','Estado','Chofer','Ficha','Km','%Cobertura','Motivo']];
+          dias.forEach(x=>{ const st=x.st; const jf=_rtJustif(id,x.fecha);
+            rows.push([x.fecha,(st.estado==='ok'?'completada':(st.tipo==='no_salio'?'no_salio':'incompleta')),(st.chofer||''),(st.ficha||''),(st.km?st.km.toFixed(1):''),(st.pct!=null?Math.round(st.pct):''),((jf&&jf.motivo)||st.motivo||'')]); });
+          _rtDescargarCsv(rows.map(r2=>r2.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\n'),'expediente_'+(r.nombre||id)+'_'+rIni+'_'+rFin+'.csv');
+        };
+      }});
+  }
   function _rtBadgeEstado(estado,tipo,pct){
     if(estado==='ok')return '<span class="rt-badge ok">Completada</span>';
     if(tipo==='no_salio')return '<span class="rt-badge bad">No salió</span>';
