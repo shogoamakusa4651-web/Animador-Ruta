@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.76" />
+<link rel="stylesheet" href="css/styles.css?v=4.77" />
 </head>
 <body>
 <div id="map"></div>
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.76 · 2026-07-28'; // ← actualizar con cada release
+  const APP_VERSION='v4.77 · 2026-07-28'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -3432,7 +3432,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // expediente conserva SOLO lo suyo (el rutaId es la llave de nivel superior en Firebase).
   function _rtViajesDeRuta(id,opts){
     opts=opts||{}; const r=mgmtRutas[id]||{}; const reps=r.reportes||{};
-    let out=Object.keys(reps).filter(k=>reps[k]&&reps[k].tipo==='chofer').map(k=>Object.assign({reporteKey:k},reps[k]));
+    // Los tramos de rescate (padreReporteKey) NO son un viaje aparte: van anidados dentro de su viaje padre (_rtTramosDeViaje).
+    let out=Object.keys(reps).filter(k=>reps[k]&&reps[k].tipo==='chofer'&&!reps[k].padreReporteKey).map(k=>Object.assign({reporteKey:k},reps[k]));
     if(opts.fecha) out=out.filter(v=>v.fecha===opts.fecha);
     if(opts.rIni) out=out.filter(v=>v.fecha>=opts.rIni);
     if(opts.rFin) out=out.filter(v=>v.fecha<=opts.rFin);
@@ -3460,6 +3461,9 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const comp=(v.routeCompletion!=null?v.routeCompletion:v.cobertura)||0;
     if(v.atendida && v.resolucion==='completada') return {estado:'ok',tipo:null,pct:comp};
     if(comp>=95) return {estado:'ok',tipo:null,pct:comp};
+    // En curso (chofer aún manejando, o se quedó sin señal/cerró la app sin darle "Terminar viaje")
+    // NO es lo mismo que un viaje ya cerrado e incompleto: puede reanudarse solo, sin despachar respaldo.
+    if(v.enCurso) return {estado:'curso',tipo:'en_curso',pct:comp};
     if(comp<=0) return {estado:'bad',tipo:'no_salio',pct:comp};
     return {estado:'mid',tipo:null,pct:comp};
   }
@@ -3469,7 +3473,11 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const viajes=opts.fecha ? _rtViajesEsperados(id,opts.fecha) : _rtViajesDeRuta(id,opts);
     const registrados=viajes.filter(v=>!v._pendiente).length;
     let kmTot=0,dumpTot=0,fuelTot=0,pendientes=0;
-    viajes.forEach(v=>{ kmTot+=(v.kmEtapa!=null?v.kmEtapa:(v.distancia||0)); dumpTot+=(v.dumpEtapa||0); fuelTot+=(v.fuelEtapa||0); if(v.requiereAtencion&&!v.atendida)pendientes++; });
+    viajes.forEach(v=>{
+      kmTot+=(v.kmEtapa!=null?v.kmEtapa:(v.distancia||0)); dumpTot+=(v.dumpEtapa||0); fuelTot+=(v.fuelEtapa||0);
+      if(v.requiereAtencion&&!v.atendida)pendientes++;
+      if(!v._pendiente){ _rtTramosDeViaje(id,v.reporteKey).forEach(t=>{ kmTot+=(t.kmEtapa!=null?t.kmEtapa:(t.distancia||0)); dumpTot+=(t.dumpEtapa||0); fuelTot+=(t.fuelEtapa||0); }); }
+    });
     let body='<div class="rt-statgrid">'
       +'<div class="rt-stat"><div class="l">Viajes registrados</div><div class="v">'+registrados+'</div></div>'
       +'<div class="rt-stat"><div class="l">Km recorridos (total)</div><div class="v">'+(Math.round(kmTot*10)/10)+'</div></div>'
@@ -3488,7 +3496,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         return;
       }
       const st=_rtEstadoViaje(v); const badge=_rtBadgeEstado(st.estado,st.tipo,null); const dur=_rtDuracion((v.fin||0)-(v.inicio||0));
-      body+='<div class="rt-diarow" data-v="'+esc(v.reporteKey)+'" data-vd="'+esc(v.fecha)+'"><span class="dot" style="background:'+({ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936'}[st.estado])+'"></span>'
+      body+='<div class="rt-diarow" data-v="'+esc(v.reporteKey)+'" data-vd="'+esc(v.fecha)+'"><span class="dot" style="background:'+({ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936',curso:'#1e40af'}[st.estado])+'"></span>'
         +'<div style="flex:1;"><b style="font-size:13px;">'+_rtFechaLarga(v.fecha)+'</b> <span style="font-size:12.5px;color:var(--mt2,#6b7263);">· '+esc(v.etapaNombre||'Viaje')+'</span> '+badge
         +(v.requiereAtencion?(v.atendida?'<span class="rt-badge ok" style="margin-left:4px;">Revisado</span>':'<span class="rt-badge bad" style="margin-left:4px;">Requiere atención</span>'):'')
         +'<div style="font-size:12px;color:var(--mt2,#6b7263);font-family:IBM Plex Mono,monospace;">'+esc((v.choferCode||'—')+' · '+(v.kmEtapa!=null?v.kmEtapa.toFixed(1):'0')+' km · '+dur+(v.dumpEtapa?(' · '+v.dumpEtapa+' vertedero'):''))+'</div></div>'
@@ -3508,6 +3516,12 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       }});
   }
   // Pantalla B: detalle de UN viaje — datos del tramo + validación del supervisor (Fase 4)
+  // Tramos de rescate ligados a un viaje puntual (2do camión que cubrió lo pendiente del 1ro)
+  function _rtTramosDeViaje(id,reporteKey){
+    const r=mgmtRutas[id]||{}; const reps=r.reportes||{};
+    return Object.keys(reps).filter(k=>reps[k]&&reps[k].padreReporteKey===reporteKey).map(k=>Object.assign({reporteKey:k},reps[k]))
+      .sort((a,b)=>(a.inicio||0)-(b.inicio||0));
+  }
   function _rtModalViajeDetalle(id,fecha,reporteKey){
     const r=mgmtRutas[id]||{}; const v=(r.reportes&&r.reportes[reporteKey])||{};
     const st=_rtEstadoViaje(v);
@@ -3515,6 +3529,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const pctPend=Math.max(0,100-Math.round(comp));
     const jf=_rtJustif(id,fecha,reporteKey);
     const puedeValidar=(currentUserRole==='supervisor'||currentUserRole==='adm');
+    const tramos=_rtTramosDeViaje(id,reporteKey);
     let body='<div class="rt-statgrid">'
       +'<div class="rt-stat"><div class="l">Cobertura</div><div class="v">'+Math.round(comp)+'%</div></div>'
       +'<div class="rt-stat"><div class="l">Duración</div><div class="v">'+_rtDuracion((v.fin||0)-(v.inicio||0))+'</div></div>'
@@ -3523,27 +3538,52 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       +'<div class="rt-stat"><div class="l">Viajes al vertedero</div><div class="v">'+(v.dumpEtapa||0)+'</div></div>'
       +'<div class="rt-stat"><div class="l">Paradas combustible</div><div class="v">'+(v.fuelEtapa||0)+'</div></div>'
       +'</div>';
+    if(v.texto){ body+='<div class="rt-motivo" style="cursor:default;background:var(--surface-inset,#f2efe4);border-left:3px solid var(--green-primary,#1b4332);"><i class="ti ti-file-text"></i><span>'+esc(v.texto)+'</span></div>'; }
     if(jf){ body+='<div class="rt-motivo" style="cursor:default;"><i class="ti ti-note"></i><span>Justificado — '+esc(jf.motivo)+(jf.nota?(': '+esc(jf.nota)):'')+'</span></div>'; }
-    if(pctPend>0){ body+='<div class="rt-atencion"><i class="ti ti-alert-hexagon"></i><b>'+pctPend+'% sin recorrer en este viaje</b>'+(v.atendida?(' · revisado por '+esc(v.revisadoPor||'—')+(v.resolucion?(' — '+esc(v.resolucion==='completada'?'confirmado sin basura pendiente':'respaldo despachado')):'')):' · pendiente de revisión de supervisor')+'</div>'; }
-    body+='<div class="rt-mapph">[ trazado GPS del viaje ]</div>';
+    if(st.estado==='curso'){ body+='<div class="rt-atencion" style="border-color:#93c5fd;background:#eff6ff;color:#1e40af;"><i class="ti ti-clock-hour-4"></i><b>Viaje en curso</b> · el chofer sigue manejando (o la app quedó sin señal) — al reabrir la app continúa el MISMO viaje, no se cierra solo.</div>'; }
+    else if(pctPend>0){ body+='<div class="rt-atencion"><i class="ti ti-alert-hexagon"></i><b>'+pctPend+'% sin recorrer en este viaje</b>'+(v.atendida?(' · revisado por '+esc(v.revisadoPor||'—')+(v.resolucion?(' — '+esc(v.resolucion==='completada'?'confirmado sin basura pendiente':'respaldo despachado')):'')):' · pendiente de revisión de supervisor')+'</div>'; }
+    if(tramos.length){
+      body+='<div class="rt-striplbl">Tramos de este viaje ('+(tramos.length+1)+' camión(es))</div>';
+      body+='<div class="rt-diarow" style="cursor:default;"><span class="dot" style="background:'+({ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936',curso:'#1e40af'}[st.estado])+'"></span><div style="flex:1;"><b style="font-size:13px;">Tramo 1</b> · '+esc(v.choferCode||'—')+(v.ficha?(' · '+esc(v.ficha)):'')+'<div style="font-size:12px;color:var(--mt2,#6b7263);font-family:IBM Plex Mono,monospace;">'+Math.round(comp)+'% cubierto</div></div></div>';
+      tramos.forEach((t,i)=>{ const tst=_rtEstadoViaje(t); const tcomp=(t.routeCompletion!=null?t.routeCompletion:t.cobertura)||0;
+        body+='<div class="rt-diarow" data-t="'+esc(t.reporteKey)+'" data-td="'+esc(t.fecha)+'"><span class="dot" style="background:'+({ok:'#1f7a45',mid:'#d9a53f',bad:'#cd4936',curso:'#1e40af'}[tst.estado])+'"></span><div style="flex:1;"><b style="font-size:13px;">Tramo '+(i+2)+' — respaldo</b> · '+esc(t.choferCode||'—')+(t.ficha?(' · '+esc(t.ficha)):'')+'<div style="font-size:12px;color:var(--mt2,#6b7263);font-family:IBM Plex Mono,monospace;">'+Math.round(tcomp)+'% cubierto de lo pendiente · '+_rtFechaLarga(t.fecha)+'</div></div><i class="ti ti-chevron-right" style="color:var(--mt3,#9a9f8f);"></i></div>'; });
+    }
+    body+='<div class="rt-striplbl">Trazado GPS</div>';
+    body+='<div id="rtGpsMiniV" class="rt-mapph" style="height:260px;padding:0;overflow:hidden;">[ sin trazado guardado ]</div>';
     let acts='<button data-act="volver"><i class="ti ti-arrow-left"></i>Volver al expediente</button>'
       +'<button data-act="print"><i class="ti ti-printer"></i>Imprimir</button>'
-      +'<button data-act="gps"><i class="ti ti-map-pin"></i>Recorrido GPS</button>';
+      +'<button data-act="gps"><i class="ti ti-arrows-maximize"></i>Ampliar mapa</button>';
     if(pctPend>0 && puedeValidar && !v.atendida){
       acts+='<button data-act="completar" style="border-color:#14532d;color:#14532d;font-weight:600;"><i class="ti ti-check"></i>Confirmar completado (sin basura)</button>'
         +'<button data-act="respaldo" class="prim"><i class="ti ti-lifebuoy"></i>Despachar respaldo</button>'
         +'<button data-act="justifv"><i class="ti ti-writing"></i>Justificar</button>';
+    } else if(v.atendida && puedeValidar){
+      acts+='<button data-act="reactivar"><i class="ti ti-refresh"></i>Reactivar viaje</button>';
     }
-    _rtModal({ titulo:(r.nombre||id)+' — '+esc(v.etapaNombre||'Viaje')+' · '+_rtFechaLarga(fecha), sub:'', body:body, acts:acts,
+    _rtModal({ titulo:(r.nombre||id)+' — '+esc(v.etapaNombre||'Viaje')+' · '+_rtFechaLarga(fecha), sub:'', body:body, acts:acts, wide:true,
       onReady:(ov)=>{
         const tEl=ov.querySelector('.rt-mhead .t'); if(tEl)tEl.insertAdjacentHTML('beforeend',' '+_rtBadgeEstado(st.estado,st.tipo,null));
         ov.querySelector('[data-act="volver"]').onclick=()=>{ _rtCerrarModal(); _rtModalExpedienteRuta(id,{fecha:fecha}); };
         ov.querySelector('[data-act="print"]').onclick=()=>window.print();
         const gpsBtn=ov.querySelector('[data-act="gps"]'); if(gpsBtn)gpsBtn.onclick=()=>{ _rtCerrarModal(); _rtVerRecorridoGpsViaje(id,fecha,reporteKey); };
         const cBtn=ov.querySelector('[data-act="completar"]'); if(cBtn)cBtn.onclick=()=>_rtRevisarViaje(id,reporteKey,'completada',fecha);
-        const rBtn=ov.querySelector('[data-act="respaldo"]'); if(rBtn)rBtn.onclick=()=>{ _rtCerrarModal(); _rtCubrirPendiente(id,fecha); };
+        const rBtn=ov.querySelector('[data-act="respaldo"]'); if(rBtn)rBtn.onclick=()=>{ _rtCerrarModal(); _rtCubrirPendiente(id,fecha,reporteKey); };
         const jBtn=ov.querySelector('[data-act="justifv"]'); if(jBtn)jBtn.onclick=()=>{ _rtCerrarModal(); _rtJustificarViaje(id,fecha,reporteKey); };
+        const reactBtn=ov.querySelector('[data-act="reactivar"]'); if(reactBtn)reactBtn.onclick=()=>_rtReactivarViaje(id,reporteKey,fecha);
+        ov.querySelectorAll('.rt-diarow[data-t]').forEach(el=>el.onclick=()=>{ _rtCerrarModal(); _rtModalViajeDetalle(id,el.dataset.td,el.dataset.t); });
+        _rtDibujarMiniMapa(id,v,'rtGpsMiniV');
       }});
+  }
+  // Reactivar un viaje ya marcado como atendido/cerrado: lo vuelve a dejar abierto para completarlo
+  // (con el mismo camión u otro, vía "Despachar respaldo") en vez de quedar congelado para siempre.
+  function _rtReactivarViaje(id,reporteKey,fecha){
+    if(!(currentUserRole==='supervisor'||currentUserRole==='adm')){ toast('Solo un supervisor puede reactivar un viaje'); return; }
+    const obj={ atendida:false, resolucion:null, reactivadoPor:(currentUserName||'Supervisión'), reactivadoTs:Date.now() };
+    try{
+      fbDb.ref('rutas/'+id+'/reportes/'+reporteKey).update(obj);
+      if(mgmtRutas[id]&&mgmtRutas[id].reportes&&mgmtRutas[id].reportes[reporteKey]) Object.assign(mgmtRutas[id].reportes[reporteKey],obj);
+    }catch(_){}
+    toast('Viaje reactivado ✓'); _rtCerrarModal(); _rtModalViajeDetalle(id,fecha,reporteKey);
   }
   // Fase 4 · validación del supervisor: confirma que el % sin recorrer es legítimo (no había basura)
   function _rtRevisarViaje(id,reporteKey,resolucion,fecha){
@@ -3576,6 +3616,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   }
   function _rtBadgeEstado(estado,tipo,pct){
     if(estado==='ok')return '<span class="rt-badge ok">Completada</span>';
+    if(tipo==='en_curso')return '<span class="rt-badge mid" style="background:#dbeafe;color:#1e40af;">En curso'+(pct!=null?' · '+Math.round(pct)+'%':'')+'</span>';
     if(tipo==='no_salio')return '<span class="rt-badge bad">No salió</span>';
     return '<span class="rt-badge '+(estado==='mid'?'mid':'bad')+'">Incompleta'+(pct!=null?' '+Math.round(pct)+'%':'')+'</span>';
   }
@@ -3693,24 +3734,34 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // §6.4 · Reprogramar
   // DESPACHO DE RESCATE: otro camión/chofer cubre HOY el % pendiente de una ruta-día.
   // covBase = lo ya recorrido; el chofer de rescate lo verá en verde y trabajará solo lo rojo.
-  function _rtCubrirPendiente(id,fecha){
-    const r=mgmtRutas[id]||{}; const st=_rtEstadoDia(r,fecha);
-    const pctPend=(st.pct!=null)?Math.max(0,100-Math.round(st.pct)):100;
+  // origenReporteKey (opcional, Fase 5): si se pasa, el rescate se liga a ESE viaje puntual —
+  // el % pendiente y el covBase salen del propio viaje (no del día blended), y el reporte final
+  // del chofer de rescate queda marcado como "tramo de" ese viaje (padreReporteKey) para que el
+  // expediente muestre un solo bloque "Viaje N" con los 2 tramos (2 camiones) adentro.
+  function _rtCubrirPendiente(id,fecha,origenReporteKey){
+    const r=mgmtRutas[id]||{};
+    const v=origenReporteKey?((r.reportes||{})[origenReporteKey]||null):null;
+    const st=v?null:_rtEstadoDia(r,fecha);
+    const compBase=v?((v.routeCompletion!=null?v.routeCompletion:v.cobertura)||0):(st.pct!=null?st.pct:0);
+    const covBase=v?(v.cov||null):(st?st.cov:null);
+    const etapaNombre=v?(v.etapaNombre||'Viaje'):null;
+    const pctPend=Math.max(0,100-Math.round(compBase));
     const hoyStr=_rtDkey(new Date());
     const choOpts=Object.keys(mgmtChoferes||{}).filter(c=>(mgmtChoferes[c]||{}).active!==false)
       .map(c=>'<option value="'+esc(c)+'">'+esc(c)+((mgmtChoferes[c]||{}).name?(' · '+esc(mgmtChoferes[c].name)):'')+'</option>').join('');
     const camOpts=Object.keys(mgmtCamiones||{}).filter(k=>camActivo((mgmtCamiones[k]||{}).estado))
       .map(k=>{ const f=(mgmtCamiones[k]||{}).ficha||k; return '<option value="'+esc(f)+'">'+esc(f)+'</option>'; }).join('');
-    const body='<div class="rt-atencion" style="margin-top:0;"><i class="ti ti-alert-hexagon"></i><b>'+pctPend+'% sin recorrer</b> · se despachará solo lo pendiente</div>'
+    const body='<div class="rt-atencion" style="margin-top:0;"><i class="ti ti-alert-hexagon"></i><b>'+pctPend+'% sin recorrer</b>'+(etapaNombre?(' de '+esc(etapaNombre)):'')+' · se despachará solo lo pendiente</div>'
       +'<div class="rt-form"><label>Chofer que cubre</label><select id="cpCho">'+(choOpts||'<option value="">— sin choferes activos —</option>')+'</select>'
       +'<label>Camión</label><select id="cpCam">'+(camOpts||'<option value="">— sin camiones operativos —</option>')+'</select>'
-      +'<div style="font-size:12px;color:#6b7263;margin-top:10px;">El chofer verá la ruta HOY en su celular con lo ya recogido en verde. Su guía lo lleva directo a la zona pendiente'+(fecha!==hoyStr?(' · al terminar, la deuda del '+fecha+' quedará saldada con constancia'):' · al terminar, el día quedará completado por 2 camiones')+'.</div></div>';
-    _rtModal({ titulo:'Cubrir lo pendiente — '+(r.nombre||id), sub:'Deuda del '+_rtFechaLarga(fecha), body:body,
+      +'<div style="font-size:12px;color:#6b7263;margin-top:10px;">El chofer verá la ruta HOY en su celular con lo ya recogido en verde. Su guía lo lleva directo a la zona pendiente'+(fecha!==hoyStr?(' · al terminar, la deuda del '+fecha+' quedará saldada con constancia'):' · al terminar, el tramo quedará completado entre los 2 camiones')+'.</div></div>';
+    _rtModal({ titulo:'Cubrir lo pendiente — '+(r.nombre||id), sub:(etapaNombre||'Deuda')+' · '+_rtFechaLarga(fecha), body:body,
       acts:'<button data-act="ok" class="prim"><i class="ti ti-lifebuoy"></i>Despachar rescate</button>',
       onReady:(ov)=>{ ov.querySelector('[data-act="ok"]').onclick=()=>{
         const cho=(document.getElementById('cpCho')||{}).value; const cam=(document.getElementById('cpCam')||{}).value;
         if(!cho){ toast('Elige el chofer que cubre'); return; }
-        const obj={ origFecha:fecha, covBase:st.cov||null, pctPendiente:pctPend, choferCode:cho, camion:cam||null,
+        const obj={ origFecha:fecha, covBase:covBase, pctPendiente:pctPend, choferCode:cho, camion:cam||null,
+          origReporteKey:origenReporteKey||null, origEtapaIdx:(v&&v.etapaIdx!=null)?v.etapaIdx:null, origEtapaNombre:etapaNombre||null,
           creadoPor:(currentUserName||'Administración'), ts:Date.now(), estado:'pendiente' };
         try{
           fbDb.ref('rutas/'+id+'/rescates/'+hoyStr).set(obj)
@@ -3781,14 +3832,40 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       }});
   }
   function _rtCerrarGpsMap(){ if(_rtGpsMap){ try{_rtGpsMap.remove();}catch(_){} _rtGpsMap=null; } }
-  // Recorrido GPS de UN viaje (Nivel 3): usa el trazado de la etapa correspondiente y el `cov` propio de ESE viaje.
-  let _rtGpsMapV=null;
-  function _rtVerRecorridoGpsViaje(id,fecha,reporteKey){
-    const r=mgmtRutas[id]||{}; const v=(r.reportes&&r.reportes[reporteKey])||{};
+  // Trazado (wp) del viaje: etapa correspondiente si la ruta tiene varias, o el wp general de la ruta.
+  function _rtTrazadoViaje(r,v){
     const idx=(v.etapaIdx!=null)?v.etapaIdx:0;
     let pts=[];
     if(r.etapas&&r.etapas[idx]) pts=decode(r.etapas[idx].wp||'')||[];
     if(!pts||pts.length<2) pts=decode(r.wp||'')||[];
+    return pts;
+  }
+  // Dibuja el mini-mapa embebido directo en el detalle del viaje (sin exigir un click aparte para "ver el recorrido").
+  let _rtGpsMapV=null, _rtGpsMiniMap=null;
+  function _rtDibujarMiniMapa(id,v,containerId){
+    const r=mgmtRutas[id]||{}; const pts=_rtTrazadoViaje(r,v);
+    const el=document.getElementById(containerId); if(!el)return;
+    if(!pts||pts.length<2){ el.textContent='[ sin trazado guardado para este viaje ]'; return; }
+    el.textContent=''; el.style.padding='0';
+    setTimeout(()=>{ try{
+      const dens=densificarRuta(pts,12);
+      const comp=(v.routeCompletion!=null?v.routeCompletion:v.cobertura)||0;
+      const bits=v.cov?covDec(v.cov,dens.length):new Array(dens.length).fill(comp>=95);
+      const map=L.map(containerId,{zoomControl:false,attributionControl:false,dragging:true,scrollWheelZoom:false});
+      if(containerId==='rtGpsMapV')_rtGpsMapV=map; else if(containerId==='rtGpsMiniV')_rtGpsMiniMap=map;
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);
+      L.polyline(dens,{color:'#FFFFFF',weight:8,opacity:.85,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map);
+      covSegs(dens,bits,false).forEach(s=>L.polyline(s,{color:'#cd4936',weight:5,opacity:.95,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map));
+      covSegs(dens,bits,true).forEach(s=>L.polyline(s,{color:'#1f7a45',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map));
+      L.marker(dens[0],{interactive:false,icon:L.divIcon({html:'<div style="background:#14532d;color:#fff;font:700 10px sans-serif;padding:2px 7px;border-radius:10px;white-space:nowrap;">INICIO</div>',className:'',iconSize:[0,0]})}).addTo(map);
+      map.fitBounds(L.latLngBounds(dens).pad(0.15));
+      setTimeout(()=>{ try{map.invalidateSize();}catch(_){} },220);
+    }catch(e){ console.warn('mini mapa',e); } },60);
+  }
+  // Recorrido GPS de UN viaje, a pantalla completa (Nivel 3 ampliado).
+  function _rtVerRecorridoGpsViaje(id,fecha,reporteKey){
+    const r=mgmtRutas[id]||{}; const v=(r.reportes&&r.reportes[reporteKey])||{};
+    const pts=_rtTrazadoViaje(r,v);
     const sinTraz=(!pts||pts.length<2);
     const st=_rtEstadoViaje(v);
     let body='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">'+_rtBadgeEstado(st.estado,st.tipo,null)
@@ -3801,22 +3878,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       onReady:(ov)=>{
         ov.querySelector('[data-act="volver"]').onclick=()=>{ _rtCerrarModal(); _rtModalViajeDetalle(id,fecha,reporteKey); };
         if(sinTraz)return;
-        setTimeout(()=>{ try{
-          const dens=densificarRuta(pts,12);
-          const comp=(v.routeCompletion!=null?v.routeCompletion:v.cobertura)||0;
-          const bits=v.cov?covDec(v.cov,dens.length):new Array(dens.length).fill(comp>=95);
-          _rtGpsMapV=L.map('rtGpsMapV',{zoomControl:true,attributionControl:false});
-          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(_rtGpsMapV);
-          L.polyline(dens,{color:'#FFFFFF',weight:8,opacity:.85,lineCap:'round',lineJoin:'round',interactive:false}).addTo(_rtGpsMapV);
-          covSegs(dens,bits,false).forEach(s=>L.polyline(s,{color:'#cd4936',weight:5,opacity:.95,lineCap:'round',lineJoin:'round',interactive:false}).addTo(_rtGpsMapV));
-          covSegs(dens,bits,true).forEach(s=>L.polyline(s,{color:'#1f7a45',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(_rtGpsMapV));
-          L.marker(dens[0],{interactive:false,icon:L.divIcon({html:'<div style="background:#14532d;color:#fff;font:700 10px sans-serif;padding:2px 7px;border-radius:10px;white-space:nowrap;">INICIO</div>',className:'',iconSize:[0,0]})}).addTo(_rtGpsMapV);
-          _rtGpsMapV.fitBounds(L.latLngBounds(dens).pad(0.15));
-          setTimeout(()=>{ try{_rtGpsMapV.invalidateSize();}catch(_){} },220);
-        }catch(e){ console.warn('gps viaje',e); } },60);
+        _rtDibujarMiniMapa(id,v,'rtGpsMapV');
       }});
   }
-  function _rtCerrarGpsMapV(){ if(_rtGpsMapV){ try{_rtGpsMapV.remove();}catch(_){} _rtGpsMapV=null; } }
+  function _rtCerrarGpsMapV(){ if(_rtGpsMapV){ try{_rtGpsMapV.remove();}catch(_){} _rtGpsMapV=null; } if(_rtGpsMiniMap){ try{_rtGpsMiniMap.remove();}catch(_){} _rtGpsMiniMap=null; } }
   // ===== §5 · INFORMES PERSISTENTES =====
   function _rtInformeConfig(){
     const [rIni,rFin]=_rtRango(); const mesLbl=_rtMes.toLocaleDateString('es-DO',{month:'long',year:'numeric'});
@@ -7407,17 +7472,27 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const kmCombEtapa=Math.max(0,Math.round(((kmCombustible||0)-(_etKmCombBase||0))*100)/100);
       const kmEtapa=Math.round((kmRutaEtapa+kmVertEtapa+kmCombEtapa)*100)/100||_dist;
       const comp=r.routeCompletion; const pctNo=Math.max(0,100-comp);
+      const _horaIni=tripStartedAt?new Date(tripStartedAt):new Date();
+      const _horaTx=_horaIni.toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
       const base={ inicio:tripStartedAt?new Date(tripStartedAt).getTime():Date.now(), fin:Date.now(), choferCode:choferCode||_r.choferCode||null, supCode:_r.supCode||null, ficha:_r.camion||null, kmInicio:_kmIni, kmFin:Math.round((_kmIni+_kmTot)*100)/100, distancia:_kmTot, kmRuta:_kmRuta, kmVertedero:_kmVert, kmCombustible:_kmComb, viajesVertedero:dumpCount, viajesCombustible:fuelCount, cobertura:comp, omitidos:_omit, fidelidad:r.routeFidelity, cov:_cov, sim:false,
         // Fase 2 — específicos de ESTE viaje (etapa), no del día completo:
-        etapaIdx:_etIdx, etapaNombre:_etNombre, inicioEtapa:_etIni||null, dumpEtapa:dumpEtapa, fuelEtapa:fuelEtapa, kmEtapa:kmEtapa };
+        etapaIdx:_etIdx, etapaNombre:_etNombre, inicioEtapa:_etIni||null, dumpEtapa:dumpEtapa, fuelEtapa:fuelEtapa, kmEtapa:kmEtapa,
+        // Fase 5 — si este viaje es un TRAMO de rescate (cubre lo pendiente de otro viaje), queda ligado a su padre.
+        padreReporteKey:(_choRescate&&_choRescate.origReporteKey)||null, padreFecha:(_choRescate&&_choRescate.origFecha)||null, esRescate:!!_choRescate };
       // viaje (bajo la fecha, clave estable → se actualiza, no duplica)
       fbDb.ref('rutas/'+currentRutaId+'/viajes/'+_f+'/'+_reporteKey).update(Object.assign({},base,{ progress:comp, paradas:waypoints.length }));
+      // Narrativa: quién fue despachado, con qué camión, a qué hora, qué hizo y qué quedó pendiente.
+      const _nombreRuta=(_r.nombre||currentRutaId);
+      let _texto=(_choRescate?('Refuerzo/rescate: '):'')+(base.choferCode||'El chofer')+(base.ficha?(' con el camión '+base.ficha):'')+' salió a las '+_horaTx+' a realizar «'+_nombreRuta+'»'+(_etNombre?(' — '+_etNombre):'')+'. '
+        +(final?'Cerró el viaje':'Va en curso')+' con '+comp+'% de cobertura'+(pctNo>0?(', quedando '+pctNo+'% SIN RECORRER pendiente de atención'):' (recorrido completo)')+'.'
+        +(_omit?(' '+_omit+' tramo(s) omitido(s).'):'')+(dumpEtapa?(' '+dumpEtapa+' viaje(s) al vertedero.'):'')+(fuelEtapa?(' '+fuelEtapa+' parada(s) de combustible.'):'')
+        +(!final?' (Sin cerrar — si la app se cierra o pierde señal, el viaje queda EN CURSO, no se da por terminado.)':'');
       // reporte (con % no recorrido pendiente de atención)
       fbDb.ref('rutas/'+currentRutaId+'/reportes/'+_reporteKey).update(Object.assign({},base,{
         tipo:'chofer', fecha:_f, rating:r.score, routeCompletion:comp, ratingLevel:ratingLabel(r.score).lbl,
         pctNoRecorrido:pctNo, requiereAtencion:(pctNo>0), atendida:false,
         enCurso:!final, ts:Date.now(),
-        texto:'Recorrido real: '+comp+'% cubierto'+(pctNo>0?(' · '+pctNo+'% SIN RECORRER (pendiente de atención)'):'')+(_omit?(' · '+_omit+' tramo(s) omitido(s)'):'')+(dumpEtapa?(' · '+dumpEtapa+' viaje(s) al vertedero'):'')+(fuelEtapa?(' · '+fuelEtapa+' parada(s) de combustible'):'')+'.'
+        texto:_texto
       }));
       try{ const lu={cov:_cov,progress:comp,ts:Date.now()}; if(final)lu.status='termino'; fbDb.ref('live/'+txId()).update(lu); }catch(_){}
       // CIERRE DE RESCATE: marcar el rescate como completado y saldar la deuda del día original
