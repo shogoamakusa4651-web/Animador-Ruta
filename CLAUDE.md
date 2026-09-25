@@ -4,7 +4,7 @@ PWA municipal para el Ayuntamiento de La Vega, RD. Monitorea rutas de camiones r
 
 **URL pública:** https://shogoamakusa4651-web.github.io/Animador-Ruta/
 **Repo:** `shogoamakusa4651-web/Animador-Ruta` rama `main`
-**Versión actual:** v4.82
+**Versión actual:** v4.83
 
 ## Stack
 

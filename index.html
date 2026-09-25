@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.82" />
+<link rel="stylesheet" href="css/styles.css?v=4.83" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.82 · 2026-09-25</div>
+  <div class="ver" id="navVer">v4.83 · 2026-09-25</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -638,7 +638,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.82 · 2026-09-25</div>
+<div class="ver-badge" id="verBadge">v4.83 · 2026-09-25</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.82 · 2026-09-25'; // ← actualizar con cada release
+  const APP_VERSION='v4.83 · 2026-09-25'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2261,6 +2261,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       try{ const b=L.latLngBounds(pts); bounds=bounds?bounds.extend(b):b; if(esDeHoy)boundsHoy=boundsHoy?boundsHoy.extend(L.latLngBounds(pts)):L.latLngBounds(pts); }catch(_){}
     });
     if(window._ccHome){ window._ccHome=false; try{ ccVistaCiudad(); }catch(_){} }
+    if(window._ccFitVisible){ window._ccFitVisible=false; if(bounds)mapaEncuadrar(bounds,15); }
     window._ccBoundsHoy=boundsHoy;
     try{ ccEtiquetasColision(); }catch(_){}
   }
@@ -2472,9 +2473,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       // Chips de día: ver rutas de ese día · Todas · Limpiar
       host.querySelectorAll('[data-dia-chip]').forEach(ch=>ch.addEventListener('click',()=>{
         const d=ch.dataset.diaChip;
-        if(d==='TODAS'){ window._ccVerTodas=!window._ccVerTodas; }
+        // Al ENCENDER un grupo (Ver todas o un día) el mapa se aleja para mostrar todo lo encendido
+        if(d==='TODAS'){ window._ccVerTodas=!window._ccVerTodas; if(window._ccVerTodas)window._ccFitVisible=true; }
         else if(d==='LIMPIAR'){ window._ccSelDays={}; window._ccExtraIds={}; window._ccVerTodas=false; }
-        else { if(window._ccSelDays[d])delete window._ccSelDays[d]; else window._ccSelDays[d]=true; }
+        else { if(window._ccSelDays[d])delete window._ccSelDays[d]; else { window._ccSelDays[d]=true; window._ccFitVisible=true; } }
         buildInicio(); }));
       try{ if(typeof subscribeUnits==='function')subscribeUnits(); }catch(_){}
       try{ ccDrawRoutes(); }catch(e){ console.warn('ccDrawRoutes',e); }
