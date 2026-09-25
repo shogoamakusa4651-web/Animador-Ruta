@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.79" />
+<link rel="stylesheet" href="css/styles.css?v=4.80" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.79 · 2026-09-25</div>
+  <div class="ver" id="navVer">v4.80 · 2026-09-25</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -638,7 +638,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.79 · 2026-09-25</div>
+<div class="ver-badge" id="verBadge">v4.80 · 2026-09-25</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.79 · 2026-09-25'; // ← actualizar con cada release
+  const APP_VERSION='v4.80 · 2026-09-25'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1951,7 +1951,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     document.body.classList.add('adm-shell');
     document.body.classList.remove('cc-full'); // salir del modo mapa completo al cambiar de sección
     // Rutas del día en el mapa del Centro de Control: dibujar al entrar, limpiar al salir
-    if(name==='inicio'){ window._ccFit=true; }
+    if(name==='inicio'){ window._ccHome=true; }
     else { try{ if(typeof ccClearRoutes==='function')ccClearRoutes(); }catch(_){} }
     // re-disparar animación de entrada
     document.body.classList.remove('sec-anim'); void document.body.offsetWidth; document.body.classList.add('sec-anim');
@@ -2137,8 +2137,20 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // Cada ruta es clickeable: tarjeta con estado y acciones (Enviar / Detalle / Camión de respaldo).
   let ccLayers={}, ccPopup=null;
   try{ if(localStorage.getItem('cc_sheet_open')==='1')document.body.classList.add('cc-sheet-open'); }catch(_){}
+  try{ if(localStorage.getItem('cc_tab')==='todas')window._ccTab='todas'; }catch(_){}
   // No programada hoy: UN solo color tenue (lila) para todas — distinto del rojo/ámbar/azul/verde de estado.
   const CC_NOPROG='#9b87e0';
+  // Colores de estado: los MISMOS en el mapa, en la lista y en la leyenda.
+  const CC_COL={pendiente:'#cd4936',enviada:'#c9a227',curso:'#2E7DF2',completada:'#27A35B',noProgramada:CC_NOPROG};
+  // ¿La ruta es de HOY? Programada por día, reprogramada/rescate para hoy, o con actividad real hoy
+  // (en vivo, despachada o con viaje). Así una ruta que sale fuera de su día no se pinta como 'no programada'.
+  function ccEsDeHoy(r,id,hoy,live){ r=r||{};
+    return (r.freq||[]).includes(todayLetter()) || !!(r.reprogramaciones&&r.reprogramaciones[hoy]) || !!(r.rescates&&r.rescates[hoy])
+      || !!(live&&live[id]) || !!(r.envios&&r.envios[hoy]) || !!(r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length); }
+  // Estado del día: EN CURSO manda (el viaje se auto-guarda mientras maneja; no por eso está completado).
+  function ccEstadoHoy(r,id,hoy,live){ r=r||{}; if(live&&live[id])return 'curso';
+    if(r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length)return 'completada';
+    if(r.envios&&r.envios[hoy])return 'enviada'; return 'pendiente'; }
   // Grosor responsive al zoom: 1 = zoom 16 (calle). Al alejar se afinan; al acercar engordan un poco.
   function ccEscala(){ const z=(map&&map.getZoom)?map.getZoom():15; return Math.max(0.28,Math.min(1.2,1-(16-z)*0.24)); }
   function ccDash(d,k){ return d?String(d).split(',').map(x=>Math.max(2,Math.round(parseFloat(x)*Math.max(0.6,k)))).join(','):null; }
@@ -2148,6 +2160,25 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     pl._cwb=o.weight; pl._cdb=o.dashArray||null; pl._chalo=h; return pl; }
   function ccAjustarGrosor(){ const k=ccEscala(); Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._cwb&&l.setStyle)l.setStyle({weight:ccGrosor(l._cwb,l._chalo,k),dashArray:ccDash(l._cdb,k)}); }); }catch(_){} }); }
   map.on('zoomend',ccAjustarGrosor);
+  // Espacio que tapa el panel del Centro de Control (izquierda en PC, abajo en celular)
+  function ccHuecoPanel(){ const d=document.querySelector('.tc-dock'); if(!d||document.body.classList.contains('cc-full'))return {l:0,b:0};
+    const r=d.getBoundingClientRect(); const movil=window.matchMedia('(max-width:768px)').matches;
+    return movil?{l:0,b:Math.round(r.height)}:{l:Math.round(r.right),b:0}; }
+  // Vista FIJA al entrar: todo La Vega, centrado en la parte visible del mapa (no detrás del panel)
+  function ccVistaCiudad(){ const movil=window.matchMedia('(max-width:768px)').matches; map.setView(LA_VEGA,movil?13:14,{animate:false});
+    const h=ccHuecoPanel(); if(h.l||h.b)map.panBy([-h.l/2,h.b/2],{animate:false}); }
+  // Botón 'Centrar en rutas de hoy': encuadra solo las de hoy, sin pasar de zoom 15, dejando libre el panel
+  function ccCentrarHoy(){ const b=window._ccBoundsHoy; if(!b){ toast('No hay rutas de hoy en el mapa'); return; }
+    const h=ccHuecoPanel(); map.fitBounds(b,{paddingTopLeft:[h.l+30,90],paddingBottomRight:[30,h.b+30],maxZoom:15}); }
+  // Etiquetas: si dos nombres chocan se esconde el de menor prioridad (primero se ven las de hoy)
+  function ccEtiquetasColision(){ const labs=[]; Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._ccLabel&&l._icon)labs.push(l); }); }catch(_){} });
+    const z=map.getZoom(); const el=map.getContainer(); el.classList.toggle('cc-lbl-sm',z<15); el.classList.toggle('cc-lbl-xs',z<13);
+    labs.forEach(l=>{ l._icon.style.visibility=''; });
+    labs.sort((a,b)=>b._ccPrio-a._ccPrio);
+    const puestos=[]; labs.forEach(l=>{ const r=l._icon.getBoundingClientRect(); if(!r.width)return;
+      const choca=puestos.some(q=>!(r.right+4<q.left||r.left-4>q.right||r.bottom+2<q.top||r.top-2>q.bottom));
+      if(choca)l._icon.style.visibility='hidden'; else puestos.push(r); }); }
+  map.on('zoomend',()=>{ try{ ccEtiquetasColision(); }catch(_){} });
   function ccClearRoutes(){ Object.keys(ccLayers).forEach(k=>{ try{map.removeLayer(ccLayers[k]);}catch(_){} }); ccLayers={}; }
   function ccDrawRoutes(){
     if(curSec!=='inicio' || currentUserRole==='chofer') return;
@@ -2155,10 +2186,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const _n=new Date(); const hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const Lh=todayLetter(); const live=liveByRuta();
     const selDays=window._ccSelDays||{}; const extraIds=window._ccExtraIds||{}; const verTodas=!!window._ccVerTodas;
-    let bounds=null;
+    let bounds=null, boundsHoy=null;
     Object.keys(mgmtRutas||{}).forEach(id=>{
       const r=mgmtRutas[id]||{};
-      const esDeHoy=(r.freq||[]).includes(Lh) || (r.reprogramaciones&&r.reprogramaciones[hoy]) || (r.rescates&&r.rescates[hoy]);
+      const esDeHoy=ccEsDeHoy(r,id,hoy,live);
       const porDia=(r.freq||[]).some(d=>selDays[d]);
       // Visible si: es de hoy, O el chofer la encendió manualmente (chip de día / ojo / "Todas")
       if(!esDeHoy && !verTodas && !porDia && !extraIds[id]) return;
@@ -2171,7 +2202,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const viajesHoy=(r.viajes&&r.viajes[hoy])||null;
       const done=viajesHoy&&Object.keys(viajesHoy).length;
       const env=r.envios&&r.envios[hoy];
-      const estado = !esDeHoy ? 'noProgramada' : (t?'curso':(done?'completada':(env?'enviada':'pendiente')));
+      const estado = !esDeHoy ? 'noProgramada' : ccEstadoHoy(r,id,hoy,live);
       const g=L.layerGroup();
       if(estado==='noProgramada'){
         ccPL(pts,{color:'#fff',weight:6,opacity:.5,lineCap:'round',interactive:false}).addTo(g);
@@ -2194,14 +2225,24 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         }catch(_){ ccPL(pts,{color:'#27A35B',weight:5,opacity:.95,interactive:false}).addTo(g); } }
         else { ccPL(pts,{color:'#27A35B',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g); }
       }
+      // Nombre de la ruta sobre la línea (en un punto del recorrido, no en el inicio: dos rutas que arrancan
+      // en la misma esquina no se montan). Borde = color de su estado.
+      try{ const pi=pts[Math.floor(pts.length*0.45)]||pts[0];
+        const lb=L.marker(pi,{interactive:true,keyboard:false,zIndexOffset:(estado==='noProgramada'?600:900),
+          icon:L.divIcon({className:'cc-rlabel',iconSize:null,html:'<span style="--c:'+CC_COL[estado]+'">'+esc(r.nombre||'(sin nombre)')+'</span>'})});
+        lb._ccPrio=(estado==='noProgramada'?1:2); lb._ccLabel=true;
+        lb.on('click',(e)=>{ try{ ccShowPopup(id,estado==='noProgramada'?'otra':estado,e.latlng); }catch(_){} });
+        lb.addTo(g); }catch(_){}
       // Capa invisible ancha = objetivo de click fácil
       const hit=L.polyline(pts,{color:'#000',opacity:0.02,weight:20,interactive:true});
       hit.on('click',(e)=>{ try{ ccShowPopup(id,estado==='noProgramada'?'otra':estado,e.latlng); }catch(_){} });
       hit.addTo(g);
       g.addTo(map); ccLayers[id]=g;
-      try{ const b=L.latLngBounds(pts); bounds=bounds?bounds.extend(b):b; }catch(_){}
+      try{ const b=L.latLngBounds(pts); bounds=bounds?bounds.extend(b):b; if(esDeHoy)boundsHoy=boundsHoy?boundsHoy.extend(L.latLngBounds(pts)):L.latLngBounds(pts); }catch(_){}
     });
-    if(window._ccFit && bounds){ try{ map.fitBounds(bounds.pad(0.12)); }catch(_){} window._ccFit=false; }
+    if(window._ccHome){ window._ccHome=false; try{ ccVistaCiudad(); }catch(_){} }
+    window._ccBoundsHoy=boundsHoy;
+    try{ ccEtiquetasColision(); }catch(_){}
   }
   function ccShowPopup(id,estado,latlng){
     const r=mgmtRutas[id]||{}; const t=liveByRuta()[id];
@@ -2240,13 +2281,9 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const hoy=isoOf(now);
     const rutas=mgmtRutas||{}; const live=(typeof liveByRuta==='function')?liveByRuta():{}; const cam=mgmtCamiones||{};
     const ids=Object.keys(rutas);
-    const todayIds=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(today));
+    const todayIds=ids.filter(id=>ccEsDeHoy(rutas[id],id,hoy,live));
     const camByFicha={}; Object.keys(cam).forEach(k=>{ const c=cam[k]||{}; camByFicha[c.ficha||k]=c; });
-    function stOf(id){ const r=rutas[id]||{};
-      if(r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length)return 'completada';
-      if(live[id])return 'curso';
-      if(r.envios&&r.envios[hoy])return 'enviada';
-      return 'pendiente'; }
+    function stOf(id){ return ccEstadoHoy(rutas[id],id,hoy,live); }
     let nDone=0,nCur=0,nEnv=0,nPen=0;
     todayIds.forEach(id=>{ const s=stOf(id); if(s==='completada')nDone++; else if(s==='curso')nCur++; else if(s==='enviada')nEnv++; else nPen++; });
     const cumplim=todayIds.length?Math.round(nDone/todayIds.length*100):null;
@@ -2325,47 +2362,72 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       H+='</div>';
       H+='<div class="tc-main">';
       H+='<div class="tc-mapchips"><div class="tc-chip"><i class="ti ti-map-2"></i> Mapa en vivo</div><div class="tc-chip sec">'+(liveIds.length?(liveIds.length+' camión'+(liveIds.length!==1?'es':'')+' en vivo'):'Sin camiones activos ahora')+'</div>'
+        +'<button type="button" class="tc-chip tc-fitbtn" title="Encuadrar las rutas de hoy"><i class="ti ti-focus-2"></i> Centrar en rutas de hoy</button>'
         +'<button type="button" class="tc-chip tc-legbtn"><i class="ti ti-palette"></i> Leyenda</button>'
         +'<div class="tc-chip sec tc-legend"><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#cd4936;vertical-align:middle;"></i> Sin enviar / pendiente</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#c9a227;vertical-align:middle;"></i> Enviada</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#2E7DF2;vertical-align:middle;"></i> En curso</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#27A35B;vertical-align:middle;"></i> Recorrido</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#9b87e0;vertical-align:middle;"></i> No programada hoy</span></div>'
         +'<div class="tc-chip sec tc-hint">Toca una ruta para ver estado y acciones</div></div>';
       H+='<button class="tc-mapfull" data-go="mon"><i class="ti ti-maximize"></i> Mapa completo</button>';
-      H+='<div class="tc-dock">';
-      H+='<div class="tc-dock-h" data-sheet="1"><span class="t">Operación de hoy</span><span class="tc-dock-hr"><span class="tc-badge'+(nSinEnviar?'':' zero')+'">'+nSinEnviar+' sin enviar</span><i class="ti ti-chevron-up tc-sheet-chev" aria-hidden="true"></i></span></div>';
-      H+='<div class="tc-dock-list">';
-      if(!cola.length){ H+='<div class="tc-vacio">No hay rutas programadas hoy.</div>'; }
-      else { cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const cls=x.s==='curso'?'curso':(x.s==='completada'?'done':'');
-        const t=live[x.id]; const pg=(t&&t.progress!=null)?(' · '+t.progress+'%'):'';
-        const meta=(r.choferCode||'sin chofer')+' · '+(r.camion||'sin camión')+' · '+st[0];
-        H+='<div class="tc-rcard '+cls+'" data-id="'+esc(x.id)+'"><div class="info"><div class="nm">'+esc(r.nombre||'(sin nombre)')+pg+'</div><div class="mt">'+esc(meta)+'</div></div>';
-        if(x.s!=='completada')H+='<button class="tc-rbtn'+(x.s==='curso'?' ghost':'')+'" data-id="'+esc(x.id)+'" data-s="'+x.s+'">'+st[2]+'</button>';
-        H+='</div>'; }); }
-      // VIAJES ACTIVOS (camiones transmitiendo ahora)
-      H+='<div class="tc-grouplbl">Viajes activos'+(liveIds.length?(' · '+liveIds.length):'')+'</div>';
-      if(!liveIds.length){ H+='<div class="tc-vacio">Sin viajes activos ahora. Cuando un camión salga, aparecerá aquí en vivo.</div>'; }
-      else { liveIds.forEach(id=>{ const r=rutas[id]||{}; const t=live[id]||{}; const pg=Math.max(0,Math.min(100,Number(t.progress)||0));
-        H+='<div class="tc-orow" data-live="'+esc(id)+'"><span style="width:8px;height:8px;border-radius:50%;background:#2d9e5f;flex:none;"></span><span style="flex:1;font-weight:600;">'+esc(r.nombre||id)+'</span><small>'+pg+'%</small></div>'; }); }
-      // VER EN EL MAPA: encender/apagar rutas por día o "todas" (como la sala de control vieja)
+      // ===== Panel con pestañas: HOY (lo que toca hoy, urgente arriba) · TODAS (todas las rutas SIEMPRE, A-Z) =====
+      const tab=window._ccTab==='todas'?'todas':'hoy';
       window._ccSelDays=window._ccSelDays||{}; window._ccExtraIds=window._ccExtraIds||{};
-      H+='<div class="tc-grouplbl">Ver en el mapa</div>';
-      H+='<div class="cc-daychips">';
-      DAYS.forEach(d=>{ H+='<button class="cc-daychip'+(window._ccSelDays[d]?' on':'')+'" data-dia-chip="'+d+'">'+d+'</button>'; });
-      H+='<button class="cc-daychip wide'+(window._ccVerTodas?' on':'')+'" data-dia-chip="TODAS">Todas</button>';
-      H+='<button class="cc-daychip wide" data-dia-chip="LIMPIAR">Limpiar</button>';
-      H+='</div>';
-      // OTRAS RUTAS (no programadas hoy) — click = detalle · ojo = encender/apagar en el mapa
-      const otras=ids.filter(id=>todayIds.indexOf(id)<0).sort((a,b)=>(((rutas[a]||{}).nombre||'').localeCompare((rutas[b]||{}).nombre||'')));
-      H+='<div class="tc-grouplbl">Otras rutas · '+otras.length+'</div>';
-      if(!otras.length){ H+='<div class="tc-vacio">Todas las rutas están programadas hoy.</div>'; }
-      else { H+='<div style="background:var(--surface-3,#fff);border:1px solid var(--border-1,#e6e3da);border-radius:10px;padding:2px 10px;">';
-        otras.forEach(id=>{ const enc=!!window._ccExtraIds[id];
-          H+='<div class="tc-orow" data-otra="'+esc(id)+'"><i class="ti ti-'+(enc?'eye':'eye-off')+'" data-eye="'+esc(id)+'" title="'+(enc?'Apagar en el mapa':'Ver en el mapa')+'" style="font-size:16px;color:'+(enc?'var(--green-text2,#1b5e3f)':'var(--mt3,#9a9f8f)')+';cursor:pointer;flex:none;"></i><span style="flex:1;">'+esc((rutas[id]||{}).nombre||'(sin nombre)')+'</span><small>'+esc(((rutas[id]||{}).freq||[]).join('·')||'sin días')+'</small><i class="ti ti-chevron-right" style="color:var(--mt3,#9a9f8f);font-size:14px;"></i></div>'; });
-        H+='</div>'; }
+      const hoyLbl={pendiente:'sin enviar',enviada:'enviada · esperando salida',curso:'en curso',completada:'completada'};
+      H+='<div class="tc-dock">';
+      H+='<div class="tc-dock-h" data-sheet="1"><span class="t">Rutas</span><span class="tc-dock-hr"><span class="tc-badge'+(nSinEnviar?'':' zero')+'">'+nSinEnviar+' sin enviar</span><i class="ti ti-chevron-up tc-sheet-chev" aria-hidden="true"></i></span></div>';
+      H+='<div class="tc-tabs" role="tablist"><button type="button" role="tab" class="tc-tab'+(tab==='hoy'?' on':'')+'" data-tab="hoy">Hoy · '+cola.length+'</button>'
+        +'<button type="button" role="tab" class="tc-tab'+(tab==='todas'?' on':'')+'" data-tab="todas">Todas · '+ids.length+'</button></div>';
+      H+='<div class="tc-dock-list">';
+      if(tab==='hoy'){
+        if(!cola.length){ H+='<div class="tc-vacio">No hay rutas para hoy. En la pestaña <b>Todas</b> están todas las rutas.</div>'; }
+        else { cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const t=live[x.id];
+          const pgN=(x.s==='curso'&&t&&t.progress!=null)?Math.max(0,Math.min(100,Math.round(Number(t.progress)||0))):null;
+          const meta=(r.choferCode||'sin chofer')+' · '+(r.camion||'sin camión')+' · '+hoyLbl[x.s];
+          H+='<div class="tc-rcard'+(x.s==='completada'?' done':'')+'" data-id="'+esc(x.id)+'" style="border-left-color:'+CC_COL[x.s]+'"><div class="info"><div class="nm">'+esc(r.nombre||'(sin nombre)')+(pgN!=null?(' · '+pgN+'%'):'')+(x.s==='completada'?' ✓':'')+'</div><div class="mt">'+esc(meta)+'</div>'
+            +(pgN!=null?('<div class="tc-prog"><i style="width:'+pgN+'%"></i></div>'):'')+'</div>';
+          if(x.s!=='completada')H+='<button class="tc-rbtn'+(x.s==='curso'?' ghost':'')+'" data-id="'+esc(x.id)+'" data-s="'+x.s+'">'+st[2]+'</button>';
+          H+='</div>'; }); }
+      } else {
+        H+='<div class="tc-busca"><i class="ti ti-search" aria-hidden="true"></i><input type="search" id="ccBusca" placeholder="Buscar ruta" autocomplete="off" value="'+esc(window._ccBusca||'')+'"></div>';
+        H+='<div class="cc-daychips">';
+        DAYS.forEach(d=>{ H+='<button class="cc-daychip'+(window._ccSelDays[d]?' on':'')+(d===today?' hoy':'')+'" data-dia-chip="'+d+'"'+(d===today?' title="Hoy"':'')+'>'+d+'</button>'; });
+        H+='<button class="cc-daychip wide'+(window._ccVerTodas?' on':'')+'" data-dia-chip="TODAS">Ver todas</button>';
+        H+='<button class="cc-daychip wide" data-dia-chip="LIMPIAR">Limpiar</button>';
+        H+='</div>';
+        const selD=Object.keys(window._ccSelDays); const q=(window._ccBusca||'').trim().toLowerCase();
+        const todas=ids.slice().sort((a,b)=>(((rutas[a]||{}).nombre||'').localeCompare((rutas[b]||{}).nombre||'')));
+        let nVis=0;
+        H+='<div class="tc-alist">';
+        todas.forEach(id=>{ const r=rutas[id]||{}; const esHoy=ccEsDeHoy(r,id,hoy,live); const est=esHoy?ccEstadoHoy(r,id,hoy,live):'noProgramada';
+          const nom=r.nombre||'(sin nombre)'; const porDia=!selD.length||(r.freq||[]).some(d=>window._ccSelDays[d]);
+          const oculto=(q&&nom.toLowerCase().indexOf(q)<0)||!porDia; if(!oculto)nVis++;
+          const enMapa=esHoy||!!window._ccVerTodas||!!window._ccExtraIds[id]||(selD.length&&(r.freq||[]).some(d=>window._ccSelDays[d]));
+          H+='<div class="tc-arow" data-otra="'+esc(id)+'" data-nom="'+esc(nom.toLowerCase())+'"'+(oculto?' hidden':'')+'>'
+            +'<span class="tc-adot" style="background:'+CC_COL[est]+'"></span>'
+            +'<span class="tc-anm">'+esc(nom)+'</span>'+(esHoy?'<span class="tc-hoytag">Hoy</span>':'')
+            +'<small>'+esc((r.freq||[]).join('·')||'sin días')+'</small>'
+            +(esHoy?'<i class="ti ti-eye tc-aeye fijo" title="Es de hoy: siempre se ve en el mapa"></i>'
+                   :'<i class="ti ti-'+(enMapa?'eye':'eye-off')+' tc-aeye'+(enMapa?' on':'')+'" data-eye="'+esc(id)+'" title="'+(enMapa?'Apagar en el mapa':'Ver en el mapa')+'"></i>')
+            +'</div>'; });
+        H+='</div>';
+        H+='<div class="tc-vacio tc-anone"'+(nVis?' hidden':'')+'>Ninguna ruta coincide.</div>';
+      }
       H+='</div>'; // tc-dock-list
       // Salud de flota: fuera de esta etapa (a pedido) — no se renderiza por ahora.
       H+='</div>'; // tc-dock
       H+='</div>'; // tc-main
       H+='</div>'; // ini-tc
+      // Conservar scroll de la lista y foco del buscador (el panel se redibuja con cada dato en vivo)
+      const _pl=host.querySelector('.tc-dock-list'); const _sc=_pl?_pl.scrollTop:0;
+      const _bf=(document.activeElement&&document.activeElement.id==='ccBusca')?document.activeElement.selectionStart:null;
       host.innerHTML=H;
+      { const nl=host.querySelector('.tc-dock-list'); if(nl&&_sc)nl.scrollTop=_sc;
+        const bi=host.querySelector('#ccBusca'); if(bi&&_bf!=null){ bi.focus(); try{ bi.setSelectionRange(_bf,_bf); }catch(_){} } }
+      host.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{ window._ccTab=b.dataset.tab; try{ localStorage.setItem('cc_tab',window._ccTab); }catch(_){}
+        const nl=host.querySelector('.tc-dock-list'); if(nl)nl.scrollTop=0; buildInicio(); }));
+      { const bi=host.querySelector('#ccBusca'); if(bi)bi.addEventListener('input',()=>{ window._ccBusca=bi.value; const q=bi.value.trim().toLowerCase(); const selD=Object.keys(window._ccSelDays||{}); let n=0;
+        host.querySelectorAll('.tc-arow').forEach(row=>{ const r=rutas[row.dataset.otra]||{}; const porDia=!selD.length||(r.freq||[]).some(d=>window._ccSelDays[d]);
+          const ok=(!q||row.dataset.nom.indexOf(q)>=0)&&porDia; row.hidden=!ok; if(ok)n++; });
+        const nn=host.querySelector('.tc-anone'); if(nn)nn.hidden=!!n; }); }
+      host.querySelectorAll('.tc-fitbtn').forEach(b=>b.addEventListener('click',()=>{ try{ ccCentrarHoy(); }catch(_){} }));
       host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go;
         if(g==='mon'){ // Mapa completo: colapsar el rail dentro del MISMO Centro de Control (no abrir la interfaz vieja)
           const full=document.body.classList.toggle('cc-full');
@@ -2382,8 +2444,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       host.querySelectorAll('.tc-legbtn').forEach(b=>b.addEventListener('click',()=>document.body.classList.toggle('cc-legend-open')));
       host.querySelectorAll('.tc-rbtn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
       host.querySelectorAll('.tc-rcard').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
-      host.querySelectorAll('.tc-orow[data-otra]').forEach(row=>row.addEventListener('click',e=>{ if(e.target.closest('[data-eye]'))return; openRouteDetail(row.dataset.otra); }));
-      host.querySelectorAll('.tc-orow[data-live]').forEach(row=>row.addEventListener('click',()=>setSection('monitoreo')));
+      host.querySelectorAll('.tc-arow[data-otra]').forEach(row=>row.addEventListener('click',e=>{ if(e.target.closest('.tc-aeye'))return; openRouteDetail(row.dataset.otra); }));
       // Ojos: encender/apagar una ruta específica en el mapa
       host.querySelectorAll('[data-eye]').forEach(el=>el.addEventListener('click',e=>{ e.stopPropagation();
         const id=el.dataset.eye; if(window._ccExtraIds[id])delete window._ccExtraIds[id]; else window._ccExtraIds[id]=true;
@@ -2738,7 +2799,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const tl=todayLetter(); const cam=mgmtCamiones||{};
     const camByFicha={}; Object.keys(cam).forEach(k=>{ const c=cam[k]||{}; camByFicha[c.ficha||k]=c; });
     const todayIds=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(tl));
-    function stOf(id){ const r=rutas[id]||{}; if(r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length)return 'completada'; if(byRuta[id])return 'curso'; if(r.envios&&r.envios[hoy])return 'enviada'; return 'pendiente'; }
+    function stOf(id){ const r=rutas[id]||{}; if(byRuta[id])return 'curso'; if(r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length)return 'completada'; if(r.envios&&r.envios[hoy])return 'enviada'; return 'pendiente'; }
     let nDone=0; let kmP=0,kmD=0;
     todayIds.forEach(id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); kmP+=km; const s=stOf(id);
       if(s==='completada'){nDone++;kmD+=km;} else if(s==='curso'){const t=byRuta[id]||{};kmD+=km*Math.max(0,Math.min(100,Number(t.progress)||0))/100;} });
