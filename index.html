@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.81" />
+<link rel="stylesheet" href="css/styles.css?v=4.82" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.81 · 2026-09-25</div>
+  <div class="ver" id="navVer">v4.82 · 2026-09-25</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -638,7 +638,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.81 · 2026-09-25</div>
+<div class="ver-badge" id="verBadge">v4.82 · 2026-09-25</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.81 · 2026-09-25'; // ← actualizar con cada release
+  const APP_VERSION='v4.82 · 2026-09-25'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1364,7 +1364,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     return pts.length?pts:null;}catch(e){return null;}}
   function loadRoute(pts){playing=false;if(animId)cancelAnimationFrame(animId);
     waypoints=pts.slice();renderMarkers();refresh();resetAnim();
-    if(waypoints.length)map.fitBounds(L.latLngBounds(waypoints).pad(0.25));}
+    if(waypoints.length)setTimeout(()=>mapaEncuadrar(L.latLngBounds(waypoints),17),80);}
 
   // ===== SISTEMA DE ETAPAS (multi-KMZ) en el editor =====
   // etapasEdit: array de {nombre, wp}. Todas se muestran juntas; no se editan en la app (se suben por KMZ).
@@ -1430,7 +1430,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       L.marker(pts[0],{interactive:false,zIndexOffset:800,icon:L.divIcon({className:'',iconSize:[14,14],iconAnchor:[7,7],html:'<div style="width:14px;height:14px;border-radius:50%;background:'+ETAPA_COLORS[i%ETAPA_COLORS.length]+';border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5);"></div>'})}).addTo(g);
     });
     g.addTo(map); etapasLayer=g;
-    if(allPts.length>1){ try{ map.fitBounds(L.latLngBounds(allPts).pad(0.15)); }catch(_){} }
+    if(allPts.length>1){ setTimeout(()=>mapaEncuadrar(L.latLngBounds(allPts),17),80); }
   }
   async function copy(text){try{await navigator.clipboard.writeText(text);return true;}
     catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
@@ -2161,6 +2161,18 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   function ccAjustarGrosor(){ const k=ccEscala(); Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._cwb&&l.setStyle)l.setStyle({weight:ccGrosor(l._cwb,l._chalo,k),dashArray:ccDash(l._cdb,k)}); }); }catch(_){} }); }
   map.on('zoomend',ccAjustarGrosor);
   // Espacio que tapa el panel del Centro de Control (izquierda en PC, abajo en celular)
+  // Qué parte del mapa está tapada: panel izquierdo (dock del Centro de Control o formulario del editor),
+  // detalle de ruta a la derecha (en PC), barra superior y panel inferior del celular.
+  function mapaHuecos(){ const vis=e=>{ if(!e)return null; const cs=getComputedStyle(e); if(cs.display==='none'||cs.visibility==='hidden')return null; const r=e.getBoundingClientRect(); return (r.width&&r.height)?r:null; };
+    const W=window.innerWidth, H=window.innerHeight, movil=window.matchMedia('(max-width:768px)').matches; const h={l:0,r:0,t:0,b:0};
+    const top=vis(document.querySelector('.tc-kpis'))||vis(document.getElementById('shellNav')); if(top&&top.top<80)h.t=Math.round(top.bottom);
+    if(!movil){ [document.querySelector('.tc-dock'),document.querySelector('body.sec-rutas .panel')].forEach(e=>{ const r=vis(e); if(r&&r.left<40&&r.right<W*0.6)h.l=Math.max(h.l,Math.round(r.right)); });
+      const rd=document.getElementById('rdOv'); if(rd&&rd.classList.contains('show')){ const r=vis(rd); if(r&&r.left>W*0.4)h.r=Math.round(W-r.left); } }
+    else { const d=vis(document.querySelector('.tc-dock')); if(d)h.b=Math.round(H-d.top); const n=vis(document.getElementById('shellNav')); if(n&&n.top>H*0.6)h.b=Math.max(h.b,Math.round(H-n.top)); }
+    return h; }
+  // Encuadra unos límites en la parte VISIBLE del mapa (nunca detrás de un panel)
+  function mapaEncuadrar(b,maxZoom){ if(!b)return; const h=mapaHuecos();
+    try{ map.fitBounds(b,{paddingTopLeft:[h.l+30,h.t+30],paddingBottomRight:[h.r+30,h.b+30],maxZoom:maxZoom||17}); }catch(_){ try{ map.fitBounds(b); }catch(__){} } }
   function ccHuecoPanel(){ const d=document.querySelector('.tc-dock'); if(!d||document.body.classList.contains('cc-full'))return {l:0,b:0};
     const r=d.getBoundingClientRect(); const movil=window.matchMedia('(max-width:768px)').matches;
     return movil?{l:0,b:Math.round(r.height)}:{l:Math.round(r.right),b:0}; }
@@ -2169,8 +2181,12 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const h=ccHuecoPanel(); if(h.l||h.b)map.panBy([-h.l/2,h.b/2],{animate:false}); }
   // Botón 'Centrar en rutas de hoy': encuadra solo las de hoy, sin pasar de zoom 15, dejando libre el panel
   function ccCentrarHoy(){ const b=window._ccBoundsHoy; if(!b){ toast('No hay rutas de hoy en el mapa'); return; }
-    const h=ccHuecoPanel(); map.fitBounds(b,{paddingTopLeft:[h.l+30,90],paddingBottomRight:[30,h.b+30],maxZoom:15}); }
+    mapaEncuadrar(b,15); }
   // Etiquetas: si dos nombres chocan se esconde el de menor prioridad (primero se ven las de hoy)
+  // Ruta enfocada = la que tiene abierto el detalle. Resalta esa y apaga las demás.
+  function ccFoco(){ const ov=document.getElementById('rdOv'); return (ov&&ov.classList.contains('show')&&rdId&&mgmtRutas[rdId])?rdId:null; }
+  function ccPtsRuta(r){ let pts=decode((r||{}).wp||'')||[]; if((!pts||pts.length<2)&&r&&r.etapas&&r.etapas.length){ pts=[]; r.etapas.forEach(e=>{ pts=pts.concat(decode(e.wp||'')||[]); }); } return pts||[]; }
+  function ccEnfocarRuta(id){ const pts=ccPtsRuta(mgmtRutas[id]); if(pts.length<2)return; try{ ccDrawRoutes(); }catch(_){} mapaEncuadrar(L.latLngBounds(pts),17); }
   function ccEtiquetasColision(){ const labs=[]; Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._ccLabel&&l._icon)labs.push(l); }); }catch(_){} });
     const z=map.getZoom(); const el=map.getContainer(); el.classList.toggle('cc-lbl-sm',z<15); el.classList.toggle('cc-lbl-xs',z<13);
     labs.forEach(l=>{ l._icon.style.visibility=''; });
@@ -2186,13 +2202,13 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const _n=new Date(); const hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const Lh=todayLetter(); const live=liveByRuta();
     const selDays=window._ccSelDays||{}; const extraIds=window._ccExtraIds||{}; const verTodas=!!window._ccVerTodas;
-    let bounds=null, boundsHoy=null;
+    let bounds=null, boundsHoy=null; const foco=ccFoco();
     Object.keys(mgmtRutas||{}).forEach(id=>{
       const r=mgmtRutas[id]||{};
       const esDeHoy=ccEsDeHoy(r,id,hoy,live);
       const porDia=(r.freq||[]).some(d=>selDays[d]);
       // Visible si: es de hoy, O el chofer la encendió manualmente (chip de día / ojo / "Todas")
-      if(!esDeHoy && !verTodas && !porDia && !extraIds[id]) return;
+      if(!esDeHoy && !verTodas && !porDia && !extraIds[id] && id!==foco) return;
       let pts=decode(r.wp||'')||[];
       if((!pts||pts.length<2)&&r.etapas&&r.etapas.length){ pts=[]; r.etapas.forEach(e=>{ pts=pts.concat(decode(e.wp||'')||[]); }); }
       if(!pts||pts.length<2) return;
@@ -2237,7 +2253,11 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const hit=L.polyline(pts,{color:'#000',opacity:0.02,weight:20,interactive:true});
       hit.on('click',(e)=>{ try{ ccShowPopup(id,estado==='noProgramada'?'otra':estado,e.latlng); }catch(_){} });
       hit.addTo(g);
+      if(foco){ const k=ccEscala();
+        if(id===foco){ g.eachLayer(l=>{ if(l._cwb){ l._cwb*=1.6; l.setStyle({weight:ccGrosor(l._cwb,l._chalo,k)}); } if(l._ccLabel)l._ccPrio=9; }); }
+        else { g.eachLayer(l=>{ if(l._ccLabel){ l.setOpacity(.45); l._ccPrio=0; } else if(l.setStyle&&l.options&&l.options.opacity>0.05)l.setStyle({opacity:l.options.opacity*0.22}); }); } }
       g.addTo(map); ccLayers[id]=g;
+      if(foco&&id===foco)g.eachLayer(l=>{ if(l.bringToFront)l.bringToFront(); });
       try{ const b=L.latLngBounds(pts); bounds=bounds?bounds.extend(b):b; if(esDeHoy)boundsHoy=boundsHoy?boundsHoy.extend(L.latLngBounds(pts)):L.latLngBounds(pts); }catch(_){}
     });
     if(window._ccHome){ window._ccHome=false; try{ ccVistaCiudad(); }catch(_){} }
@@ -2992,12 +3012,13 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const tuvoHoy=(mgmtRutas[id]||{}).viajes&&(mgmtRutas[id]||{}).viajes[_hoy];
     rdTab=liveNow[id]?'envivo':(tuvoHoy?'viajes':'datos');
     document.getElementById('rdOv').classList.add('show');
+    try{ if(curSec==='inicio')setTimeout(()=>ccEnfocarRuta(id),260); }catch(_){}
     syncRdTabs();
     document.querySelectorAll('#rdOv .rd-tab').forEach(t=>t.classList.toggle('on',t.dataset.rt===rdTab));
     renderDetail();
     if(fbDb){ Promise.all([fbDb.ref('rutas/'+id+'/viajes').once('value'),fbDb.ref('rutas/'+id+'/reportes').once('value')]).then(function(res){ rdViajes=res[0].val()||{}; rdReportes=res[1].val()||{}; renderDetail(); }).catch(function(){}); } }
   function syncRdTabs(){ const live=(typeof liveByRuta==='function')?liveByRuta():{}; const t=document.getElementById('rdTabLive'); if(t)t.style.display=(rdId&&live[rdId])?'':'none'; }
-  function closeRouteDetail(){ document.getElementById('rdOv').classList.remove('show'); rdId=null; if(rdLiveTimer){clearInterval(rdLiveTimer);rdLiveTimer=null;} }
+  function closeRouteDetail(){ document.getElementById('rdOv').classList.remove('show'); rdId=null; try{ if(curSec==='inicio')ccDrawRoutes(); }catch(_){} if(rdLiveTimer){clearInterval(rdLiveTimer);rdLiveTimer=null;} }
   let rdLiveTimer=null;
   async function registrarCombustibleVivo(t,r){
     const ficha=r.camion||t.code||'—';
@@ -4285,45 +4306,60 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   function setRutasView(v){ rutasView=v; document.body.classList.toggle('rutas-list',v==='list');
     if(v==='list'){ buildRutasList(); }
     else { if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),60); refreshRutaSelects(); } }
+  // Borrar una ruta es IRREVERSIBLE (se lleva viajes, reportes y pesajes). Para evitar un clic por error
+  // hay que escribir el nombre exacto de la ruta; el botón queda bloqueado hasta que coincida.
+  function confirmarEliminarRuta(id){ const r=mgmtRutas[id]; if(!r)return; const nm=(r.nombre||'').trim()||'(sin nombre)';
+    const nv=Object.keys(r.viajes||{}).length, nr=Object.keys(r.reportes||{}).length;
+    let ov=document.getElementById('delRutaOv'); if(ov)ov.remove(); ov=document.createElement('div'); ov.id='delRutaOv'; ov.className='del-ov';
+    ov.innerHTML='<div class="del-card" role="dialog" aria-modal="true"><div class="del-ic"><i class="ti ti-trash"></i></div>'
+      +'<h3>Eliminar la ruta «'+esc(nm)+'»</h3>'
+      +'<p>Se borra la ruta y todo su historial'+((nv||nr)?(': <b>'+nv+' día(s) de viajes</b> y <b>'+nr+' reporte(s)</b>'):'')+'. <b>No se puede deshacer.</b></p>'
+      +'<label>Para confirmar, escribe el nombre de la ruta:</label><input class="fld" id="delRutaTx" autocomplete="off" placeholder="'+esc(nm)+'">'
+      +'<div class="del-acts"><button class="mon-tinybtn" id="delRutaNo">Cancelar</button><button class="mon-tinybtn del-si" id="delRutaSi" disabled>Eliminar ruta</button></div></div>';
+    document.body.appendChild(ov);
+    const tx=ov.querySelector('#delRutaTx'), si=ov.querySelector('#delRutaSi'); const cerrar=()=>ov.remove();
+    const ok=()=>tx.value.trim().toLowerCase()===nm.toLowerCase();
+    tx.addEventListener('input',()=>{ si.disabled=!ok(); });
+    tx.addEventListener('keydown',e=>{ if(e.key==='Escape')cerrar(); if(e.key==='Enter'&&ok())si.click(); });
+    ov.querySelector('#delRutaNo').addEventListener('click',cerrar);
+    si.addEventListener('click',()=>{ if(!ok())return; if(fbDb)fbDb.ref('rutas/'+id).remove(); hideRouteLayer(id); delete mgmtRutas[id]; cerrar(); buildRutasList(); toast('Ruta «'+nm+'» eliminada'); });
+    setTimeout(()=>tx.focus(),50); }
   function buildRutasList(){ const host=document.getElementById('rutasBody'); if(!host)return;
     const rutas=mgmtRutas||{}; const ids=Object.keys(rutas).sort((a,b)=>((rutas[a].nombre||'').localeCompare(rutas[b].nombre||'')));
     const live=(typeof liveByRuta==='function')?liveByRuta():{};
-    const tl=todayLetter();
+    const tl=todayLetter(); const _nRu=new Date(); const _hoyRu=_nRu.getFullYear()+'-'+String(_nRu.getMonth()+1).padStart(2,'0')+'-'+String(_nRu.getDate()).padStart(2,'0');
     // ---- métricas reales
     let kmTotal=0; const pend=[],completas=[],hoyIds=[];
     ids.forEach(id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); kmTotal+=km;
-      const falta=[]; if(!r.camion)falta.push('camión'); if(!r.choferCode)falta.push('chofer'); if(!r.supCode)falta.push('supervisor'); if(!(r.freq&&r.freq.length))falta.push('días'); if(!r.wp)falta.push('trazado');
+      const falta=[]; if(!(r.freq&&r.freq.length))falta.push('días de recorrido'); if(!ccPtsRuta(r).length)falta.push('trazado (KMZ)');
       if(falta.length)pend.push({id:id,falta:falta}); else completas.push(id);
       if((r.freq||[]).includes(tl))hoyIds.push(id); });
     // ---- HERO
     let h='<div class="ru-top"><div class="sec-header" style="margin-bottom:0"><h2>Rutas</h2><div class="sub">Centro de planificación operativa</div><span class="accent"></span></div>'
       +'<button class="ru-new" id="ruNew"><i class="ti ti-plus" aria-hidden="true"></i> Nueva ruta</button></div>';
-    const pCol=pend.length?'#C2402F':'#27A35B';
+    const pCol=pend.length?'#b07d1e':'#27A35B';
     h+='<div class="af-hero"><div class="af-cell"><b>'+ids.length+'</b><span>Rutas registradas</span></div>'
       +'<div class="af-cell"><b>'+kmTotal.toFixed(1)+'</b><span>Km de cobertura total</span></div>'
       +'<div class="af-cell"><b style="color:#2F7DC2">'+hoyIds.length+'</b><span>Programadas hoy ('+tl+')</span></div>'
       +'<div class="af-cell"><b style="color:#27A35B">'+completas.length+'</b><span>Listas para operar</span></div>'
-      +'<div class="af-cell"><b style="color:'+pCol+'">'+pend.length+'</b><span>Asignaciones pendientes</span></div></div>';
-    // ---- EXCEPCIONES: rutas incompletas primero
+      +'<div class="af-cell"><b style="color:'+pCol+'">'+pend.length+'</b><span>Por configurar</span></div></div>';
+    // ---- Aviso informativo (sin botones de acción): qué rutas no pueden salir todavía y por qué
     if(pend.length){
-      h+='<details class="af-exc" open><summary class="af-exch">⚠ ASIGNACIONES PENDIENTES · '+pend.length+' ruta'+(pend.length>1?'s':'')+' incompleta'+(pend.length>1?'s':'')+' <span class="af-excmore">ver detalle</span></summary>';
-      pend.forEach(p=>{ const r=rutas[p.id]||{};
-        h+='<div class="af-excrow"><b>'+esc(r.nombre||'(sin nombre)')+'</b><span>falta: '+p.falta.join(', ')+'</span>'
-          +'<button class="mon-tinybtn ru-fix" data-id="'+esc(p.id)+'" style="width:auto;flex:none;padding:0 11px;margin-left:auto">Completar</button></div>'; });
-      h+='</details>';
-    } else if(ids.length) h+='<div class="ini-ok" style="margin:0 0 14px"><i class="ti ti-circle-check"></i> Todas las rutas tienen su asignación completa.</div>';
+      h+='<div class="ru-aviso"><i class="ti ti-info-circle" aria-hidden="true"></i><div><b>'+pend.length+' ruta'+(pend.length>1?'s':'')+' por configurar</b>'
+        +'<span>'+pend.map(x=>esc((rutas[x.id]||{}).nombre||'(sin nombre)')+': falta '+x.falta.join(' y ')).join(' · ')+'. Ábrela con <b>Editar</b> para completarla.</span></div></div>';
+    }
     if(!ids.length)h+='<div class="ini-empty">Aún no hay rutas. Crea la primera con "Nueva ruta": carga el KMZ y guarda.</div>';
     // ---- RUTAS como activos: hoy primero, luego el resto
     const cardOf=id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); const t=live[id];
       const esHoy=(r.freq||[]).includes(tl);
       const inc=pend.find(p=>p.id===id);
       return '<div class="ru-card" data-id="'+esc(id)+'">'
-        +'<div class="ru-head"><span class="ru-dot" style="background:'+routeColor(id)+'"></span><span class="ru-name">'+esc(r.nombre||'(sin nombre)')+'</span>'
+        +'<div class="ru-head"><span class="ru-dot" style="background:'+(ccEsDeHoy(r,id,_hoyRu,live)?CC_COL[ccEstadoHoy(r,id,_hoyRu,live)]:CC_NOPROG)+'"></span><span class="ru-name">'+esc(r.nombre||'(sin nombre)')+'</span>'
         +(t?'<span class="ini-mini" style="background:rgba(39,163,91,.12);color:#27A35B">● en curso</span>':(esHoy?'<span class="ini-mini" style="background:rgba(47,125,194,.1);color:#2F7DC2">hoy</span>':''))+'</div>'
         +(r.sector?('<div class="af-meta" style="margin-top:2px"><i class="ti ti-map-2"></i> '+esc(r.sector)+'</div>'):'')
         +'<div class="ru-meta" style="margin-top:6px"><i class="ti ti-map-pin" aria-hidden="true"></i> <b>'+km.toFixed(1)+' km</b> &nbsp; <i class="ti ti-calendar" aria-hidden="true"></i> '+esc((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</div>'
-        +'<div class="ru-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion?esc(r.camion):'<span style="color:#C2402F">sin camión</span>')+' &nbsp; <i class="ti ti-user" aria-hidden="true"></i> '+(r.choferCode?esc(r.choferCode):'<span style="color:#C2402F">sin chofer</span>')+'</div>'
-        +(inc?'<div class="af-rutas" style="color:#C2402F"><i class="ti ti-alert-triangle"></i> Incompleta: falta '+inc.falta.join(', ')+'</div>':'')
+        +'<div class="ru-meta"><i class="ti ti-truck" aria-hidden="true"></i> '+(r.camion?esc(r.camion):'camión al despachar')+' &nbsp; <i class="ti ti-user" aria-hidden="true"></i> '+(r.choferCode?esc(r.choferCode):'chofer al despachar')+'</div>'
+        +(inc?'<div class="af-rutas" style="color:#b07d1e"><i class="ti ti-info-circle"></i> Por configurar: falta '+inc.falta.join(' y ')+'</div>':'')
         +'<div class="ru-acts"><button class="mon-tinybtn" data-act="perfil">Perfil</button><button class="mon-tinybtn" data-act="editar">Editar</button><button class="mon-tinybtn" data-act="del" style="flex:none;width:auto;padding:0 11px;color:#C0705F;border-color:rgba(192,112,95,.4)"><i class="ti ti-trash"></i></button></div>'
         +'</div>'; };
     const hoy=ids.filter(id=>(rutas[id].freq||[]).includes(tl));
@@ -4332,11 +4368,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(resto.length)h+='<div class="sec-head" style="margin:'+(hoy.length?'18px':'12px')+' 0 9px 2px">OTRAS RUTAS · '+resto.length+'</div><div class="ru-grid">'+resto.map(cardOf).join('')+'</div>';
     host.innerHTML=h;
     const nb=document.getElementById('ruNew'); if(nb)nb.addEventListener('click',()=>{ if(typeof newRuta==='function')newRuta(); setRutasView('editor'); });
-    host.querySelectorAll('.ru-fix').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const id=b.dataset.id; const pts=decode((mgmtRutas[id]||{}).wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(mgmtRutas[id]); setRutasView('editor'); toast('Completa los datos que faltan y guarda'); }));
     host.querySelectorAll('.ru-card').forEach(card=>{ const id=card.dataset.id;
       card.querySelector('[data-act="perfil"]').addEventListener('click',e=>{ e.stopPropagation(); openRouteDetail(id); });
       card.querySelector('[data-act="editar"]').addEventListener('click',e=>{ e.stopPropagation(); const pts=decode((mgmtRutas[id]||{}).wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(mgmtRutas[id]); setRutasView('editor'); toast('Ruta cargada — edita y guarda'); });
-      card.querySelector('[data-act="del"]').addEventListener('click',e=>{ e.stopPropagation(); const nm=(mgmtRutas[id]||{}).nombre||'esta ruta'; if(!confirm('¿Eliminar '+nm+'? Esto borra la ruta y sus viajes/reportes.'))return; if(fbDb)fbDb.ref('rutas/'+id).remove(); hideRouteLayer(id); delete mgmtRutas[id]; buildRutasList(); toast('Ruta eliminada ✓'); });
+      card.querySelector('[data-act="del"]').addEventListener('click',e=>{ e.stopPropagation(); confirmarEliminarRuta(id); });
       card.addEventListener('click',()=>openRouteDetail(id)); }); }
   // ---- auto-scroll al arrastrar tarjetas (drag cerca del borde mueve la página)
   document.addEventListener('dragover',e=>{ const sec=document.querySelector('body.sec-admin #secAdmin'); if(!sec)return;
