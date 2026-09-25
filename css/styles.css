@@ -2215,3 +2215,34 @@ body.dark .cc-rlabel span{background:#1f231d;color:#ECEAE3;}
   body.adm-shell .tc-legend{display:none;}
   body.adm-shell.cc-legend-open .tc-legend{display:flex;flex-basis:100%;}
 }
+
+/* ===== v4.81 · Todo lo que se toca muestra la manita + panel derecho con el MISMO estilo que el panel izquierdo ===== */
+.tc-rcard,.tc-fitbtn,.tc-legbtn,.tc-arow,.cc-daychip,.tc-tab{cursor:pointer;}
+.tc-rcard{transition:border-color .14s,box-shadow .14s,transform .14s;}
+body.adm-shell .tc-rcard:hover{border-color:var(--border-2,#ddd7c6);box-shadow:0 2px 10px rgba(20,30,20,.10);}
+body.adm-shell .tc-rcard:active{transform:scale(.99);}
+@media(max-width:768px){ body.adm-shell .tc-dock-h{cursor:pointer;} }
+
+/* Panel derecho (detalle de ruta): mismas superficies, bordes, radios y sombras que el dock izquierdo */
+body.adm-shell #rdOv{background:var(--surface-1);border-left:1px solid var(--border-2);box-shadow:-8px 0 28px rgba(20,24,18,.14);padding:0 18px 18px;font-family:inherit;color:var(--mt1);}
+body.adm-shell #rdOv .rd-head{margin:0 -18px 12px;padding:14px 18px 12px;top:0;background:var(--surface-1);border-bottom:1px solid var(--border-2);gap:10px;}
+body.adm-shell #rdOv .rd-x{width:34px;height:34px;flex:none;display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:18px;color:var(--mt2);background:var(--surface-3);border:1px solid var(--border-2);border-radius:8px;transition:border-color .14s,color .14s;}
+body.adm-shell #rdOv .rd-x:hover{border-color:var(--green-hover2);color:var(--green-text2);}
+body.adm-shell #rdOv .rd-name{font-size:16px;font-weight:800;color:var(--mt1);letter-spacing:-.01em;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+body.adm-shell #rdOv .rd-meta{font-size:12px;color:var(--mt3);margin:0 0 12px;font-family:ui-monospace,'IBM Plex Mono',monospace;}
+body.adm-shell #rdOv .rd-tabs{width:auto;display:flex;gap:4px;padding:3px;border-radius:9px;background:var(--surface-inset);margin-bottom:12px;}
+body.adm-shell #rdOv .rd-tab{flex:1;padding:8px 6px;border-radius:7px;font-weight:600;font-size:13px;color:var(--mt2);}
+body.adm-shell #rdOv .rd-tab.on{background:var(--surface-3);color:var(--mt1);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+body.adm-shell .rd-item{background:var(--surface-3);border:1px solid var(--border-1);border-radius:10px;padding:14px;margin-bottom:10px;color:var(--mt1);box-shadow:none;}
+body.adm-shell #rdOv .mon-line{color:var(--mt2);font-size:12.5px;margin-top:6px;}
+body.adm-shell #rdOv .mon-line i{color:var(--mt3);font-size:15px;}
+body.adm-shell #rdOv .mon-tinybtn{height:36px;border-radius:8px;background:var(--surface-3);border:1px solid var(--border-2);color:var(--mt1);font-weight:600;}
+body.adm-shell #rdOv .mon-tinybtn:hover{border-color:var(--green-hover2);color:var(--green-text2);}
+body.adm-shell #rdOv #dsGen{height:42px;border-radius:8px;background:var(--green-primary)!important;border-color:var(--green-primary)!important;color:#fff!important;}
+body.adm-shell #rdOv #dsGen:hover{background:var(--green-hover2)!important;border-color:var(--green-hover2)!important;}
+body.adm-shell #rdOv .fld{border-radius:8px;border:1px solid var(--border-2);background:var(--surface-0);color:var(--mt1);padding:10px 12px;}
+body.adm-shell #rdOv .fld:focus{outline:none;border-color:var(--green-hover2);box-shadow:0 0 0 3px var(--green-tint);}
+body.adm-shell #rdOv .fld-lbl{color:var(--mt2);font-size:12px;font-weight:600;}
+body.adm-shell #rdOv .rd-addnew{color:var(--green-text2);font-weight:600;}
+body.adm-shell #rdOv .rd-dchip,body.adm-shell #rdOv .rd-dpick{background:var(--surface-3);border-color:var(--border-2);color:var(--mt2);}
+body.adm-shell #rdOv .rd-dchip.on{background:var(--green-primary);border-color:var(--green-primary);color:#fff;}
