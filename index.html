@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.78" />
+<link rel="stylesheet" href="css/styles.css?v=4.79" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.38 · 2026-06-29</div>
+  <div class="ver" id="navVer">v4.79 · 2026-09-25</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -638,7 +638,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.38 · 2026-06-29</div>
+<div class="ver-badge" id="verBadge">v4.79 · 2026-09-25</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.78 · 2026-07-29'; // ← actualizar con cada release
+  const APP_VERSION='v4.79 · 2026-09-25'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2136,6 +2136,18 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // azul + verde progresivo=en curso, verde + rojo punteado=terminada con pendiente.
   // Cada ruta es clickeable: tarjeta con estado y acciones (Enviar / Detalle / Camión de respaldo).
   let ccLayers={}, ccPopup=null;
+  try{ if(localStorage.getItem('cc_sheet_open')==='1')document.body.classList.add('cc-sheet-open'); }catch(_){}
+  // No programada hoy: UN solo color tenue (lila) para todas — distinto del rojo/ámbar/azul/verde de estado.
+  const CC_NOPROG='#9b87e0';
+  // Grosor responsive al zoom: 1 = zoom 16 (calle). Al alejar se afinan; al acercar engordan un poco.
+  function ccEscala(){ const z=(map&&map.getZoom)?map.getZoom():15; return Math.max(0.28,Math.min(1.2,1-(16-z)*0.24)); }
+  function ccDash(d,k){ return d?String(d).split(',').map(x=>Math.max(2,Math.round(parseFloat(x)*Math.max(0.6,k)))).join(','):null; }
+  // El halo blanco se afina más rápido (k²) para que de lejos no se forme una mancha.
+  function ccGrosor(w,halo,k){ return halo ? w*(k<1?k*k:k) : Math.max(1.4,w*k); }
+  function ccPL(pts,o){ const k=ccEscala(); const h=(o.color==='#fff'); const pl=L.polyline(pts,Object.assign({},o,{weight:ccGrosor(o.weight,h,k),dashArray:ccDash(o.dashArray,k)}));
+    pl._cwb=o.weight; pl._cdb=o.dashArray||null; pl._chalo=h; return pl; }
+  function ccAjustarGrosor(){ const k=ccEscala(); Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._cwb&&l.setStyle)l.setStyle({weight:ccGrosor(l._cwb,l._chalo,k),dashArray:ccDash(l._cdb,k)}); }); }catch(_){} }); }
+  map.on('zoomend',ccAjustarGrosor);
   function ccClearRoutes(){ Object.keys(ccLayers).forEach(k=>{ try{map.removeLayer(ccLayers[k]);}catch(_){} }); ccLayers={}; }
   function ccDrawRoutes(){
     if(curSec!=='inicio' || currentUserRole==='chofer') return;
@@ -2162,25 +2174,25 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const estado = !esDeHoy ? 'noProgramada' : (t?'curso':(done?'completada':(env?'enviada':'pendiente')));
       const g=L.layerGroup();
       if(estado==='noProgramada'){
-        L.polyline(pts,{color:'#fff',weight:6,opacity:.55,lineCap:'round',interactive:false}).addTo(g);
-        L.polyline(pts,{color:'#8b8779',weight:3.5,opacity:.9,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+        ccPL(pts,{color:'#fff',weight:6,opacity:.5,lineCap:'round',interactive:false}).addTo(g);
+        ccPL(pts,{color:CC_NOPROG,weight:3.5,opacity:.85,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
       } else if(estado==='pendiente'){
-        L.polyline(pts,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
-        L.polyline(pts,{color:'#cd4936',weight:4,opacity:.95,dashArray:'9,7',lineCap:'round',interactive:false}).addTo(g);
+        ccPL(pts,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+        ccPL(pts,{color:'#cd4936',weight:4,opacity:.95,dashArray:'9,7',lineCap:'round',interactive:false}).addTo(g);
       } else if(estado==='enviada'){
-        L.polyline(pts,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
-        L.polyline(pts,{color:'#c9a227',weight:3.5,opacity:.95,lineCap:'round',interactive:false}).addTo(g);
+        ccPL(pts,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+        ccPL(pts,{color:'#c9a227',weight:3.5,opacity:.95,lineCap:'round',interactive:false}).addTo(g);
       } else if(estado==='curso'){
-        L.polyline(pts,{color:'#fff',weight:7,opacity:.7,lineCap:'round',interactive:false}).addTo(g);
-        L.polyline(pts,{color:'#2E7DF2',weight:4,opacity:.9,lineCap:'round',interactive:false}).addTo(g);
-        if(t.cov){ try{ const bits=covDec(t.cov,pts.length); covSegs(pts,bits,true).forEach(s=>L.polyline(s,{color:'#27A35B',weight:5,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g)); }catch(_){}}
+        ccPL(pts,{color:'#fff',weight:7,opacity:.7,lineCap:'round',interactive:false}).addTo(g);
+        ccPL(pts,{color:'#2E7DF2',weight:4,opacity:.9,lineCap:'round',interactive:false}).addTo(g);
+        if(t.cov){ try{ const bits=covDec(t.cov,pts.length); covSegs(pts,bits,true).forEach(s=>ccPL(s,{color:'#27A35B',weight:5,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g)); }catch(_){}}
       } else { // completada: verde lo recorrido, ROJO PUNTEADO lo que quedó pendiente
         let cov=null; try{ Object.keys(viajesHoy).forEach(k=>{ if((viajesHoy[k]||{}).cov)cov=viajesHoy[k].cov; }); }catch(_){}
         if(cov){ try{ const bits=covDec(cov,pts.length);
-          covSegs(pts,bits,false).forEach(s=>L.polyline(s,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g));
-          covSegs(pts,bits,true).forEach(s=>L.polyline(s,{color:'#27A35B',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
-        }catch(_){ L.polyline(pts,{color:'#27A35B',weight:5,opacity:.95,interactive:false}).addTo(g); } }
-        else { L.polyline(pts,{color:'#27A35B',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g); }
+          covSegs(pts,bits,false).forEach(s=>ccPL(s,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g));
+          covSegs(pts,bits,true).forEach(s=>ccPL(s,{color:'#27A35B',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
+        }catch(_){ ccPL(pts,{color:'#27A35B',weight:5,opacity:.95,interactive:false}).addTo(g); } }
+        else { ccPL(pts,{color:'#27A35B',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g); }
       }
       // Capa invisible ancha = objetivo de click fácil
       const hit=L.polyline(pts,{color:'#000',opacity:0.02,weight:20,interactive:true});
@@ -2313,11 +2325,12 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       H+='</div>';
       H+='<div class="tc-main">';
       H+='<div class="tc-mapchips"><div class="tc-chip"><i class="ti ti-map-2"></i> Mapa en vivo</div><div class="tc-chip sec">'+(liveIds.length?(liveIds.length+' camión'+(liveIds.length!==1?'es':'')+' en vivo'):'Sin camiones activos ahora')+'</div>'
-        +'<div class="tc-chip sec" style="gap:10px;"><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#cd4936;vertical-align:middle;"></i> Sin enviar / pendiente</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#c9a227;vertical-align:middle;"></i> Enviada</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#2E7DF2;vertical-align:middle;"></i> En curso</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#27A35B;vertical-align:middle;"></i> Recorrido</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#8b8779;vertical-align:middle;"></i> No programada hoy</span></div>'
-        +'<div class="tc-chip sec">Toca una ruta para ver estado y acciones</div></div>';
+        +'<button type="button" class="tc-chip tc-legbtn"><i class="ti ti-palette"></i> Leyenda</button>'
+        +'<div class="tc-chip sec tc-legend"><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#cd4936;vertical-align:middle;"></i> Sin enviar / pendiente</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#c9a227;vertical-align:middle;"></i> Enviada</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#2E7DF2;vertical-align:middle;"></i> En curso</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#27A35B;vertical-align:middle;"></i> Recorrido</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#9b87e0;vertical-align:middle;"></i> No programada hoy</span></div>'
+        +'<div class="tc-chip sec tc-hint">Toca una ruta para ver estado y acciones</div></div>';
       H+='<button class="tc-mapfull" data-go="mon"><i class="ti ti-maximize"></i> Mapa completo</button>';
       H+='<div class="tc-dock">';
-      H+='<div class="tc-dock-h"><span class="t">Operación de hoy</span><span class="tc-badge'+(nSinEnviar?'':' zero')+'">'+nSinEnviar+' sin enviar</span></div>';
+      H+='<div class="tc-dock-h" data-sheet="1"><span class="t">Operación de hoy</span><span class="tc-dock-hr"><span class="tc-badge'+(nSinEnviar?'':' zero')+'">'+nSinEnviar+' sin enviar</span><i class="ti ti-chevron-up tc-sheet-chev" aria-hidden="true"></i></span></div>';
       H+='<div class="tc-dock-list">';
       if(!cola.length){ H+='<div class="tc-vacio">No hay rutas programadas hoy.</div>'; }
       else { cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const cls=x.s==='curso'?'curso':(x.s==='completada'?'done':'');
@@ -2360,6 +2373,13 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           try{ if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),80); }catch(_){}
         }
         else if(g==='admin')setSection('admin'); }));
+      // Móvil: "Operación de hoy" es un panel que se despliega desde abajo (estado en body → sobrevive a los redibujos)
+      host.querySelectorAll('[data-sheet]').forEach(h=>h.addEventListener('click',()=>{
+        if(!window.matchMedia('(max-width:768px)').matches)return;
+        const open=document.body.classList.toggle('cc-sheet-open');
+        try{ localStorage.setItem('cc_sheet_open',open?'1':'0'); }catch(_){}
+        try{ if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),280); }catch(_){} }));
+      host.querySelectorAll('.tc-legbtn').forEach(b=>b.addEventListener('click',()=>document.body.classList.toggle('cc-legend-open')));
       host.querySelectorAll('.tc-rbtn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
       host.querySelectorAll('.tc-rcard').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
       host.querySelectorAll('.tc-orow[data-otra]').forEach(row=>row.addEventListener('click',e=>{ if(e.target.closest('[data-eye]'))return; openRouteDetail(row.dataset.otra); }));

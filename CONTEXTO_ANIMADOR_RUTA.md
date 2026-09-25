@@ -165,3 +165,7 @@ python3 -c "import re; html=open('index.html').read(); js='\n'.join(re.findall(r
 - **Detección de retorno:** depende de cómo el KMZ trazó la calle de ida/vuelta. Casos raros pueden no detectarse.
 - **Curvas muy graduales:** puede que no se aniuncien (el chofer las sigue natural).
 - **Botón "Confirmar y activar ruta":** quitar generación de enlaces viejos (el chofer ya entra con usuario).
+- **Seguridad Firebase (anotado 2026-09-23):**
+  - Las reglas de la base NO están en el repo (solo en la consola) → traerlas y revisarlas. La app entra con `signInAnonymously()`, así que si las reglas son `auth != null`, cualquiera que abra la URL lee/escribe toda la base.
+  - `config/usuarios`, `config/choferes`, `config/supervisores`, etc. guardan `pass` (hash) + `salt` y el cliente los lee → si las reglas lo permiten, cualquiera puede descargar los hashes.
+- **Actualizar este documento y CLAUDE.md:** siguen diciendo v4.31 / ~6.400 líneas (real: v4.78, ~8.200 líneas). Faltan nodos nuevos: `rutas/{id}/rescates`, `justificaciones`, `reprogramaciones`, `viajes/.../pesajes`, `informes/`, `config/comisiones`, `config/ayudantes`, `config/mecanicos`. La tabla de funciones (sección 4) tiene líneas viejas.

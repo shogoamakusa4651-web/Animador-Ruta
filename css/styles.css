@@ -2124,3 +2124,53 @@ body.dark #rtInforme{background:#101210;}
 .cc-daychip.on{background:var(--green-primary);border-color:var(--green-primary);color:#fff;}
 body.dark .cc-daychip{background:var(--surface-3);border-color:var(--border-2);color:var(--mt2);}
 body.dark .cc-daychip.on{background:var(--green-primary);color:#fff;}
+
+/* ===== v4.79 · Centro de Control responsive: leyenda plegable + "Operación de hoy" desplegable en móvil ===== */
+.tc-mapchips{right:16px;flex-wrap:wrap;align-items:flex-start;}
+.tc-legend{flex-wrap:wrap;row-gap:4px;gap:10px;}
+.tc-legbtn{display:none;font-family:inherit;cursor:pointer;}
+.tc-dock-hr{display:flex;align-items:center;gap:8px;}
+.tc-sheet-chev{display:none;}
+@media(max-width:1100px){ body.adm-shell.sec-inicio .tc-hint{display:none;} }
+@media(max-width:768px){
+  /* Barra superior sólida: el usuario ya no flota sobre el mapa */
+  body.adm-shell::before{content:'Animador de Ruta';position:fixed;top:0;left:0;right:0;height:var(--topbar);z-index:2900;background:var(--green-header,#14382a);color:#fff;display:flex;align-items:center;padding:0 16px;font:700 15px/1 'Archivo','Segoe UI',sans-serif;letter-spacing:-.01em;box-shadow:0 2px 10px rgba(0,0,0,.18);}
+  body.adm-shell #shellUserTx{display:none;}
+  body.adm-shell .shell-help{padding:6px 8px;}
+  body.adm-shell.sec-inicio .leaflet-control-zoom{display:none;}
+  /* KPIs compactos: los 5 caben sin cortar */
+  body.adm-shell .tc-kpis{grid-template-columns:repeat(5,minmax(0,1fr));overflow:hidden;height:58px;}
+  body.adm-shell .tc-kpi{flex-direction:column;justify-content:center;align-items:center;gap:3px;padding:0 3px;text-align:center;}
+  body.adm-shell .tc-kpi .v{font-size:17px;}
+  body.adm-shell .tc-kpi .v small{font-size:11px;}
+  body.adm-shell .tc-kpi .l{font-size:9.5px;line-height:1.15;}
+  body.adm-shell .tc-kpi .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  /* Chips del mapa: estado + botón Leyenda (la leyenda se abre a demanda) */
+  body.adm-shell .tc-mapchips{top:8px;left:8px !important;right:8px;gap:6px;}
+  body.adm-shell .tc-mapchips>.tc-chip:first-child{display:none;}
+  body.adm-shell .tc-chip{font-size:11.5px;padding:6px 10px;}
+  body.adm-shell .tc-legbtn{display:flex;}
+  body.adm-shell .tc-legend{display:none;}
+  body.adm-shell.cc-legend-open .tc-legend{display:flex;flex-basis:100%;gap:6px 12px;}
+  /* El contenido llega justo hasta la barra de abajo (sin hueco de mapa suelto) */
+  body.adm-shell.sec-inicio .map-cover{bottom:0 !important;padding-bottom:calc(54px + env(safe-area-inset-bottom,0px));}
+  /* "Operación de hoy": panel desplegable desde abajo. Cerrado = solo la barrita */
+  body.adm-shell.sec-inicio .tc-dock{top:auto !important;left:0;right:0;bottom:0;width:auto;height:54px;border:none;border-top:1px solid var(--border-2,#dcdad2);border-radius:16px 16px 0 0;box-shadow:0 -6px 22px rgba(0,0,0,.18);transition:height .25s ease;overflow:hidden;}
+  body.adm-shell.sec-inicio.cc-sheet-open .tc-dock{height:62%;}
+  body.adm-shell .tc-dock-h{cursor:pointer;min-height:54px;padding:6px 16px 0;position:relative;user-select:none;-webkit-tap-highlight-color:transparent;}
+  body.adm-shell .tc-dock-h::before{content:'';position:absolute;top:6px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:var(--border-2,#cfcabb);}
+  body.adm-shell .tc-sheet-chev{display:inline-block;font-size:18px;color:var(--mt2,#6b7263);transition:transform .25s;}
+  body.adm-shell.cc-sheet-open .tc-sheet-chev{transform:rotate(180deg);}
+  body.adm-shell.sec-inicio .tc-mapfull{right:10px;bottom:66px;transition:bottom .25s ease;padding:9px 13px;font-size:12.5px;}
+  body.adm-shell.sec-inicio.cc-sheet-open .tc-mapfull{bottom:calc(62% + 12px);}
+  body.adm-shell.cc-full .tc-mapfull{bottom:12px !important;}
+}
+/* Laptop angosta / tablet horizontal: la barra superior no se desborda (usuario siempre visible) */
+@media(min-width:769px) and (max-width:1180px){
+  body.adm-shell .shell-nav{gap:14px;padding:0 14px;}
+  body.adm-shell .shell-logo .tx{display:none;}
+  body.adm-shell .shell-nav .nav-item{padding:8px 10px;font-size:12.5px;}
+  body.adm-shell #shellUserTx{display:none;}
+  body.adm-shell .shell-help span{display:none;}
+  body.adm-shell #shellStatus .ss-tx{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+}
