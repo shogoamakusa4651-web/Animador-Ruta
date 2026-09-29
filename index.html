@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.84" />
+<link rel="stylesheet" href="css/styles.css?v=4.85" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.84 · 2026-09-29</div>
+  <div class="ver" id="navVer">v4.85 · 2026-09-29</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -638,7 +638,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.84 · 2026-09-29</div>
+<div class="ver-badge" id="verBadge">v4.85 · 2026-09-29</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.84 · 2026-09-29'; // ← actualizar con cada release
+  const APP_VERSION='v4.85 · 2026-09-29'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2203,8 +2203,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         if(!l.setStyle||!l.options)return; if(l._o0==null)l._o0=l.options.opacity;
         const st={opacity:dim?l._o0*0.22:l._o0}; if(l._cwb){ st.weight=ccGrosor(l._cwb*(big?1.7:1),l._chalo,k); st.dashArray=ccDash(l._cdb,k); }
         l.setStyle(st); if(big&&l.bringToFront)l.bringToFront(); }); }); }
-  function ccHoverOn(id){ if(!id||window._ccHover===id)return; window._ccHover=id;
-    if(!ccLayers[id]){ window._ccHoverTemp=id; try{ ccDrawRoutes(); }catch(_){} } else ccAplicarResalte(); }
+  // Solo se resalta una ruta que ESTÁ en el mapa: una apagada con el ojito sigue apagada.
+  function ccHoverOn(id){ if(!id||window._ccHover===id)return; if(!ccLayers[id]){ ccHoverOff(); return; } window._ccHover=id; ccAplicarResalte(); }
   function ccHoverOff(){ if(!window._ccHover)return; window._ccHover=null;
     if(window._ccHoverTemp){ window._ccHoverTemp=null; try{ ccDrawRoutes(); }catch(_){} } else ccAplicarResalte(); }
   function ccEtiquetasColision(){ const labs=[]; Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._ccLabel&&l._icon)labs.push(l); }); }catch(_){} });
@@ -2233,7 +2233,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const esDeHoy=ccEsDeHoy(r,id,hoy,live);
       const porDia=(r.freq||[]).some(d=>selDays[d]);
       // Visible si: es de hoy, O el chofer la encendió manualmente (chip de día / ojo / "Todas")
-      if(!ccEnMapa(r,id,esDeHoy) && id!==foco && id!==window._ccHover) return;
+      if(!ccEnMapa(r,id,esDeHoy) && id!==foco) return;
       const segs=ccSegsRuta(r).map(sg=>densificarRuta(sg,12)).filter(sg=>sg.length>=2);
       if(!segs.length) return;
       const pts=[].concat(...segs); // todos los puntos (etiqueta, límites)
@@ -2475,7 +2475,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           const ok=(!q||row.dataset.nom.indexOf(q)>=0)&&porDia; row.hidden=!ok; if(ok)n++; });
         const nn=host.querySelector('.tc-anone'); if(nn)nn.hidden=!!n; }); }
       if(!host._ccHoverBound){ host._ccHoverBound=true; // una sola vez: el host sobrevive a los redibujos
-        host.addEventListener('mouseover',e=>{ const row=e.target.closest('.tc-arow[data-otra],.tc-rcard[data-id]'); const id=row?(row.dataset.otra||row.dataset.id):null;
+        host.addEventListener('mouseover',e=>{ if(e.target.closest('.tc-aeye')){ ccHoverOff(); return; } const row=e.target.closest('.tc-arow[data-otra],.tc-rcard[data-id]'); const id=row?(row.dataset.otra||row.dataset.id):null;
           if(id)ccHoverOn(id); else ccHoverOff(); });
         host.addEventListener('mouseleave',()=>ccHoverOff()); }
       host.querySelectorAll('.tc-fitbtn').forEach(b=>b.addEventListener('click',()=>{ try{ ccCentrarHoy(); }catch(_){} }));
