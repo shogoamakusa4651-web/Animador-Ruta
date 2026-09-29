@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.83" />
+<link rel="stylesheet" href="css/styles.css?v=4.84" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.83 · 2026-09-25</div>
+  <div class="ver" id="navVer">v4.84 · 2026-09-29</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -638,7 +638,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.83 · 2026-09-25</div>
+<div class="ver-badge" id="verBadge">v4.84 · 2026-09-29</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.83 · 2026-09-25'; // ← actualizar con cada release
+  const APP_VERSION='v4.84 · 2026-09-29'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2158,7 +2158,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   function ccGrosor(w,halo,k){ return halo ? w*(k<1?k*k:k) : Math.max(1.4,w*k); }
   function ccPL(pts,o){ const k=ccEscala(); const h=(o.color==='#fff'); const pl=L.polyline(pts,Object.assign({},o,{weight:ccGrosor(o.weight,h,k),dashArray:ccDash(o.dashArray,k)}));
     pl._cwb=o.weight; pl._cdb=o.dashArray||null; pl._chalo=h; return pl; }
-  function ccAjustarGrosor(){ const k=ccEscala(); Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._cwb&&l.setStyle)l.setStyle({weight:ccGrosor(l._cwb,l._chalo,k),dashArray:ccDash(l._cdb,k)}); }); }catch(_){} }); }
+  function ccAjustarGrosor(){ if(typeof ccAplicarResalte==='function'){ try{ ccAplicarResalte(); return; }catch(_){} } const k=ccEscala(); Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._cwb&&l.setStyle)l.setStyle({weight:ccGrosor(l._cwb,l._chalo,k),dashArray:ccDash(l._cdb,k)}); }); }catch(_){} }); }
   map.on('zoomend',ccAjustarGrosor);
   // Espacio que tapa el panel del Centro de Control (izquierda en PC, abajo en celular)
   // Qué parte del mapa está tapada: panel izquierdo (dock del Centro de Control o formulario del editor),
@@ -2185,15 +2185,40 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // Etiquetas: si dos nombres chocan se esconde el de menor prioridad (primero se ven las de hoy)
   // Ruta enfocada = la que tiene abierto el detalle. Resalta esa y apaga las demás.
   function ccFoco(){ const ov=document.getElementById('rdOv'); return (ov&&ov.classList.contains('show')&&rdId&&mgmtRutas[rdId])?rdId:null; }
-  function ccPtsRuta(r){ let pts=decode((r||{}).wp||'')||[]; if((!pts||pts.length<2)&&r&&r.etapas&&r.etapas.length){ pts=[]; r.etapas.forEach(e=>{ pts=pts.concat(decode(e.wp||'')||[]); }); } return pts||[]; }
+  // Tramos (etapas) de una ruta. Con varias etapas: cada una es su propio tramo; r.wp solo guarda la etapa 1.
+  function ccSegsRuta(r){ r=r||{}; let segs=[];
+    if(r.etapas&&r.etapas.length>1) segs=r.etapas.map(e=>decode((e||{}).wp||'')||[]);
+    else { let w=decode(r.wp||'')||[]; if(w.length<2&&r.etapas&&r.etapas.length)w=decode((r.etapas[0]||{}).wp||'')||[]; segs=[w]; }
+    return segs.filter(x=>x&&x.length>=2); }
+  function ccPtsRuta(r){ return [].concat(...ccSegsRuta(r)); }
+  function ccKmRuta(r){ return ccSegsRuta(r).reduce((a,sg)=>a+kmOf(sg),0); }
   function ccEnfocarRuta(id){ const pts=ccPtsRuta(mgmtRutas[id]); if(pts.length<2)return; try{ ccDrawRoutes(); }catch(_){} mapaEncuadrar(L.latLngBounds(pts),17); }
+  // ¿Se ve en el mapa? Hoy / Ver todas / día / encendida a mano … salvo que el usuario la APAGUE con el ojito.
+  function ccEnMapa(r,id,esDeHoy){ window._ccHidden=window._ccHidden||{}; if(window._ccHidden[id])return false;
+    const sd=window._ccSelDays||{}; return !!(esDeHoy||window._ccVerTodas||(window._ccExtraIds||{})[id]||(r.freq||[]).some(d=>sd[d])); }
+  // Resaltar UNA ruta: la señalada (mouse encima) o la abierta en detalle. Solo cambia estilos, no redibuja.
+  function ccAplicarResalte(){ const sel=window._ccHover||ccFoco(); const k=ccEscala();
+    Object.keys(ccLayers).forEach(gid=>{ const g=ccLayers[gid]; const dim=!!sel&&gid!==sel, big=!!sel&&gid===sel;
+      g.eachLayer(l=>{ if(l._ccLabel){ l.setOpacity(dim?.45:1); l.setZIndexOffset(big?3000:(l._z0||0)); return; }
+        if(!l.setStyle||!l.options)return; if(l._o0==null)l._o0=l.options.opacity;
+        const st={opacity:dim?l._o0*0.22:l._o0}; if(l._cwb){ st.weight=ccGrosor(l._cwb*(big?1.7:1),l._chalo,k); st.dashArray=ccDash(l._cdb,k); }
+        l.setStyle(st); if(big&&l.bringToFront)l.bringToFront(); }); }); }
+  function ccHoverOn(id){ if(!id||window._ccHover===id)return; window._ccHover=id;
+    if(!ccLayers[id]){ window._ccHoverTemp=id; try{ ccDrawRoutes(); }catch(_){} } else ccAplicarResalte(); }
+  function ccHoverOff(){ if(!window._ccHover)return; window._ccHover=null;
+    if(window._ccHoverTemp){ window._ccHoverTemp=null; try{ ccDrawRoutes(); }catch(_){} } else ccAplicarResalte(); }
   function ccEtiquetasColision(){ const labs=[]; Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._ccLabel&&l._icon)labs.push(l); }); }catch(_){} });
     const z=map.getZoom(); const el=map.getContainer(); el.classList.toggle('cc-lbl-sm',z<15); el.classList.toggle('cc-lbl-xs',z<13);
-    labs.forEach(l=>{ l._icon.style.visibility=''; });
-    labs.sort((a,b)=>b._ccPrio-a._ccPrio);
-    const puestos=[]; labs.forEach(l=>{ const r=l._icon.getBoundingClientRect(); if(!r.width)return;
-      const choca=puestos.some(q=>!(r.right+4<q.left||r.left-4>q.right||r.bottom+2<q.top||r.top-2>q.bottom));
-      if(choca)l._icon.style.visibility='hidden'; else puestos.push(r); }); }
+    const sel=window._ccHover||ccFoco();
+    labs.sort((a,b)=>((b._ccId===sel)?9:b._ccPrio)-((a._ccId===sel)?9:a._ccPrio));
+    // Puntos candidatos a lo largo de la MISMA ruta: se elige el primero que no choque con otro nombre.
+    const FR=[.45,.25,.65,.12,.85,.35,.55,.75,.05,.95]; const puestos=[];
+    const cruce=(r,q)=>Math.max(0,Math.min(r.right,q.right)-Math.max(r.left,q.left)+6)*Math.max(0,Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top)+3);
+    labs.forEach(l=>{ l._icon.style.visibility=''; const pts=l._ccPts||[]; if(!pts.length)return; let best=null, bestOv=Infinity;
+      for(const f of FR){ const pt=pts[Math.min(pts.length-1,Math.floor(pts.length*f))]; if(!pt)continue; l.setLatLng(pt);
+        const r=l._icon.getBoundingClientRect(); if(!r.width)continue; const ov=puestos.reduce((a,q)=>a+cruce(r,q),0);
+        if(ov<bestOv){ bestOv=ov; best={pt:pt,r:r}; } if(ov===0)break; }
+      if(best){ l.setLatLng(best.pt); puestos.push(best.r); } }); }
   map.on('zoomend',()=>{ try{ ccEtiquetasColision(); }catch(_){} });
   function ccClearRoutes(){ Object.keys(ccLayers).forEach(k=>{ try{map.removeLayer(ccLayers[k]);}catch(_){} }); ccLayers={}; }
   function ccDrawRoutes(){
@@ -2208,61 +2233,63 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const esDeHoy=ccEsDeHoy(r,id,hoy,live);
       const porDia=(r.freq||[]).some(d=>selDays[d]);
       // Visible si: es de hoy, O el chofer la encendió manualmente (chip de día / ojo / "Todas")
-      if(!esDeHoy && !verTodas && !porDia && !extraIds[id] && id!==foco) return;
-      let pts=decode(r.wp||'')||[];
-      if((!pts||pts.length<2)&&r.etapas&&r.etapas.length){ pts=[]; r.etapas.forEach(e=>{ pts=pts.concat(decode(e.wp||'')||[]); }); }
-      if(!pts||pts.length<2) return;
-      pts=densificarRuta(pts,12);
+      if(!ccEnMapa(r,id,esDeHoy) && id!==foco && id!==window._ccHover) return;
+      const segs=ccSegsRuta(r).map(sg=>densificarRuta(sg,12)).filter(sg=>sg.length>=2);
+      if(!segs.length) return;
+      const pts=[].concat(...segs); // todos los puntos (etiqueta, límites)
       // Estado REAL de la ruta hoy — mismo color sin importar por qué está visible en el mapa
       const t=live[id];
       const viajesHoy=(r.viajes&&r.viajes[hoy])||null;
-      const done=viajesHoy&&Object.keys(viajesHoy).length;
-      const env=r.envios&&r.envios[hoy];
       const estado = !esDeHoy ? 'noProgramada' : ccEstadoHoy(r,id,hoy,live);
       const g=L.layerGroup();
-      if(estado==='noProgramada'){
-        ccPL(pts,{color:'#fff',weight:6,opacity:.5,lineCap:'round',interactive:false}).addTo(g);
-        ccPL(pts,{color:CC_NOPROG,weight:3.5,opacity:.85,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
-      } else if(estado==='pendiente'){
-        ccPL(pts,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
-        ccPL(pts,{color:'#cd4936',weight:4,opacity:.95,dashArray:'9,7',lineCap:'round',interactive:false}).addTo(g);
-      } else if(estado==='enviada'){
-        ccPL(pts,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
-        ccPL(pts,{color:'#c9a227',weight:3.5,opacity:.95,lineCap:'round',interactive:false}).addTo(g);
-      } else if(estado==='curso'){
-        ccPL(pts,{color:'#fff',weight:7,opacity:.7,lineCap:'round',interactive:false}).addTo(g);
-        ccPL(pts,{color:'#2E7DF2',weight:4,opacity:.9,lineCap:'round',interactive:false}).addTo(g);
-        if(t.cov){ try{ const bits=covDec(t.cov,pts.length); covSegs(pts,bits,true).forEach(s=>ccPL(s,{color:'#27A35B',weight:5,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g)); }catch(_){}}
-      } else { // completada: verde lo recorrido, ROJO PUNTEADO lo que quedó pendiente
-        let cov=null; try{ Object.keys(viajesHoy).forEach(k=>{ if((viajesHoy[k]||{}).cov)cov=viajesHoy[k].cov; }); }catch(_){}
-        if(cov){ try{ const bits=covDec(cov,pts.length);
-          covSegs(pts,bits,false).forEach(s=>ccPL(s,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g));
-          covSegs(pts,bits,true).forEach(s=>ccPL(s,{color:'#27A35B',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
-        }catch(_){ ccPL(pts,{color:'#27A35B',weight:5,opacity:.95,interactive:false}).addTo(g); } }
-        else { ccPL(pts,{color:'#27A35B',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g); }
-      }
+      const etVivo=(t&&t.etapa)?Math.max(0,Math.min(segs.length-1,Number(t.etapa)-1)):0; // etapa que el chofer recorre ahora
+      segs.forEach((sp,si)=>{
+        if(estado==='noProgramada'){
+          ccPL(sp,{color:'#fff',weight:6,opacity:.5,lineCap:'round',interactive:false}).addTo(g);
+          ccPL(sp,{color:CC_NOPROG,weight:3.5,opacity:.85,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
+        } else if(estado==='pendiente'){
+          ccPL(sp,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+          ccPL(sp,{color:'#cd4936',weight:4,opacity:.95,dashArray:'9,7',lineCap:'round',interactive:false}).addTo(g);
+        } else if(estado==='enviada'){
+          ccPL(sp,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+          ccPL(sp,{color:'#c9a227',weight:3.5,opacity:.95,lineCap:'round',interactive:false}).addTo(g);
+        } else if(estado==='curso'){
+          ccPL(sp,{color:'#fff',weight:7,opacity:.7,lineCap:'round',interactive:false}).addTo(g);
+          ccPL(sp,{color:'#2E7DF2',weight:4,opacity:.9,lineCap:'round',interactive:false}).addTo(g);
+          if(si===etVivo&&t.cov){ try{ const bits=covDec(t.cov,sp.length); covSegs(sp,bits,true).forEach(x=>ccPL(x,{color:'#27A35B',weight:5,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g)); }catch(_){} }
+        } else { // completada: por etapa — verde lo recorrido, ROJO PUNTEADO lo pendiente (o la etapa aún sin viaje)
+          const vs=Object.keys(viajesHoy||{}).map(k=>viajesHoy[k]||{}).filter(v=>segs.length===1||(v.etapaIdx!=null?v.etapaIdx:0)===si);
+          let cov=null; vs.forEach(v=>{ if(v.cov)cov=v.cov; });
+          if(cov){ try{ const bits=covDec(cov,sp.length);
+            covSegs(sp,bits,false).forEach(x=>ccPL(x,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g));
+            covSegs(sp,bits,true).forEach(x=>ccPL(x,{color:'#27A35B',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
+          }catch(_){ ccPL(sp,{color:'#27A35B',weight:5,opacity:.95,interactive:false}).addTo(g); } }
+          else if(vs.length){ ccPL(sp,{color:'#27A35B',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g); }
+          else { ccPL(sp,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+            ccPL(sp,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g); }
+        }
+      });
       // Nombre de la ruta sobre la línea (en un punto del recorrido, no en el inicio: dos rutas que arrancan
       // en la misma esquina no se montan). Borde = color de su estado.
       try{ const pi=pts[Math.floor(pts.length*0.45)]||pts[0];
         const lb=L.marker(pi,{interactive:true,keyboard:false,zIndexOffset:(estado==='noProgramada'?600:900),
           icon:L.divIcon({className:'cc-rlabel',iconSize:null,html:'<span style="--c:'+CC_COL[estado]+'">'+esc(r.nombre||'(sin nombre)')+'</span>'})});
-        lb._ccPrio=(estado==='noProgramada'?1:2); lb._ccLabel=true;
+        lb._ccPrio=(estado==='noProgramada'?1:2); lb._ccLabel=true; lb._ccPts=pts; lb._ccId=id; lb._z0=(estado==='noProgramada'?600:900);
+        lb.on('mouseover',()=>ccHoverOn(id)); lb.on('mouseout',ccHoverOff);
         lb.on('click',(e)=>{ try{ ccShowPopup(id,estado==='noProgramada'?'otra':estado,e.latlng); }catch(_){} });
         lb.addTo(g); }catch(_){}
       // Capa invisible ancha = objetivo de click fácil
-      const hit=L.polyline(pts,{color:'#000',opacity:0.02,weight:20,interactive:true});
+      const hit=L.polyline(segs,{color:'#000',opacity:0.02,weight:20,interactive:true});
       hit.on('click',(e)=>{ try{ ccShowPopup(id,estado==='noProgramada'?'otra':estado,e.latlng); }catch(_){} });
+      hit.on('mouseover',()=>ccHoverOn(id)); hit.on('mouseout',ccHoverOff);
       hit.addTo(g);
-      if(foco){ const k=ccEscala();
-        if(id===foco){ g.eachLayer(l=>{ if(l._cwb){ l._cwb*=1.6; l.setStyle({weight:ccGrosor(l._cwb,l._chalo,k)}); } if(l._ccLabel)l._ccPrio=9; }); }
-        else { g.eachLayer(l=>{ if(l._ccLabel){ l.setOpacity(.45); l._ccPrio=0; } else if(l.setStyle&&l.options&&l.options.opacity>0.05)l.setStyle({opacity:l.options.opacity*0.22}); }); } }
       g.addTo(map); ccLayers[id]=g;
-      if(foco&&id===foco)g.eachLayer(l=>{ if(l.bringToFront)l.bringToFront(); });
       try{ const b=L.latLngBounds(pts); bounds=bounds?bounds.extend(b):b; if(esDeHoy)boundsHoy=boundsHoy?boundsHoy.extend(L.latLngBounds(pts)):L.latLngBounds(pts); }catch(_){}
     });
     if(window._ccHome){ window._ccHome=false; try{ ccVistaCiudad(); }catch(_){} }
     if(window._ccFitVisible){ window._ccFitVisible=false; if(bounds)mapaEncuadrar(bounds,15); }
     window._ccBoundsHoy=boundsHoy;
+    try{ ccAplicarResalte(); }catch(_){}
     try{ ccEtiquetasColision(); }catch(_){}
   }
   function ccShowPopup(id,estado,latlng){
@@ -2309,7 +2336,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     todayIds.forEach(id=>{ const s=stOf(id); if(s==='completada')nDone++; else if(s==='curso')nCur++; else if(s==='enviada')nEnv++; else nPen++; });
     const cumplim=todayIds.length?Math.round(nDone/todayIds.length*100):null;
     let kmProg=0,kmDone=0; const covRows=[];
-    todayIds.forEach(id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); kmProg+=km; let pct=0;
+    todayIds.forEach(id=>{ const r=rutas[id]||{}; const km=ccKmRuta(r); kmProg+=km; let pct=0;
       const s=stOf(id);
       if(s==='completada'){ let d=0; const v=(r.viajes||{})[hoy]||{}; Object.keys(v).forEach(k=>d=Math.max(d,Number((v[k]||{}).distancia)||0)); kmDone+=(d||km); pct=100; }
       else if(s==='curso'){ const t=live[id]||{}; pct=Math.max(0,Math.min(100,Number(t.progress)||0)); kmDone+=km*pct/100; }
@@ -2420,13 +2447,12 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         todas.forEach(id=>{ const r=rutas[id]||{}; const esHoy=ccEsDeHoy(r,id,hoy,live); const est=esHoy?ccEstadoHoy(r,id,hoy,live):'noProgramada';
           const nom=r.nombre||'(sin nombre)'; const porDia=!selD.length||(r.freq||[]).some(d=>window._ccSelDays[d]);
           const oculto=(q&&nom.toLowerCase().indexOf(q)<0)||!porDia; if(!oculto)nVis++;
-          const enMapa=esHoy||!!window._ccVerTodas||!!window._ccExtraIds[id]||(selD.length&&(r.freq||[]).some(d=>window._ccSelDays[d]));
+          const enMapa=ccEnMapa(r,id,esHoy);
           H+='<div class="tc-arow" data-otra="'+esc(id)+'" data-nom="'+esc(nom.toLowerCase())+'"'+(oculto?' hidden':'')+'>'
             +'<span class="tc-adot" style="background:'+CC_COL[est]+'"></span>'
             +'<span class="tc-anm">'+esc(nom)+'</span>'+(esHoy?'<span class="tc-hoytag">Hoy</span>':'')
             +'<small>'+esc((r.freq||[]).join('·')||'sin días')+'</small>'
-            +(esHoy?'<i class="ti ti-eye tc-aeye fijo" title="Es de hoy: siempre se ve en el mapa"></i>'
-                   :'<i class="ti ti-'+(enMapa?'eye':'eye-off')+' tc-aeye'+(enMapa?' on':'')+'" data-eye="'+esc(id)+'" title="'+(enMapa?'Apagar en el mapa':'Ver en el mapa')+'"></i>')
+            +'<i class="ti ti-'+(enMapa?'eye':'eye-off')+' tc-aeye'+(enMapa?' on':'')+'" data-eye="'+esc(id)+'" title="'+(enMapa?'Apagar en el mapa':'Ver en el mapa')+'"></i>'
             +'</div>'; });
         H+='</div>';
         H+='<div class="tc-vacio tc-anone"'+(nVis?' hidden':'')+'>Ninguna ruta coincide.</div>';
@@ -2448,6 +2474,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         host.querySelectorAll('.tc-arow').forEach(row=>{ const r=rutas[row.dataset.otra]||{}; const porDia=!selD.length||(r.freq||[]).some(d=>window._ccSelDays[d]);
           const ok=(!q||row.dataset.nom.indexOf(q)>=0)&&porDia; row.hidden=!ok; if(ok)n++; });
         const nn=host.querySelector('.tc-anone'); if(nn)nn.hidden=!!n; }); }
+      if(!host._ccHoverBound){ host._ccHoverBound=true; // una sola vez: el host sobrevive a los redibujos
+        host.addEventListener('mouseover',e=>{ const row=e.target.closest('.tc-arow[data-otra],.tc-rcard[data-id]'); const id=row?(row.dataset.otra||row.dataset.id):null;
+          if(id)ccHoverOn(id); else ccHoverOff(); });
+        host.addEventListener('mouseleave',()=>ccHoverOff()); }
       host.querySelectorAll('.tc-fitbtn').forEach(b=>b.addEventListener('click',()=>{ try{ ccCentrarHoy(); }catch(_){} }));
       host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go;
         if(g==='mon'){ // Mapa completo: colapsar el rail dentro del MISMO Centro de Control (no abrir la interfaz vieja)
@@ -2468,14 +2498,18 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       host.querySelectorAll('.tc-arow[data-otra]').forEach(row=>row.addEventListener('click',e=>{ if(e.target.closest('.tc-aeye'))return; openRouteDetail(row.dataset.otra); }));
       // Ojos: encender/apagar una ruta específica en el mapa
       host.querySelectorAll('[data-eye]').forEach(el=>el.addEventListener('click',e=>{ e.stopPropagation();
-        const id=el.dataset.eye; if(window._ccExtraIds[id])delete window._ccExtraIds[id]; else window._ccExtraIds[id]=true;
+        const id=el.dataset.eye; const r=mgmtRutas[id]||{}; const n=new Date(); const hoyS=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+        window._ccHidden=window._ccHidden||{}; const live=(typeof liveByRuta==='function')?liveByRuta():{};
+        if(ccEnMapa(r,id,ccEsDeHoy(r,id,hoyS,live))){ window._ccHidden[id]=true; delete window._ccExtraIds[id]; }
+        else { delete window._ccHidden[id]; window._ccExtraIds[id]=true; }
+        window._ccHover=null; window._ccHoverTemp=null;
         buildInicio(); }));
       // Chips de día: ver rutas de ese día · Todas · Limpiar
       host.querySelectorAll('[data-dia-chip]').forEach(ch=>ch.addEventListener('click',()=>{
         const d=ch.dataset.diaChip;
         // Al ENCENDER un grupo (Ver todas o un día) el mapa se aleja para mostrar todo lo encendido
-        if(d==='TODAS'){ window._ccVerTodas=!window._ccVerTodas; if(window._ccVerTodas)window._ccFitVisible=true; }
-        else if(d==='LIMPIAR'){ window._ccSelDays={}; window._ccExtraIds={}; window._ccVerTodas=false; }
+        if(d==='TODAS'){ window._ccVerTodas=!window._ccVerTodas; if(window._ccVerTodas){ window._ccFitVisible=true; window._ccHidden={}; } }
+        else if(d==='LIMPIAR'){ window._ccSelDays={}; window._ccExtraIds={}; window._ccHidden={}; window._ccVerTodas=false; }
         else { if(window._ccSelDays[d])delete window._ccSelDays[d]; else { window._ccSelDays[d]=true; window._ccFitVisible=true; } }
         buildInicio(); }));
       try{ if(typeof subscribeUnits==='function')subscribeUnits(); }catch(_){}
@@ -2823,7 +2857,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const todayIds=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(tl));
     function stOf(id){ const r=rutas[id]||{}; if(byRuta[id])return 'curso'; if(r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length)return 'completada'; if(r.envios&&r.envios[hoy])return 'enviada'; return 'pendiente'; }
     let nDone=0; let kmP=0,kmD=0;
-    todayIds.forEach(id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); kmP+=km; const s=stOf(id);
+    todayIds.forEach(id=>{ const r=rutas[id]||{}; const km=ccKmRuta(r); kmP+=km; const s=stOf(id);
       if(s==='completada'){nDone++;kmD+=km;} else if(s==='curso'){const t=byRuta[id]||{};kmD+=km*Math.max(0,Math.min(100,Number(t.progress)||0))/100;} });
     const cob=(todayIds.length&&kmP)?Math.round(kmD/kmP*100):null;
     let disp=0,fTal=0; Object.keys(cam).forEach(k=>{ const e=String((cam[k]||{}).estado||'').toLowerCase(); if(camActivo(e))disp++; else if(e.indexOf('fuera')<0)fTal++; });
@@ -4332,7 +4366,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const tl=todayLetter(); const _nRu=new Date(); const _hoyRu=_nRu.getFullYear()+'-'+String(_nRu.getMonth()+1).padStart(2,'0')+'-'+String(_nRu.getDate()).padStart(2,'0');
     // ---- métricas reales
     let kmTotal=0; const pend=[],completas=[],hoyIds=[];
-    ids.forEach(id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); kmTotal+=km;
+    ids.forEach(id=>{ const r=rutas[id]||{}; const km=ccKmRuta(r); kmTotal+=km;
       const falta=[]; if(!(r.freq&&r.freq.length))falta.push('días de recorrido'); if(!ccPtsRuta(r).length)falta.push('trazado (KMZ)');
       if(falta.length)pend.push({id:id,falta:falta}); else completas.push(id);
       if((r.freq||[]).includes(tl))hoyIds.push(id); });
@@ -4352,7 +4386,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     }
     if(!ids.length)h+='<div class="ini-empty">Aún no hay rutas. Crea la primera con "Nueva ruta": carga el KMZ y guarda.</div>';
     // ---- RUTAS como activos: hoy primero, luego el resto
-    const cardOf=id=>{ const r=rutas[id]||{}; const km=kmOf(decode(r.wp||'')); const t=live[id];
+    const cardOf=id=>{ const r=rutas[id]||{}; const km=ccKmRuta(r); const t=live[id];
       const esHoy=(r.freq||[]).includes(tl);
       const inc=pend.find(p=>p.id===id);
       return '<div class="ru-card" data-id="'+esc(id)+'">'
