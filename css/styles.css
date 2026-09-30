@@ -2268,3 +2268,30 @@ body.dark .ru-aviso{background:rgba(207,154,74,.12);color:#e6c486;border-color:r
 /* ===== v4.86 · Solo lectura: lo que edita se ve deshabilitado ===== */
 body.readonly .ro-lock{opacity:.45!important;cursor:not-allowed!important;filter:grayscale(.3);}
 body.readonly select.ro-lock,body.readonly input.ro-lock,body.readonly textarea.ro-lock{background:var(--surface-inset,#e9e4d4)!important;}
+
+/* ===== v4.89 · Camiones por ruta ===== */
+.ds-hint{font-size:11.5px;color:var(--mt2,#6d6a5c);margin:4px 0 2px;line-height:1.4;}
+.ds-hint.warn{color:#b3362a;}
+.apt-resumen{font-size:12px;color:var(--mt3,#8b8779);margin:0 0 12px;}
+.apt-list{display:flex;flex-direction:column;gap:8px;}
+.apt-row{display:flex;align-items:center;gap:12px;background:var(--surface-3,#fff);border:1px solid var(--border-1,#e0dac8);border-radius:10px;padding:12px 14px;}
+.apt-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+.apt-info b{font-size:14px;color:var(--mt1);}
+.apt-info small{font-size:11px;color:var(--mt3);font-family:ui-monospace,monospace;}
+.apt-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
+.apt-chip{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--green-tint,#d8e8dc);color:var(--green-text2,#1b5e3f);}
+.apt-libre{font-size:11.5px;color:var(--mt3);font-style:italic;}
+.apt-card{max-width:520px;}
+.apt-opts{max-height:48vh;overflow-y:auto;border:1px solid var(--border-1,#e0dac8);border-radius:10px;padding:4px;}
+.apt-opt{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--mt1);}
+.apt-opt:hover{background:rgba(0,0,0,.04);}
+.apt-opt input{width:17px;height:17px;accent-color:var(--green-primary,#1b4332);flex:none;}
+.apt-opt b{min-width:52px;}
+.apt-opt span{flex:1;min-width:0;color:var(--mt2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.apt-opt em{font-style:normal;font-size:11px;font-weight:600;padding:1px 7px;border-radius:6px;flex:none;}
+.apt-opt em.ok{background:var(--green-tint,#d8e8dc);color:var(--green-text2,#1b5e3f);}
+.apt-opt em.no{background:#fdecea;color:#b3362a;}
+.apt-cnt{font-size:12px;color:var(--mt2);margin-top:8px;}
+.del-acts .apt-si{background:var(--green-primary,#1b4332);border-color:var(--green-primary,#1b4332);color:#fff;}
+body.dark .apt-opt:hover{background:rgba(255,255,255,.05);}
+@media(max-width:768px){ .apt-row{flex-wrap:wrap;} }

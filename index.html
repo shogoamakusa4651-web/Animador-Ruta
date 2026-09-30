@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.88" />
+<link rel="stylesheet" href="css/styles.css?v=4.89" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.88 · 2026-09-30</div>
+  <div class="ver" id="navVer">v4.89 · 2026-09-30</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -74,6 +74,7 @@
     <button class="adm2-tab" data-at="ayu">Ayudantes</button>
     <button class="adm2-tab" data-at="sup">Supervisores</button>
     <button class="adm2-tab" data-at="mec">Mecánicos</button>
+    <button class="adm2-tab" data-at="aptos"><i class="ti ti-route-2" style="font-size:14px"></i> Camiones por ruta</button>
     <button class="adm2-tab" data-at="usuarios"><i class="ti ti-key" style="font-size:14px"></i> Usuarios y accesos</button>
   </div>
   <div class="adm2-pane on" id="adm2Cam">
@@ -93,6 +94,7 @@
     <div id="pLink" style="margin:10px 0 0"></div>
     <div id="pList" style="margin-top:14px"></div>
   </div>
+  <div class="adm2-pane" id="adm2Aptos"><div id="aptBody"></div></div>
   <div class="adm2-pane" id="adm2Usuarios">
     <div id="usuHero"></div>
     <div class="usu-formcard">
@@ -638,7 +640,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.88 · 2026-09-30</div>
+<div class="ver-badge" id="verBadge">v4.89 · 2026-09-30</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +874,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.88 · 2026-09-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.89 · 2026-09-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1510,7 +1512,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const ahora=Date.now(); if(ahora-_soloLecturaAviso<1500)return; _soloLecturaAviso=ahora;
     toast('🔒 Solo lectura · no puedes editar con este usuario');
   }
-  const PALABRAS_EDICION=/guardar|editar|enviar|genera|crear|eliminar|borrar|quitar|agregar|añadir|asignar|registrar|nueva ruta|importar|definir|vincular|desactivar|atender|reabrir|despachar|completar/i;
+  const PALABRAS_EDICION=/guardar|editar|enviar|genera|crear|eliminar|borrar|quitar|agregar|añadir|asignar|registrar|nueva ruta|importar|definir|vincular|desactivar|atender|reabrir|despachar|completar|configurar/i;
   let _bloqueoClicsInstalado=false;
   function instalarBloqueoClics(){
     if(_bloqueoClicsInstalado)return; _bloqueoClicsInstalado=true;
@@ -3179,6 +3181,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       body.innerHTML=liveHtml+'<div class="rd-item">'
         +'<div class="mon-line" style="color:var(--tx0)"><i class="ti ti-map-pin"></i> '+ptsArr.length+' puntos · '+km.toFixed(2)+' km</div>'
         +'<div class="mon-line"><i class="ti ti-truck"></i> Camión: '+esc(r.camion||'sin asignar')+'</div>'
+        +'<div class="mon-line"><i class="ti ti-checklist"></i> Permitidos: '+esc(rutaAptos(r)?rutaAptos(r).join(', '):'cualquier camión (sin lista)')+'</div>'
         +'<div class="mon-line"><i class="ti ti-user"></i> Chofer: '+esc(r.choferCode||'sin asignar')+'</div>'
         +'<div class="mon-line"><i class="ti ti-eye"></i> Supervisor: '+esc(r.supCode||'sin asignar')+'</div>'
         +'<div class="mon-line"><i class="ti ti-calendar"></i> Frecuencia: '+esc((r.freq&&r.freq.length)?r.freq.join('·'):'sin definir')+'</div></div>'
@@ -3198,7 +3201,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
             :'<span style="font-size:11px;font-weight:700;color:#b3453a;background:#b3453a18;padding:3px 8px;border-radius:99px;">SIN ENVIAR</span>'))
           +'</div>'
           +'<div style="font-size:11px;color:#807E77;margin-bottom:8px">Asigna camión, chofer y supervisor. El chofer la verá al iniciar sesión en su app — no se generan enlaces.</div>'
-          +'<label class="fld-lbl">Camión</label><select class="fld" id="dsCamion"></select>'
+          +'<label class="fld-lbl">Camión</label><select class="fld" id="dsCamion"></select><div id="dsCamionHint" class="ds-hint"></div>'
           +'<label class="fld-lbl">Chofer</label><select class="fld" id="dsChofer"></select>'
           +'<button class="rd-addnew" id="dsChNew">+ nuevo chofer</button>'
           +'<label class="fld-lbl">Supervisor (opcional)</label><select class="fld" id="dsSup"></select>'
@@ -3210,7 +3213,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const sm=document.getElementById('rdShowMap'); if(sm)sm.addEventListener('click',()=>{ showRouteLayer(rdId); fitRoute(rdId); closeRouteDetail(); if(typeof setSection==='function'){ setSection('monitoreo'); } });
       const dw=document.getElementById('rdWord'); if(dw)dw.addEventListener('click',()=>downloadRutaWord(rdId));
       const de=document.getElementById('rdEdit'); if(de)de.addEventListener('click',()=>{ const id=rdId; const rr=mgmtRutas[id]||{}; closeRouteDetail(); const pts=decode(rr.wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(rr); if(typeof setSection==='function'){ setSection('rutas'); setRutasView('editor'); } toast('Ruta cargada — edita y guarda'); });
-      fillGroupedCamion('dsCamion',r.camion); fillGroupedActor('dsChofer',mgmtChoferes,r.choferCode); fillGroupedActor('dsSup',mgmtSup,r.supCode);
+      fillGroupedCamion('dsCamion',r.camion,rdId); fillGroupedActor('dsChofer',mgmtChoferes,r.choferCode); fillGroupedActor('dsSup',mgmtSup,r.supCode);
       const ch=document.getElementById('dsChNew'); if(ch)ch.addEventListener('click',()=>addActor('chofer'));
       const sp=document.getElementById('dsSpNew'); if(sp)sp.addEventListener('click',()=>addActor('sup'));
       const dg=document.getElementById('dsGen'); if(dg)dg.addEventListener('click',enviarRutaAhora);
@@ -4307,6 +4310,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const chofer=document.getElementById('dsChofer').value||null;
     const sup=document.getElementById('dsSup').value||null;
     if(!chofer){ toast('Elige un chofer para el envío'); return; }
+    const _apt=rutaAptos(r); if(camion&&_apt&&_apt.indexOf(fbKey(camion))<0&&_apt.indexOf(camion)<0&&!confirm('El camión '+camion+' NO está en la lista de camiones permitidos de esta ruta. ¿Enviarlo de todos modos?'))return;
     let supAccess=r.supAccess||null; if(sup){ if(!supAccess)supAccess=String(Math.floor(1000+Math.random()*9000)); } else supAccess=null;
     const km=Number(String((document.getElementById('dsKm')||{}).value||'').replace(/[^0-9.]/g,''))||0;
     if(fbDb)fbDb.ref('rutas/'+id).update({camion:camion,choferCode:chofer,supCode:sup,supAccess:supAccess,supActive:true,kmInicio:km});
@@ -4334,13 +4338,35 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       else if(liveC[code])no.push([code,lab+' · en ruta',true]);
       else disp.push([code,lab,false]); });
     buildGroupedSelect(sel,'(ninguno)',[['Recomendado',rec],['Disponibles',disp],['No disponibles',no]],assigned); }
-  function fillGroupedCamion(selId,assigned){ const sel=document.getElementById(selId); if(!sel)return;
-    const rec=[],disp=[],no=[];
-    Object.keys(mgmtCamiones||{}).sort().forEach(k=>{ const v=mgmtCamiones[k]||{}; const f=v.ficha||k; const est=v.estado||'disponible';
-      if(assigned&&f===assigned)rec.push([f,f+' · asignado',false]);
-      else if(camActivo(est))disp.push([f,f,false]);
-      else no.push([f,f+' · '+est,true]); });
-    buildGroupedSelect(sel,'(sin camión)',[['Recomendado',rec],['Disponibles',disp],['No disponibles',no]],assigned); }
+  // ===== Camiones permitidos por ruta (v4.89) =====
+  // rutas/{id}/camionesAptos = {ficha:true}. Sin lista → sin restricción (cualquier camión), para no romper rutas viejas.
+  function rutaAptos(r){ const a=(r&&r.camionesAptos)||null; const ks=a?Object.keys(a).filter(k=>a[k]):[]; return ks.length?ks:null; }
+  function hoyISO(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); }
+  // Camiones ocupados HOY en otra ruta (despachados o en vivo) → {ficha: nombreRuta}
+  function camionesOcupadosHoy(exceptoId){ const hoy=hoyISO(), occ={}; const live=(typeof liveByRuta==='function')?liveByRuta():{};
+    Object.keys(mgmtRutas||{}).forEach(id=>{ if(id===exceptoId)return; const r=mgmtRutas[id]||{}; const env=r.envios&&r.envios[hoy];
+      const yaTermino=r.viajes&&r.viajes[hoy]&&Object.keys(r.viajes[hoy]).length&&!live[id];
+      if(env&&env.camion&&!yaTermino)occ[env.camion]=r.nombre||id; });
+    return occ; }
+  // Clasifica los camiones para una ruta: solo PERMITIDOS (si la ruta tiene lista). Puro: se prueba con node.
+  function clasificarCamiones(camiones,aptos,assigned,ocupados){ const g={asig:[],disp:[],ocup:[],no:[],noApto:null};
+    Object.keys(camiones||{}).sort().forEach(k=>{ const v=camiones[k]||{}; const f=v.ficha||k; const est=v.estado||'disponible';
+      const kf=(typeof fbKey==='function')?fbKey(f):f; const apto=!aptos||aptos.indexOf(kf)>=0||aptos.indexOf(f)>=0;
+      if(assigned&&f===assigned){ if(apto)g.asig.push([f,f+' · asignado',false]); else g.noApto=[f,f+' · asignado (NO permitido en esta ruta)',false]; return; }
+      if(!apto)return; // solo filtrar: los no permitidos no aparecen
+      if(!camActivo(est))g.no.push([f,f+' · '+est,true]);
+      else if(ocupados[f])g.ocup.push([f,f+' · en '+ocupados[f]+' hoy',false]);
+      else g.disp.push([f,f+(v.tipo==='ligero'?' · ligero':''),false]); });
+    return g; }
+  function fillGroupedCamion(selId,assigned,rutaId){ const sel=document.getElementById(selId); if(!sel)return;
+    const r=rutaId?(mgmtRutas[rutaId]||{}):null; const aptos=rutaAptos(r);
+    const g=clasificarCamiones(mgmtCamiones,aptos,assigned,camionesOcupadosHoy(rutaId));
+    buildGroupedSelect(sel,'(sin camión)',[['Asignado',g.asig.concat(g.noApto?[g.noApto]:[])],[aptos?'Permitidos · disponibles':'Disponibles',g.disp],['Ocupados hoy en otra ruta',g.ocup],['En taller / fuera de servicio',g.no]],assigned);
+    const h=document.getElementById(selId+'Hint'); if(h){
+      h.innerHTML=!aptos?'<i class="ti ti-info-circle"></i> Sin lista de camiones permitidos: se muestran todos. Configúrala en <b>Administración → Camiones por ruta</b>.'
+        :(g.disp.length?('<i class="ti ti-truck"></i> '+g.disp.length+' camión(es) permitido(s) disponible(s) de '+aptos.length+' en la lista.')
+        :'<i class="ti ti-alert-triangle"></i> <b>Ningún camión permitido está disponible hoy.</b> Revisa la lista en Administración → Camiones por ruta.');
+      h.className='ds-hint'+(aptos&&!g.disp.length?' warn':''); } }
   function addActor(kind){ const name=(prompt(kind==='chofer'?'Nombre del nuevo chofer:':'Nombre del nuevo supervisor:')||'').trim(); if(!name||!fbDb)return;
     const code=kind==='chofer'?nextCode('CH-',mgmtChoferes):nextCode('Sup-',mgmtSup);
     const path=kind==='chofer'?'config/choferes/':'config/supervisores/';
@@ -4872,7 +4898,44 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     else if(act==='del'){ if(!confirm('¿Eliminar el usuario "'+(v.user||'')+'"?'))return; if(src==='usuarios')fbDb.ref(path).remove(); else { fbDb.ref(path+'/user').remove(); fbDb.ref(path+'/pass').remove(); fbDb.ref(path+'/salt').remove(); } toast('Usuario eliminado'); }
     else if(act==='pass'){ const np=prompt('Nueva contraseña para "'+(v.user||'')+'" (mín. 4):'); if(np===null)return; if(np.length<4){toast('Muy corta');return;} const salt=randSalt(); hashPass(np,salt).then(ph=>{ fbDb.ref(path).update({pass:ph,salt:salt}); toast('Contraseña actualizada ✓'); }); }
   }
-  function renderAdmin(){ if(admTab==='cam')renderCamGrid(); else if(admTab==='usuarios')renderUsuarios(); else renderPeople(admTab); }
+  function renderAdmin(){ if(admTab==='cam')renderCamGrid(); else if(admTab==='usuarios')renderUsuarios(); else if(admTab==='aptos')renderAptos(); else renderPeople(admTab); }
+  // Lista de rutas con sus camiones permitidos
+  function renderAptos(){ const host=document.getElementById('aptBody'); if(!host)return; const rutas=mgmtRutas||{};
+    const ids=Object.keys(rutas).sort((a,b)=>((rutas[a].nombre||'').localeCompare(rutas[b].nombre||'')));
+    const conLista=ids.filter(id=>rutaAptos(rutas[id])).length;
+    let h='<div class="sec-header" style="margin-bottom:12px"><h2>Camiones por ruta</h2><div class="sub">Qué camiones pueden entrar a cada ruta (calles angostas, pendientes, peso). Al despachar solo aparecen los permitidos.</div></div>';
+    h+='<div class="apt-resumen">'+conLista+' de '+ids.length+' rutas con lista · las demás aceptan cualquier camión</div>';
+    if(!ids.length)h+='<div class="ini-empty">Aún no hay rutas.</div>';
+    h+='<div class="apt-list">';
+    ids.forEach(id=>{ const r=rutas[id]||{}; const a=rutaAptos(r);
+      h+='<div class="apt-row"><div class="apt-info"><b>'+esc(r.nombre||'(sin nombre)')+'</b><small>'+esc((r.freq&&r.freq.length)?r.freq.join('·'):'sin días')+'</small>'
+        +'<div class="apt-chips">'+(a?a.map(f=>'<span class="apt-chip">'+esc(f)+'</span>').join(''):'<span class="apt-libre">Cualquier camión</span>')+'</div></div>'
+        +'<button class="mon-tinybtn apt-cfg" data-apt="'+esc(id)+'" style="flex:none;width:auto;padding:0 14px"><i class="ti ti-adjustments"></i> Configurar</button></div>'; });
+    h+='</div>'; host.innerHTML=h;
+    host.querySelectorAll('[data-apt]').forEach(b=>b.addEventListener('click',()=>abrirAptos(b.dataset.apt))); }
+  // Ventana para marcar los camiones permitidos de una ruta
+  function abrirAptos(id){ const r=mgmtRutas[id]; if(!r)return; const sel=new Set(rutaAptos(r)||[]);
+    const cams=Object.keys(mgmtCamiones||{}).map(k=>{ const v=mgmtCamiones[k]||{}; return {f:v.ficha||k,v:v}; }).sort((a,b)=>a.f.localeCompare(b.f,undefined,{numeric:true}));
+    let ov=document.getElementById('aptOv'); if(ov)ov.remove(); ov=document.createElement('div'); ov.id='aptOv'; ov.className='del-ov';
+    const fila=c=>{ const est=c.v.estado||'disponible'; const ok=camActivo(est);
+      return '<label class="apt-opt" data-f="'+esc(c.f.toLowerCase()+' '+String(c.v.marca||'').toLowerCase()+' '+String(c.v.placa||'').toLowerCase())+'"><input type="checkbox" value="'+esc(c.f)+'"'+((sel.has(fbKey(c.f))||sel.has(c.f))?' checked':'')+'>'
+        +'<b>'+esc(c.f)+'</b><span>'+esc([c.v.marca,c.v.capacidad,c.v.tipo==='ligero'?'ligero':''].filter(Boolean).join(' · '))+'</span><em class="'+(ok?'ok':'no')+'">'+esc(ok?'operativo':est)+'</em></label>'; };
+    ov.innerHTML='<div class="del-card apt-card" role="dialog" aria-modal="true"><h3>Camiones permitidos · '+esc(r.nombre||'')+'</h3>'
+      +'<p>Marca los camiones que <b>sí pueden entrar</b> a esta ruta. Si no marcas ninguno, la ruta acepta cualquier camión.</p>'
+      +'<div class="tc-busca" style="margin-bottom:8px"><i class="ti ti-search"></i><input type="search" id="aptQ" placeholder="Buscar ficha, marca o placa"></div>'
+      +'<div class="apt-opts">'+(cams.length?cams.map(fila).join(''):'<div class="ini-empty">No hay camiones registrados.</div>')+'</div>'
+      +'<div class="apt-cnt" id="aptCnt"></div>'
+      +'<div class="del-acts"><button class="mon-tinybtn" id="aptNo">Cancelar</button><button class="mon-tinybtn" id="aptClr">Quitar lista</button><button class="mon-tinybtn apt-si" id="aptSi">Guardar</button></div></div>';
+    document.body.appendChild(ov); const cerrar=()=>ov.remove();
+    const cnt=()=>{ const n=ov.querySelectorAll('.apt-opts input:checked').length; ov.querySelector('#aptCnt').textContent=n?(n+' camión(es) permitido(s)'):'Sin marcar: aceptará cualquier camión'; };
+    ov.querySelectorAll('.apt-opts input').forEach(i=>i.addEventListener('change',cnt)); cnt();
+    ov.querySelector('#aptQ').addEventListener('input',e=>{ const q=e.target.value.trim().toLowerCase(); ov.querySelectorAll('.apt-opt').forEach(l=>{ l.style.display=(!q||l.dataset.f.indexOf(q)>=0)?'':'none'; }); });
+    ov.querySelector('#aptNo').addEventListener('click',cerrar);
+    ov.querySelector('#aptClr').addEventListener('click',()=>{ ov.querySelectorAll('.apt-opts input').forEach(i=>i.checked=false); cnt(); });
+    ov.querySelector('#aptSi').addEventListener('click',()=>{ const obj={}; ov.querySelectorAll('.apt-opts input:checked').forEach(i=>obj[fbKey(i.value)]=true);
+      const val=Object.keys(obj).length?obj:null; if(!fbDb)return;
+      fbDb.ref('rutas/'+id+'/camionesAptos').set(val).then(()=>{ mgmtRutas[id].camionesAptos=val; cerrar(); renderAptos(); toast(val?('Lista guardada · '+Object.keys(val).length+' camión(es)'):'Lista quitada · acepta cualquier camión'); })
+        .catch(e=>toast('No se pudo guardar: '+((e&&e.message)||e))); }); }
   let camSelMode=false, camSel=new Set(), camDragKey=null;
   function tipoOf(v){ if(v&&v.tipo)return v.tipo; const s=((v&&v.estructura)||'').toLowerCase(),m=((v&&v.marca)||'').toLowerCase(); if(s.indexOf('cabina')>=0||s.indexOf('yipeta')>=0||m.indexOf('land cruiser')>=0||m.indexOf('hilux')>=0||m.indexOf('navara')>=0)return 'ligero'; return 'pesado'; }
   function estadoOpts(cur){ const list=CAM_ESTADOS.slice(); if(cur&&list.indexOf(cur)<0)list.push(cur); return list.map(e=>'<option value="'+e+'"'+((cur||'en operación')===e?' selected':'')+'>'+e+'</option>').join(''); }
@@ -5111,7 +5174,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     lst.querySelectorAll('[data-a="del"]').forEach(b=>b.addEventListener('click',()=>{ const c=b.dataset.c; if(!confirm('¿Eliminar '+c+'?'))return; fbDb.ref(path+c).remove(); }));
     lst.querySelectorAll('[data-a="link"]').forEach(b=>b.addEventListener('click',()=>{ const c=b.dataset.c; const chs=Object.keys(mgmtChoferes); if(!chs.length){toast('Primero registra choferes');return;} const opts=chs.map(k=>k+' · '+(mgmtChoferes[k].name||'')).join('\n'); const pick=prompt('Vincular '+c+' a qué chofer/camión?\nEscribe el código del chofer:\n\n'+opts, (data[c]||{}).chofer||''); if(pick===null)return; fbDb.ref(path+c+'/chofer').set((pick||'').trim()||null); })); }
   function admSetup2(){
-    document.querySelectorAll('#secAdmin .adm2-tab').forEach(t=>t.addEventListener('click',()=>{ admTab=t.dataset.at; document.querySelectorAll('#secAdmin .adm2-tab').forEach(x=>x.classList.toggle('on',x===t)); document.querySelectorAll('#secAdmin .adm2-pane').forEach(p=>p.classList.remove('on')); document.getElementById(admTab==='cam'?'adm2Cam':(admTab==='usuarios'?'adm2Usuarios':'adm2People')).classList.add('on'); renderAdmin(); }));
+    document.querySelectorAll('#secAdmin .adm2-tab').forEach(t=>t.addEventListener('click',()=>{ admTab=t.dataset.at; document.querySelectorAll('#secAdmin .adm2-tab').forEach(x=>x.classList.toggle('on',x===t)); document.querySelectorAll('#secAdmin .adm2-pane').forEach(p=>p.classList.remove('on')); document.getElementById(admTab==='cam'?'adm2Cam':(admTab==='usuarios'?'adm2Usuarios':(admTab==='aptos'?'adm2Aptos':'adm2People'))).classList.add('on'); renderAdmin(); }));
     const acAdd=document.getElementById('acAdd'); if(acAdd)acAdd.addEventListener('click',()=>openCamProfile(null));
     const acF=document.getElementById('acFicha'); if(acF)acF.addEventListener('input',()=>{ camFilter=acF.value; renderCamGrid(); });
     const acImp=document.getElementById('acImport'); if(acImp)acImp.addEventListener('click',importLevantamiento);
