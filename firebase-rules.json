@@ -1,0 +1,81 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "config": {
+      "choferes": {
+        ".read": "auth != null",
+        ".write": "auth.token.email === 'admin@animadorruta.com'"
+      },
+      "supervisores": {
+        ".read": "auth != null",
+        ".write": "auth.token.email === 'admin@animadorruta.com'"
+      },
+      "ayudantes": { ".read": "auth != null", ".write": "auth.token.email === 'admin@animadorruta.com'" },
+      "mecanicos": { ".read": "auth != null", ".write": "auth.token.email === 'admin@animadorruta.com'" },
+      "camiones": { ".read": "auth != null", ".write": "auth.token.email === 'admin@animadorruta.com'" },
+      "comisiones": { ".read": "auth != null", ".write": "auth.token.email === 'admin@animadorruta.com'" },
+      "usuarios": {
+        ".read": "auth != null",
+        ".write": "auth.token.email === 'admin@animadorruta.com'"
+      },
+      "accesos": {
+        ".read": "auth.token.email === 'admin@animadorruta.com'",
+        "$aid": { ".write": "auth != null && !data.exists()" }
+      },
+      "progreso": {
+        "$code": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
+    },
+    "rutas": {
+      ".read": "auth != null",
+      "$rid": {
+        ".write": "auth.token.email === 'admin@animadorruta.com'",
+        "viajes": {
+          "$fecha": {
+            "$vk": { ".write": "auth != null && (newData.exists() || auth.token.email === 'admin@animadorruta.com')" }
+          }
+        },
+        "reportes": {
+          "$rk": { ".write": "auth != null && (newData.exists() || auth.token.email === 'admin@animadorruta.com')" }
+        },
+        "rescates": {
+          "$fecha": { ".write": "auth != null && (newData.exists() || auth.token.email === 'admin@animadorruta.com')" }
+        },
+        "justificaciones": {
+          "$fecha": { ".write": "auth != null && (newData.exists() || auth.token.email === 'admin@animadorruta.com')" }
+        }
+      }
+    },
+    "informes": {
+      ".read": "auth != null",
+      ".write": "auth.token.email === 'admin@animadorruta.com'"
+    },
+    "live": {
+      ".read": "auth != null",
+      "$tx": { ".write": "auth != null && (newData.exists() || auth.token.email === 'admin@animadorruta.com')" }
+    },
+    "alertas_chofer": {
+      ".read": "auth != null",
+      "$aid": { ".write": "auth != null && (newData.exists() || auth.token.email === 'admin@animadorruta.com')" }
+    },
+    "combustible": {
+      ".read": "auth != null",
+      ".write": "auth.token.email === 'admin@animadorruta.com'"
+    },
+    "mantenimiento": {
+      ".read": "auth != null",
+      ".write": "auth.token.email === 'admin@animadorruta.com'"
+    },
+    "quejas": {
+      ".read": "auth.token.email === 'admin@animadorruta.com'",
+      "$qid": {
+        ".write": "(!data.exists() && auth != null) || auth.token.email === 'admin@animadorruta.com'",
+        ".validate": "newData.hasChildren(['nombre','cedula','sector','tel','motivo','ts'])"
+      }
+    }
+  }
+}
