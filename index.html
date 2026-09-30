@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.92" />
+<link rel="stylesheet" href="css/styles.css?v=4.93" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.92 · 2026-09-30</div>
+  <div class="ver" id="navVer">v4.93 · 2026-09-30</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -640,7 +640,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.92 · 2026-09-30</div>
+<div class="ver-badge" id="verBadge">v4.93 · 2026-09-30</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -874,7 +874,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.92 · 2026-09-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.93 · 2026-09-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -886,7 +886,9 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   const map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:18,zoomSnap:0.5,zoomDelta:0.5,wheelPxPerZoomLevel:100}).setView(LA_VEGA,15);
 
   const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,maxNativeZoom:17,attribution:'Esri'});
-  const satLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,maxNativeZoom:17,attribution:''});
+  // Nombres de calles/barrios POR ENCIMA de las rutas (panel 450: sobre las líneas 400, bajo etiquetas y camiones 600)
+  map.createPane('nombresMapa'); map.getPane('nombresMapa').style.zIndex=450; map.getPane('nombresMapa').style.pointerEvents='none';
+  const satLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,maxNativeZoom:17,attribution:'',pane:'nombresMapa'});
   const street=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,maxNativeZoom:18,attribution:'© OpenStreetMap'});
   const satGroup=L.layerGroup([sat,satLabels]).addTo(map);
 
@@ -2291,16 +2293,16 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const etVivo=(t&&t.etapa)?Math.max(0,Math.min(segs.length-1,Number(t.etapa)-1)):0; // etapa que el chofer recorre ahora
       segs.forEach((sp,si)=>{
         if(estado==='noProgramada'){
-          ccPL(sp,{color:'#fff',weight:6,opacity:.5,lineCap:'round',interactive:false}).addTo(g);
+          ccPL(sp,{color:'#fff',weight:6,opacity:.35,lineCap:'round',interactive:false}).addTo(g);
           ccPL(sp,{color:CC_NOPROG,weight:3.5,opacity:.85,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g);
         } else if(estado==='pendiente'){
-          ccPL(sp,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+          ccPL(sp,{color:'#fff',weight:6,opacity:.35,lineCap:'round',interactive:false}).addTo(g);
           ccPL(sp,{color:'#cd4936',weight:4,opacity:.95,dashArray:'9,7',lineCap:'round',interactive:false}).addTo(g);
         } else if(estado==='enviada'){
-          ccPL(sp,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+          ccPL(sp,{color:'#fff',weight:6,opacity:.35,lineCap:'round',interactive:false}).addTo(g);
           ccPL(sp,{color:'#c9a227',weight:3.5,opacity:.95,lineCap:'round',interactive:false}).addTo(g);
         } else if(estado==='curso'){
-          ccPL(sp,{color:'#fff',weight:7,opacity:.7,lineCap:'round',interactive:false}).addTo(g);
+          ccPL(sp,{color:'#fff',weight:7,opacity:.45,lineCap:'round',interactive:false}).addTo(g);
           ccPL(sp,{color:'#2E7DF2',weight:4,opacity:.9,lineCap:'round',interactive:false}).addTo(g);
           if(si===etVivo&&t.cov){ try{ const bits=covDec(t.cov,sp.length); covSegs(sp,bits,true).forEach(x=>ccPL(x,{color:'#27A35B',weight:5,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g)); }catch(_){} }
           if(si===etVivo){ aLista(t.saltos).forEach(x=>{ const seg=sp.slice(Math.max(0,x.f),Math.min(sp.length,(x.t|0)+1)); if(seg.length<2)return;
@@ -2315,7 +2317,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
             covSegs(sp,bits,true).forEach(x=>ccPL(x,{color:'#27A35B',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
           }catch(_){ ccPL(sp,{color:'#27A35B',weight:5,opacity:.95,interactive:false}).addTo(g); } }
           else if(vs.length){ ccPL(sp,{color:'#27A35B',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g); }
-          else { ccPL(sp,{color:'#fff',weight:6,opacity:.6,lineCap:'round',interactive:false}).addTo(g);
+          else { ccPL(sp,{color:'#fff',weight:6,opacity:.35,lineCap:'round',interactive:false}).addTo(g);
             ccPL(sp,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g); }
         }
       });
