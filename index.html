@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.87" />
+<link rel="stylesheet" href="css/styles.css?v=4.88" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.87 · 2026-09-30</div>
+  <div class="ver" id="navVer">v4.88 · 2026-09-30</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -638,7 +638,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.87 · 2026-09-30</div>
+<div class="ver-badge" id="verBadge">v4.88 · 2026-09-30</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.87 · 2026-09-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.88 · 2026-09-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -5560,6 +5560,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         tripPhase: tripPhase||'ruta',
         accionEnCurso: (choferAccion&&choferAccion.enCurso)||null,
         puntoParada: puntoParada||null,
+        saltos: (skippedSegments||[]).filter(sg=>sg.tipo==='salto'),
         // Fase 2: línea base del viaje actual, para que si el chofer cierra y reabre la app
         // el reporte siga siendo el mismo (no se duplica) y los deltas del tramo no se pierdan.
         reporteKey: _reporteKey||null, etIni: _etIni||null,
@@ -5595,7 +5596,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         loadRoute(pts);
         if(typeof buildInstructions==='function') buildInstructions();
         voiceOn=true;
-        nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpConfirmTick=0;
+        nextWpIdx=0; doneWps.clear(); reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpConfirmTick=0; skippedSegments=[]; mkReset();
         _wpCerca={};
         _reporteKey=null; _autoRepTs=0; // nuevo turno → nueva clave de reporte
         // Línea base de ESTE viaje (Fase 2): todo lo que pase de aquí en adelante se resta
@@ -5628,6 +5629,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           try{
             nextWpIdx=Math.min(_progresoPend.nextWpIdx||0, waypoints.length);
             (_progresoPend.doneWps||[]).forEach(i=>doneWps.add(i));
+            skippedSegments=(_progresoPend.saltos||[]).slice(); mkReset(); try{ redrawSkippedSegments(); }catch(_){}
             reachedStart=!!_progresoPend.reachedStart;
             dumpCount=_progresoPend.dumpCount||0; fuelCount=_progresoPend.fuelCount||0;
             kmRuta=_progresoPend.kmRuta||0; kmVertedero=_progresoPend.kmVertedero||0; kmCombustible=_progresoPend.kmCombustible||0;
@@ -5851,7 +5853,14 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     }
     // Decidir destino: si aún no llegó al inicio → al inicio; si se salió → al punto de reintegro; si va normal → al próximo punto
     let destino=null, tipo='inicio';
-    if(!reachedStart && waypoints.length){ destino=waypoints[Math.min(nextWpIdx||0,waypoints.length-1)]; tipo='inicio'; }
+    // 1) Desvío en curso (vertedero/bomba): primero confirmar que terminó; ahí se guía de regreso
+    const _acc=(typeof choferAccion!=='undefined')?choferAccion.enCurso:null;
+    if(_acc==='lleno'||_acc==='combustible'){ const m=_acc==='lleno'?'Cuando termines de botar, pulsa YA BOTÉ y te guío al punto donde quedaste.':'Cuando termines de cargar, pulsa YA CARGUÉ y te guío al punto donde quedaste.'; toast(m); speak(m,'nav'); return; }
+    // 2) De regreso del vertedero/bomba: al punto EXACTO donde paró
+    if(String(tripPhase||'').indexOf('regreso')===0 && puntoParada){ destino=puntoParada; tipo='regreso'; }
+    // 3) Nunca empezó (ni llegó al inicio ni marcó puntos): al inicio. Si ya marcó puntos, es reintegro.
+    else if(!reachedStart && doneWps.size===0 && waypoints.length){ destino=waypoints[Math.min(nextWpIdx||0,waypoints.length-1)]; tipo='inicio'; }
+    else if(pendingSegments().some(sg=>sg.tipo==='salto')){ const sg=pendingSegments().filter(x=>x.tipo==='salto').sort((x,y)=>(y.ts||0)-(x.ts||0))[0]; destino=waypoints[Math.min(sg.from+1,waypoints.length-1)]; tipo='reintegro'; }
     else if(deviated && nextWpIdx<waypoints.length){ destino=waypoints[nextWpIdx]; tipo='reintegro'; }
     else if(nextWpIdx<waypoints.length){ destino=waypoints[nextWpIdx]; tipo='reintegro'; }
     if(!destino){ toast('No hay a dónde guiar'); return; }
@@ -5862,7 +5871,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     Promise.resolve(iniciarGuiaDestino(destino, tipo)).then(res=>{
       res=res||{ok:guiaActiva};
       if(res.ok){ toast('Asistente activado · sigue la línea azul'); }
-      else if(res.motivo==='cerca'){ toast('Ya estás en la ruta · sigue las indicaciones'); speak('Ya estás en la ruta. Sigue las indicaciones.','nav'); }
+      else if(res.motivo==='cerca'){ const m=tipo==='regreso'?'Ya estás en el punto donde quedaste · continúa la ruta':'Ya estás en la ruta · sigue las indicaciones'; toast(m); speak(m,'nav'); }
       else if(res.motivo!=='ocupado'){ toast(res.motivo); speak(res.motivo,'nav'); }
     }).catch(()=>{ toast('No se pudo calcular la ruta. Intenta de nuevo.'); })
     .finally(()=>{ const r=mgmtRutas[choferTurno.rutaId]; montarBarraChofer(r); });
@@ -6048,7 +6057,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     // Pausar el GPS real para que NO mezcle la posición real con la simulada
     try{ if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; } }catch(_){}
     // Reiniciar trazado para empezar limpio desde el inicio de la ruta
-    realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpCerca={}; doneWps.clear(); limpiarProgresoVerde(); _wpConfirmTick=0;
+    realPath=[]; nextWpIdx=0; reachedStart=false; deviated=false; lastVoiceAnnounce={}; _voiceGiroTarget=-1; _wpCerca={}; doneWps.clear(); _simBackup.saltos=skippedSegments; skippedSegments=[]; mkReset(); limpiarProgresoVerde(); _wpConfirmTick=0;
     // Resetear Kalman y rumbo para que el simulador arranque limpio sin arrastrar estado GPS real
     _kLat=null; _kLng=null; _kP=Infinity; _kLastTs=null;
     truckHeading=null; _headHist=[]; lastTruckPos=null;
@@ -6134,7 +6143,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     limpiarProgresoVerde();
     if(_simBackup){ // restaurar lo que había antes de la simulación
       nextWpIdx=_simBackup.nextWpIdx; reachedStart=_simBackup.reachedStart;
-      (_simBackup.done||[]).forEach(i=>doneWps.add(i));
+      (_simBackup.done||[]).forEach(i=>doneWps.add(i)); skippedSegments=_simBackup.saltos||[]; mkReset(); try{ redrawSkippedSegments(); }catch(_){}
       dibujarProgresoVerde();
       _simBackup=null;
     }
@@ -6181,6 +6190,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       // _idx y cov permiten al centro de control dibujar el TRAZADO REAL con el progreso (no una línea recta)
       base._idx = (typeof nextWpIdx==='number')?nextWpIdx:null;
       if(waypoints && waypoints.length && doneWps){ try{ base.cov=covEnc(doneWps,waypoints.length); }catch(_){} }
+      try{ base.saltos=(skippedSegments||[]).filter(sg=>sg.tipo==='salto'&&!sg.resolved).map(sg=>({f:sg.from,t:sg.to,m:sg.distance||0})); }catch(_){}
       // Si hay alerta, incrustarla en el mismo nodo live/ (canal garantizado que el admin ya lee)
       if(extra && extra.alerta){
         base.alertaActiva={ tipo:extra.alerta, ts:Date.now(),
@@ -6899,6 +6909,46 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(gpsActive && document.visibilityState==='visible' && !wakeLock)requestWakeLock();
   });
 
+  // ===== MARCADO v2 (v4.88): se marca solo por donde el camión pasó de verdad =====
+  // Antes: puntero secuencial con ventana de 25 puntos → (A) si saltaba una calle larga el marcado se congelaba
+  // sin alerta; (B) si saltaba un tramo corto lo marcaba como hecho sin haber pasado.
+  // Ahora: se busca en TODA la ruta el tramo coincidente (distancia + rumbo); si reaparece más adelante
+  // dejando puntos sin pasar, se registra un TRAMO SALTADO (desde–hasta) y se avisa al chofer.
+  const MK_RELLENO=4;       // hueco ≤4 puntos (~48 m) = avance normal entre lecturas → se rellena
+  const MK_SALTO_MIN_M=40;  // hueco sin pasar ≥40 m = tramo saltado (menos = ruido del GPS)
+  let _mkLast=-1, _mkCand=-1, _mkRef=null; // posición actual en la secuencia de la ruta
+  let _mkSinSenal=false, _mkTs=0; // hora de la última lectura (para detectar cortes de señal)
+  let _mkCerca=new Set(); // puntos por donde el camión PASÓ CERCA (aunque el rumbo no coincidiera, p.ej. girando)
+  function mkReset(){ _mkLast=(typeof nextWpIdx==='number'?nextWpIdx:0)-1; _mkCand=-1; _wpConfirmTick=0; _mkRef=waypoints; _mkCerca=new Set(); }
+  function mkLargo(wps,a,b){ let d=0; for(let i=Math.max(1,a);i<=b&&i<wps.length;i++)d+=haversine(wps[i-1],wps[i]); return d; }
+  function mkCandidatos(p,wps,heading,tol,cerca){ const out=[];
+    for(let k=0;k<wps.length;k++){
+      const d=k>0?distPointToSegment(p,wps[k-1],wps[k]):haversine(p,wps[0]); if(d>tol)continue;
+      if(cerca)cerca.add(k);
+      if(heading!=null&&k+1<wps.length){ const r=bearing(wps[k],wps[k+1]); const df=Math.abs(((r-heading+540)%360)-180); if(df>50)continue; }
+      out.push(k); }
+    return out; }
+  // El más coherente: primero los NO marcados; entre ellos, el más cercano hacia adelante de donde va
+  function mkElegir(cands,done,lastIdx){ if(!cands.length)return -1;
+    const puntaje=k=>(done.has(k)?1e7:0)+(k>=lastIdx-3?(k-lastIdx):(100000+(lastIdx-k)));
+    return cands.slice().sort((a,b)=>puntaje(a)-puntaje(b))[0]; }
+  // Con la posición confirmada en m: qué marcar y si hubo tramo saltado
+  function mkAplicar(m,wps,done,lastIdx,cerca,sinSenal){ const marcar=[]; let salto=null;
+    // Referencia: el último punto ya pasado ANTES de m (sirve avanzando y también al volver a cubrir un tramo saltado)
+    let base=-1; for(let i=m-1;i>=0;i--){ if(done.has(i)){ base=i; break; } } if(lastIdx<m && lastIdx>base)base=lastIdx;
+    if(m>base){ const hueco=[]; for(let i=base+1;i<m;i++) if(!done.has(i))hueco.push(i);
+      // Los puntos por donde pasó cerca (girando, GPS impreciso) se dan por recorridos; saltado = por donde NUNCA pasó
+      const lejos=hueco.filter(i=>!(cerca&&cerca.has(i)));
+      hueco.forEach(i=>{ if(cerca&&cerca.has(i))marcar.push(i); });
+      // Tramo lejano: saltado si mide ≥40 m. Si hubo corte de señal GPS no se puede saber → no se acusa.
+      if(lejos.length && sinSenal) marcar.push(...lejos);
+      else if(lejos.length){ const a=lejos[0], b=lejos[lejos.length-1]; const metros=mkLargo(wps,a,b+1);
+        if(metros<MK_SALTO_MIN_M) marcar.push(...lejos); else salto={from:Math.max(0,a-1),to:Math.min(wps.length-1,b+1),m:Math.round(metros)}; } }
+    if(!done.has(m))marcar.push(m);
+    return {marcar:marcar,salto:salto}; }
+  // ¿Ya se cubrieron todos los puntos interiores de un tramo saltado?
+  // Cubierto si faltan ≤10% de sus puntos (el GPS pierde alguno en esquinas cerradas)
+  function mkTramoCubierto(sg,done){ let tot=0,falta=0; for(let i=sg.from+1;i<sg.to;i++){ tot++; if(!done.has(i))falta++; } return falta<=Math.max(1,Math.floor(tot*0.1)); }
   function markWaypointDone(idx){
     if(doneWps.has(idx))return;
     doneWps.add(idx);
@@ -7270,51 +7320,43 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     // Proyecta la posición sobre la línea de la ruta y avanza según el progreso a lo largo de ella,
     // ignorando el error lateral del GPS. Así el camión avanza aunque el GPS lo ubique a 20m al lado.
     try{
-    if(waypoints.length && reachedStart && nextWpIdx<waypoints.length){
-      // Buscar, en una ventana adelante, el punto de la ruta MÁS CERCANO a la posición actual
-      let mejorIdx=-1, mejorDist=Infinity, mejorSegDist=Infinity;
-      const ventana=Math.min(nextWpIdx+25, waypoints.length);
-      for(let k=nextWpIdx;k<ventana;k++){
-        const ddPt=haversine(p,waypoints[k]);
-        // distancia perpendicular al segmento que TERMINA en este waypoint (más precisa que solo al punto)
-        const ddSeg=k>0 ? distPointToSegment(p,waypoints[k-1],waypoints[k]) : ddPt;
-        const dd=Math.min(ddPt,ddSeg);
-        if(dd<mejorDist){ mejorDist=dd; mejorIdx=k; mejorSegDist=ddSeg; }
-      }
-      // Tolerancia ajustada — cross-track es más precisa que distancia al punto
+    if(waypoints.length && reachedStart){
+      if(_mkRef!==waypoints)mkReset(); // etapa nueva / ruta recargada
       const tol=Math.max(22,Math.min(38,(lastAccuracy||12)+18));
-      // Verificar rumbo: el camión debe ir en dirección compatible con la ruta (hasta 50° de diferencia)
-      let headingOk=true;
-      if(truckHeading!=null && mejorIdx>=0 && mejorIdx+1<waypoints.length){
-        const rutaRumbo=bearing(waypoints[mejorIdx],waypoints[mejorIdx+1]);
-        const diffGrados=Math.abs(((rutaRumbo-truckHeading+540)%360)-180);
-        headingOk=(diffGrados<=50);
-      }
-      // Acumular confirmaciones consecutivas (anti-falso-positivo: requiere 2 ticks seguidos)
-      if(mejorIdx>=nextWpIdx && mejorSegDist<=tol && headingOk){
-        _wpConfirmTick++;
-      } else {
+      const _ahora=Date.now(); if(_mkTs && _ahora-_mkTs>8000)_mkSinSenal=true; _mkTs=_ahora;
+      const m=mkElegir(mkCandidatos(p,waypoints,truckHeading,tol,_mkCerca),doneWps,_mkLast);
+      // Anti-falso-positivo: 2 lecturas seguidas en el mismo sitio de la ruta (±3 puntos)
+      if(m>=0 && _mkCand>=0 && Math.abs(m-_mkCand)<=3) _wpConfirmTick++; else _wpConfirmTick=(m>=0?1:0);
+      _mkCand=m;
+      if(m>=0 && _wpConfirmTick>=2){
         _wpConfirmTick=0;
-      }
-      if(_wpConfirmTick>=2 && mejorIdx>=nextWpIdx){
-        // Máx 5 waypoints por tick (~60m) — antes era 10 (~120m)
-        const limIdx=Math.min(mejorIdx,nextWpIdx+5);
-        let avanzados=0;
-        for(let k=nextWpIdx;k<=limIdx;k++){ markWaypointDone(k); avanzados++; }
-        nextWpIdx=limIdx+1;
-        _wpConfirmTick=0; // resetear: el siguiente bloque necesita 2 ticks frescos
-        if(avanzados>0){
+        const r=mkAplicar(m,waypoints,doneWps,_mkLast,_mkCerca,_mkSinSenal);
+        r.marcar.forEach(k=>markWaypointDone(k)); _mkSinSenal=false;
+        if(r.salto){
+          skippedSegments.push({from:r.salto.from,to:r.salto.to,distance:r.salto.m,resolved:false,tipo:'salto',ts:Date.now()});
+          redrawSkippedSegments();
+          if(!choSimOn){ speak('Te saltaste un tramo de '+r.salto.m+' metros. Si quieres volver, pulsa el asistente.','nav');
+            showAlert('Tramo saltado · '+r.salto.m+' m sin recorrer');
+            try{ txChofer({evento:'salto', saltoM:r.salto.m}); }catch(_){} }
+        }
+        // Posición en la secuencia (un retroceso leve por ruido no la mueve)
+        if(!(m<_mkLast && _mkLast-m<=MK_RELLENO)) _mkLast=m;
+        let nx=_mkLast+1; while(nx<waypoints.length && doneWps.has(nx))nx++;
+        nextWpIdx=nx;
+        // Tramos saltados que ya se cubrieron → resueltos
+        let resolvio=false;
+        skippedSegments.forEach(sg=>{ if(!sg.resolved && mkTramoCubierto(sg,doneWps)){ sg.resolved=true; if(sg.tipo==='salto')resolvio=true; } });
+        if(resolvio){ redrawSkippedSegments(); if(!choSimOn){ speak('Tramo pendiente completado. Continúa la ruta.','nav'); showAlert('✓ Tramo completado'); } }
+        else if(r.marcar.length) redrawSkippedSegments();
+        if(r.marcar.length){
           if(deviated){
             deviated=false; bonusReturnedToTrack=true;
             quitarMarcadorPerdida && quitarMarcadorPerdida();
             mostrarBotonAsistencia(false);
             showAlert('✓ Volvió a la ruta');
-            redrawSkippedSegments();
           }
-          for(let mi=nextWpIdx-avanzados; mi<nextWpIdx; mi++){
-            const stopOnWp=stops.find(s=>s.wpIdx===mi);
-            if(stopOnWp){stopOnWp.attended=true;stopOnWp.attendedAt=new Date().toISOString();renderStops();}
-          }
+          r.marcar.forEach(mi=>{ const stopOnWp=stops.find(s=>s.wpIdx===mi);
+            if(stopOnWp&&!stopOnWp.attended){stopOnWp.attended=true;stopOnWp.attendedAt=new Date().toISOString();renderStops();} });
         }
       }
     }
@@ -7378,7 +7420,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     skippedSegments.forEach(seg=>{
       if(seg.resolved)return;
       if(seg.from<waypoints.length && seg.to<waypoints.length){
-        const l=L.polyline([waypoints[seg.from],waypoints[seg.to]],{color:'#ef4444',weight:6,opacity:.85,dashArray:'10,8',interactive:false}).addTo(map);
+        const l=L.polyline(waypoints.slice(seg.from,seg.to+1),{color:'#ef4444',weight:6,opacity:.85,dashArray:'10,8',interactive:false}).addTo(map);
         window._skipLines.push(l);
       }
     });
