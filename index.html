@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.86" />
+<link rel="stylesheet" href="css/styles.css?v=4.87" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.86 · 2026-09-30</div>
+  <div class="ver" id="navVer">v4.87 · 2026-09-30</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -638,7 +638,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.86 · 2026-09-30</div>
+<div class="ver-badge" id="verBadge">v4.87 · 2026-09-30</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.86 · 2026-09-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.87 · 2026-09-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1795,7 +1795,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   }
   function subscribeUnits(){
     if(!fbDb){ const e=document.getElementById('supEmpty'); if(e)e.textContent='Sin conexión a Firebase.'; return; }
-    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); _procesarAlertasDesdeLive(supLast); try{actualizarEstadoServicio();}catch(_){} if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); try{ if(typeof ccDrawRoutes==='function')ccDrawRoutes(); }catch(_){} },300); }); }
+    if(!supSub){ supSub=true; let liveT=null; fbDb.ref('live').on('value', s=>{ supLast=s.val(); _procesarAlertasDesdeLive(supLast); try{actualizarEstadoServicio();}catch(_){} if(liveT)clearTimeout(liveT); liveT=setTimeout(()=>{ liveT=null; renderSupervisor(supLast); updateKpis(); renderMonitor(); try{ if(typeof ccDrawRoutes==='function')ccDrawRoutes(); }catch(_){} try{ if(typeof buildInicioSoft==='function')buildInicioSoft(); }catch(_){} },300); }); }
     if(!supTick){ supTick=setInterval(()=>{ renderSupervisor(supLast); updateKpis(); renderMonitor(); }, 5000); }
     // Alertas persistentes desde alertas_chofer (respaldo) — no sobreescribe claves LIVE_
     window._alertasVistas=window._alertasVistas||{};
@@ -2398,7 +2398,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const prog=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(L)).length;
       const done=ids.filter(id=>{ const v=(rutas[id]||{}).viajes||{}; return v[iso]&&Object.keys(v[iso]).length; }).length;
       trend.push({L:L,pct:prog?Math.round(Math.min(done,prog)/prog*100):null,done:done,prog:prog,today:i===0}); }
-    const ST={pendiente:['Sin enviar','#C2402F','Enviar'],enviada:['Enviada','#B0843C','Enlaces'],curso:['En curso','#2F7DC2','Monitorear'],completada:['Completada','#27A35B','Reporte']};
+    const ST={pendiente:['Sin enviar','#C2402F','Enviar'],enviada:['Enviada','#B0843C','Ver despacho'],curso:['En curso','#2F7DC2','Monitorear'],completada:['Completada','#27A35B','Reporte']};
     const orden={pendiente:0,enviada:1,curso:2,completada:3};
     const cola=todayIds.map(id=>({id:id,s:stOf(id)})).sort((a,b)=>orden[a.s]-orden[b.s]||(((rutas[a.id]||{}).nombre||'').localeCompare((rutas[b.id]||{}).nombre||'')));
     const ringC=2*Math.PI*52;
@@ -5856,9 +5856,16 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     else if(nextWpIdx<waypoints.length){ destino=waypoints[nextWpIdx]; tipo='reintegro'; }
     if(!destino){ toast('No hay a dónde guiar'); return; }
     if(!lastTruckPos){ toast('Esperando señal GPS…'); speak('Espera, buscando tu ubicación','nav'); return; }
+    if(guiaPidiendo){ toast('Ya estoy calculando la ruta…'); return; }
     toast('Calculando ruta…');
-    iniciarGuiaDestino(destino, tipo);
-    setTimeout(()=>{ const r=mgmtRutas[choferTurno.rutaId]; montarBarraChofer(r); }, 800);
+    const _bt=document.getElementById('choAsistGps'); if(_bt){ _bt.disabled=true; _bt.innerHTML='<i class="ti ti-loader-2"></i> Calculando ruta…'; }
+    Promise.resolve(iniciarGuiaDestino(destino, tipo)).then(res=>{
+      res=res||{ok:guiaActiva};
+      if(res.ok){ toast('Asistente activado · sigue la línea azul'); }
+      else if(res.motivo==='cerca'){ toast('Ya estás en la ruta · sigue las indicaciones'); speak('Ya estás en la ruta. Sigue las indicaciones.','nav'); }
+      else if(res.motivo!=='ocupado'){ toast(res.motivo); speak(res.motivo,'nav'); }
+    }).catch(()=>{ toast('No se pudo calcular la ruta. Intenta de nuevo.'); })
+    .finally(()=>{ const r=mgmtRutas[choferTurno.rutaId]; montarBarraChofer(r); });
   }
   // Pausar/reanudar la ruta (con confirmación para evitar miss-click)
   function togglePausaChofer(){
@@ -5891,7 +5898,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     // preference:'shortest' = ruta más corta/directa (como Waze), no la que evita giros
     const body={ coordinates:[[desde[1],desde[0]],[hasta[1],hasta[0]]], language:'es', instructions:true, preference:'shortest', units:'m' };
     const r=await fetch(url,{method:'POST',headers:{'Authorization':ORS_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!r.ok) throw new Error('ORS '+r.status);
+    if(!r.ok){ let cod=null; try{ const j=await r.json(); cod=j&&j.error&&(j.error.code||j.error); }catch(_){}
+      const e=new Error('ORS '+r.status); e.orsStatus=r.status; e.orsCode=cod; throw e; }
     return await r.json();
   }
   // Inicia la guía hacia un destino [lat,lng]. tipo: 'inicio' | 'regreso'
@@ -5899,8 +5907,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(!destino || !lastTruckPos)return;
     const dist=haversine(lastTruckPos,destino);
     // Si ya está cerca, no hace falta guía por calles
-    if(dist<=100){ guiaActiva=false; limpiarGuia(); return; }
-    if(guiaPidiendo)return; guiaPidiendo=true;
+    if(dist<=100){ guiaActiva=false; limpiarGuia(); return {ok:false,motivo:'cerca'}; }
+    if(guiaPidiendo)return {ok:false,motivo:'ocupado'}; guiaPidiendo=true;
     guiaTipo=tipo; guiaDestino=destino;
     try{
       const geo=await pedirRutaORS(lastTruckPos, destino);
@@ -5929,10 +5937,19 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       try{ map.fitBounds(L.latLngBounds(coords).pad(0.2)); }catch(_){}
     }catch(e){
       console.warn('[ORS] no se pudo trazar guía:', e);
-      // Fallback: guía simple por línea recta (lo que ya existía)
-      guiaActiva=false;
+      guiaActiva=false; guiaPidiendo=false;
+      // Motivo entendible para el chofer
+      const c=Number(e&&e.orsCode);
+      let motivo='No se pudo calcular la ruta. Revisa tu conexión e intenta de nuevo.';
+      if(!navigator.onLine||(e&&e.name==='TypeError'))motivo='Sin conexión a internet. Intenta de nuevo cuando tengas señal.';
+      else if(c===2010||c===2009||(e&&e.orsStatus===404))motivo='No encontré una calle cerca de tu ubicación. Acércate a una calle o espera mejor señal GPS.';
+      else if(c===2004)motivo='Tu ubicación está demasiado lejos de la ruta. Revisa que el GPS esté bien.';
+      else if(e&&(e.orsStatus===401||e.orsStatus===403))motivo='El servicio de guía no está autorizado. Avisa al centro de control.';
+      else if(e&&e.orsStatus===429)motivo='El servicio de guía está saturado. Intenta en un minuto.';
+      return {ok:false,motivo:motivo};
     }
     guiaPidiendo=false;
+    return {ok:true};
   }
   function limpiarGuia(){ if(guiaLayer){ try{map.removeLayer(guiaLayer);}catch(_){} guiaLayer=null; } guiaSteps=[]; guiaStepIdx=0; }
   let marcadorPerdida=null;
