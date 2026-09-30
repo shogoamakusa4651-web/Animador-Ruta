@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.93" />
+<link rel="stylesheet" href="css/styles.css?v=4.94" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.93 · 2026-09-30</div>
+  <div class="ver" id="navVer">v4.94 · 2026-09-30</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -640,7 +640,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.93 · 2026-09-30</div>
+<div class="ver-badge" id="verBadge">v4.94 · 2026-09-30</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -874,7 +874,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.93 · 2026-09-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.94 · 2026-09-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2140,7 +2140,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       +'<button class="al-ver" style="background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;flex-shrink:0;">Ver</button>'
       +'<button class="al-ok" style="background:#fff;color:#C0341F;border:none;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer;flex-shrink:0;">Atender</button>';
     c.appendChild(b);
-    b.querySelector('.al-ver').onclick=()=>{ try{ if(a.lat&&a.lng){ if(typeof setSection==='function')setSection('monitoreo'); setTimeout(()=>{ try{ map.setView([a.lat,a.lng],17); }catch(_){} },300); } else if(typeof setSection==='function')setSection('inicio'); }catch(_){} };
+    b.querySelector('.al-ver').onclick=()=>{ try{ if(a.lat&&a.lng){ irAEnVivo(a.rutaId||null,[a.lat,a.lng]); return; if(typeof setSection==='function')setSection('monitoreo'); setTimeout(()=>{ try{ map.setView([a.lat,a.lng],17); }catch(_){} },300); } else if(typeof setSection==='function')setSection('inicio'); }catch(_){} };
     b.querySelector('.al-ok').onclick=()=>{
       try{
         if(key.startsWith('LIVE_')){ const txid=key.slice(5); fbDb.ref('live/'+txid+'/alertaActiva/atendida').set(true); }
@@ -2228,6 +2228,12 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(t.status==='pausa'||t.status==='pausado') return {lbl:'En pausa',cls:'wr'};
     return {lbl:'En ruta',cls:'ok'}; }
   function hhmm(ts){ try{ return new Date(ts).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return ''; } }
+  // Todo 'ver en vivo / monitorear / ver en mapa' lleva al Centro de Control (no a la Sala de control vieja)
+  function irAEnVivo(id,pos){ const vivo=id&&(typeof liveByRuta==='function')&&liveByRuta()[id];
+    if(vivo||!id){ window._ccTab='vivo'; try{ localStorage.setItem('cc_tab','vivo'); }catch(_){} }
+    window._ccSel=id||null; try{ closeRouteDetail(); }catch(_){}
+    if(curSec!=='inicio')setSection('inicio'); else buildInicio();
+    setTimeout(()=>{ try{ if(pos)map.setView(pos,17); else if(id){ const pts=ccPtsRuta(mgmtRutas[id]); if(pts.length>1)mapaEncuadrar(L.latLngBounds(pts),17); } }catch(_){} },450); }
   function ccSeleccionar(id){ window._ccSel=(window._ccSel===id)?null:id; try{ ccDrawRoutes(); }catch(_){}
     if(window._ccSel){ const pts=ccPtsRuta(mgmtRutas[id]); if(pts.length>1)mapaEncuadrar(L.latLngBounds(pts),17); } buildInicio(); }
   // Tramos (etapas) de una ruta. Con varias etapas: cada una es su propio tramo; r.wp solo guarda la etapa 1.
@@ -2434,7 +2440,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const prog=ids.filter(id=>((rutas[id]||{}).freq||[]).includes(L)).length;
       const done=ids.filter(id=>{ const v=(rutas[id]||{}).viajes||{}; return v[iso]&&Object.keys(v[iso]).length; }).length;
       trend.push({L:L,pct:prog?Math.round(Math.min(done,prog)/prog*100):null,done:done,prog:prog,today:i===0}); }
-    const ST={pendiente:['Sin enviar','#C2402F','Enviar'],enviada:['Enviada','#B0843C','Ver despacho'],curso:['En curso','#2F7DC2','Monitorear'],completada:['Completada','#27A35B','Reporte']};
+    const ST={pendiente:['Sin enviar','#C2402F','Enviar'],enviada:['Enviada','#B0843C','Ver despacho'],curso:['En curso','#2F7DC2','Ver en vivo'],completada:['Completada','#27A35B','Reporte']};
     const orden={pendiente:0,enviada:1,curso:2,completada:3};
     const cola=todayIds.map(id=>({id:id,s:stOf(id)})).sort((a,b)=>orden[a.s]-orden[b.s]||(((rutas[a.id]||{}).nombre||'').localeCompare((rutas[b.id]||{}).nombre||'')));
     const ringC=2*Math.PI*52;
@@ -2566,7 +2572,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         try{ localStorage.setItem('cc_sheet_open',open?'1':'0'); }catch(_){}
         try{ if(map&&map.invalidateSize)setTimeout(()=>map.invalidateSize(),280); }catch(_){} }));
       host.querySelectorAll('.tc-legbtn').forEach(b=>b.addEventListener('click',()=>document.body.classList.toggle('cc-legend-open')));
-      host.querySelectorAll('.tc-rbtn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
+      host.querySelectorAll('.tc-rbtn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')irAEnVivo(b.dataset.id); else openRouteDetail(b.dataset.id); }));
       host.querySelectorAll('.tc-rcard').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
       host.querySelectorAll('.tc-arow[data-otra]').forEach(row=>row.addEventListener('click',e=>{ if(e.target.closest('.tc-aeye'))return; openRouteDetail(row.dataset.otra); }));
       // Ojos: encender/apagar una ruta específica en el mapa
@@ -2778,10 +2784,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     h+='</div></div>';
     host.innerHTML=h;
     host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go; if(g==='admin')setSection('admin'); else if(g==='reportes')setSection('reportes'); else if(g==='recursos-gastos'){ recTab='gastos'; setSection('recursos'); } }));
-    host.querySelectorAll('.ia-btn').forEach(b=>b.addEventListener('click',()=>{ const a=alerts[Number(b.dataset.i)]; if(!a)return; if(a.go==='mon')setSection('monitoreo'); else openRouteDetail(a.id); }));
+    host.querySelectorAll('.ia-btn').forEach(b=>b.addEventListener('click',()=>{ const a=alerts[Number(b.dataset.i)]; if(!a)return; if(a.go==='mon')irAEnVivo(a.id); else openRouteDetail(a.id); }));
     host.querySelectorAll('.ini-q').forEach(row=>row.addEventListener('click',()=>openRouteDetail(row.dataset.id)));
     host.querySelectorAll('.cc-qrow').forEach(row=>row.addEventListener('click',()=>verQueja(row.dataset.qk)));
-    host.querySelectorAll('.q-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')setSection('monitoreo'); else openRouteDetail(b.dataset.id); }));
+    host.querySelectorAll('.q-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(b.dataset.s==='curso')irAEnVivo(b.dataset.id); else openRouteDetail(b.dataset.id); }));
     const ex=document.getElementById('iniExtra'); if(ex)ex.addEventListener('change',()=>{ if(ex.value)openRouteDetail(ex.value); ex.value=''; });
   }
   function admSetup(){
@@ -3217,7 +3223,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       +'<div class="cc-soonbody">Costo del viaje (combustible, nómina, mantenimiento) y costo proyectado por tonelada recolectada.</div>'
       +'<div class="cc-soonreq">Requiere: módulo de costos + pesaje</div></div>';
     body.innerHTML=h;
-    const f=document.getElementById('lvFocus'); if(f)f.addEventListener('click',()=>{ if(t.lat!=null&&t.lng!=null){ showRouteLayer(rdId); map.setView([t.lat,t.lng],16); closeRouteDetail(); if(typeof setSection==='function')setSection('monitoreo'); } });
+    const f=document.getElementById('lvFocus'); if(f)f.addEventListener('click',()=>{ if(t.lat!=null&&t.lng!=null){ irAEnVivo(rdId,[t.lat,t.lng]); } });
     const fu=document.getElementById('lvFuel'); if(fu)fu.addEventListener('click',()=>registrarCombustibleVivo(t,r));
   }
   function renderDetail(){ if(!rdId)return; const r=mgmtRutas[rdId]||{};
@@ -3265,7 +3271,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           +'<button class="mon-tinybtn" id="dsGen" style="width:100%;margin-top:12px;flex:none;background:#1b4332;color:#fff;border-color:#1b4332;font-weight:700;"><i class="ti ti-send"></i> '+(yaEnviada||enCurso?'Actualizar y reenviar':'Enviar ruta')+'</button>'
           +'<div id="dsLinks" style="margin-top:10px"></div></div>';
         })();
-      const sm=document.getElementById('rdShowMap'); if(sm)sm.addEventListener('click',()=>{ showRouteLayer(rdId); fitRoute(rdId); closeRouteDetail(); if(typeof setSection==='function'){ setSection('monitoreo'); } });
+      const sm=document.getElementById('rdShowMap'); if(sm)sm.addEventListener('click',()=>{ irAEnVivo(rdId); });
       const dw=document.getElementById('rdWord'); if(dw)dw.addEventListener('click',()=>downloadRutaWord(rdId));
       const de=document.getElementById('rdEdit'); if(de)de.addEventListener('click',()=>{ const id=rdId; const rr=mgmtRutas[id]||{}; closeRouteDetail(); const pts=decode(rr.wp||''); if(pts&&pts.length)loadRoute(pts); editingRutaId=id; populateRutaForm(rr); if(typeof setSection==='function'){ setSection('rutas'); setRutasView('editor'); } toast('Ruta cargada — edita y guarda'); });
       fillGroupedCamion('dsCamion',r.camion,rdId); fillGroupedActor('dsChofer',mgmtChoferes,r.choferCode); fillGroupedActor('dsSup',mgmtSup,r.supCode);
