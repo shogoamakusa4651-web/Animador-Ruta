@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.90" />
+<link rel="stylesheet" href="css/styles.css?v=4.91" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.90 · 2026-09-30</div>
+  <div class="ver" id="navVer">v4.91 · 2026-09-30</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -640,7 +640,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.90 · 2026-09-30</div>
+<div class="ver-badge" id="verBadge">v4.91 · 2026-09-30</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -874,7 +874,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.90 · 2026-09-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.91 · 2026-09-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2156,7 +2156,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // Cada ruta es clickeable: tarjeta con estado y acciones (Enviar / Detalle / Camión de respaldo).
   let ccLayers={}, ccPopup=null;
   try{ if(localStorage.getItem('cc_sheet_open')==='1')document.body.classList.add('cc-sheet-open'); }catch(_){}
-  try{ if(localStorage.getItem('cc_tab')==='todas')window._ccTab='todas'; }catch(_){}
+  try{ const _t=localStorage.getItem('cc_tab'); if(_t==='todas'||_t==='vivo')window._ccTab=_t; }catch(_){}
   // No programada hoy: UN solo color tenue (lila) para todas — distinto del rojo/ámbar/azul/verde de estado.
   const CC_NOPROG='#9b87e0';
   // Colores de estado: los MISMOS en el mapa, en la lista y en la leyenda.
@@ -2203,7 +2203,32 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     mapaEncuadrar(b,15); }
   // Etiquetas: si dos nombres chocan se esconde el de menor prioridad (primero se ven las de hoy)
   // Ruta enfocada = la que tiene abierto el detalle. Resalta esa y apaga las demás.
-  function ccFoco(){ const ov=document.getElementById('rdOv'); return (ov&&ov.classList.contains('show')&&rdId&&mgmtRutas[rdId])?rdId:null; }
+  function ccFoco(){ const ov=document.getElementById('rdOv'); if(ov&&ov.classList.contains('show')&&rdId&&mgmtRutas[rdId])return rdId;
+    return (window._ccSel&&mgmtRutas[window._ccSel])?window._ccSel:null; }
+  // ===== MONITOREO EN VIVO (v4.91) =====
+  const EV_TXT={inicio_turno:['Inició la ruta','ti-player-play','ok'],etapa_inicio:['Empezó otra etapa','ti-flag','ok'],adelanto_etapa:['Adelantó de etapa','ti-player-skip-forward','ac'],
+    lleno:['Camión lleno · fue a botar','ti-trash','wr'],descarga_fin:['Terminó de botar · regresa','ti-trash-off','ok'],combustible:['Fue a poner combustible','ti-gas-station','ac'],combustible_fin:['Terminó combustible · regresa','ti-gas-station','ok'],
+    reporte:['Reportó avería / urgencia','ti-alert-triangle','dg'],obstaculo:['Reportó obstáculo','ti-barrier-block','dg'],salto:['Saltó un tramo','ti-route-off','dg'],salto_ok:['Completó el tramo saltado','ti-route','ok'],
+    desvio:['Se salió de la ruta','ti-map-pin-off','dg'],reintegro:['Volvió a la ruta','ti-map-pin-check','ok'],pausa:['Pausó la ruta','ti-player-pause','wr'],reanudar:['Reanudó la ruta','ti-player-play','ok'],ruta_fin:['Terminó la ruta','ti-flag-check','ok']};
+  const aLista=x=>Array.isArray(x)?x.filter(Boolean):(x&&typeof x==='object'?Object.keys(x).map(k=>x[k]).filter(Boolean):[]);
+  // Camiones activos (incluye los que perdieron señal hace poco: se muestran 'sin señal', no desaparecen)
+  function ccVivos(){ const live=supLast||{}, out=[];
+    Object.keys(live).forEach(k=>{ const t=live[k]; if(!t||!t.rutaId||!mgmtRutas[t.rutaId])return; if(t.status==='offline'||t.status==='termino')return;
+      const age=(Date.now()-(t.ts||0))/1000; if(age>1800)return; out.push({tx:k,t:t,id:t.rutaId,r:mgmtRutas[t.rutaId],age:age}); });
+    return out.sort((a,b)=>(a.r.nombre||'').localeCompare(b.r.nombre||'')); }
+  // Estado del camión, lo más grave primero. Puro (se prueba con node).
+  function estadoVivo(t,age){ const saltos=aLista(t.saltos); const mSal=saltos.reduce((a,x)=>a+(Number(x.m)||0),0);
+    const al=t.alertaActiva; if(al&&!al.atendida) return {lbl:al.tipo==='reporte'?'Avería / urgencia':'Obstáculo',cls:'dg'};
+    if(age>60) return {lbl:'Sin señal hace '+(age<3600?Math.round(age/60)+' min':'>1 h'),cls:'dg'};
+    if(saltos.length) return {lbl:'Saltó '+saltos.length+' tramo'+(saltos.length>1?'s':'')+' · '+mSal+' m',cls:'dg'};
+    if(t.desviado) return {lbl:'Fuera de ruta',cls:'dg'};
+    if(t.status==='vertedero') return {lbl:'En el vertedero',cls:'wr'};
+    if(t.status==='combustible') return {lbl:'Poniendo combustible',cls:'ac'};
+    if(t.status==='pausa'||t.status==='pausado') return {lbl:'En pausa',cls:'wr'};
+    return {lbl:'En ruta',cls:'ok'}; }
+  function hhmm(ts){ try{ return new Date(ts).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return ''; } }
+  function ccSeleccionar(id){ window._ccSel=(window._ccSel===id)?null:id; try{ ccDrawRoutes(); }catch(_){}
+    if(window._ccSel){ const pts=ccPtsRuta(mgmtRutas[id]); if(pts.length>1)mapaEncuadrar(L.latLngBounds(pts),17); } buildInicio(); }
   // Tramos (etapas) de una ruta. Con varias etapas: cada una es su propio tramo; r.wp solo guarda la etapa 1.
   function ccSegsRuta(r){ r=r||{}; let segs=[];
     if(r.etapas&&r.etapas.length>1) segs=r.etapas.map(e=>decode((e||{}).wp||'')||[]);
@@ -2276,6 +2301,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           ccPL(sp,{color:'#fff',weight:7,opacity:.7,lineCap:'round',interactive:false}).addTo(g);
           ccPL(sp,{color:'#2E7DF2',weight:4,opacity:.9,lineCap:'round',interactive:false}).addTo(g);
           if(si===etVivo&&t.cov){ try{ const bits=covDec(t.cov,sp.length); covSegs(sp,bits,true).forEach(x=>ccPL(x,{color:'#27A35B',weight:5,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g)); }catch(_){} }
+          if(si===etVivo){ aLista(t.saltos).forEach(x=>{ const seg=sp.slice(Math.max(0,x.f),Math.min(sp.length,(x.t|0)+1)); if(seg.length<2)return;
+            ccPL(seg,{color:'#fff',weight:8,opacity:.85,lineCap:'round',interactive:false}).addTo(g);
+            ccPL(seg,{color:'#cd4936',weight:5,opacity:1,dashArray:'8,6',lineCap:'round',interactive:false}).addTo(g);
+            L.marker(seg[Math.floor(seg.length/2)],{interactive:false,zIndexOffset:1500,icon:L.divIcon({className:'cc-salto-lbl',iconSize:null,html:'<span>Saltado '+(Number(x.m)||0)+' m</span>'})}).addTo(g); }); }
         } else { // completada: por etapa — verde lo recorrido, ROJO PUNTEADO lo pendiente (o la etapa aún sin viaje)
           const vs=Object.keys(viajesHoy||{}).map(k=>viajesHoy[k]||{}).filter(v=>segs.length===1||(v.etapaIdx!=null?v.etapaIdx:0)===si);
           let cov=null; vs.forEach(v=>{ if(v.cov)cov=v.cov; });
@@ -2435,15 +2464,34 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         +'<div class="tc-chip sec tc-hint">Toca una ruta para ver estado y acciones</div></div>';
       H+='<button class="tc-mapfull" data-go="mon"><i class="ti ti-maximize"></i> Mapa completo</button>';
       // ===== Panel con pestañas: HOY (lo que toca hoy, urgente arriba) · TODAS (todas las rutas SIEMPRE, A-Z) =====
-      const tab=window._ccTab==='todas'?'todas':'hoy';
+      const tab=(window._ccTab==='todas'||window._ccTab==='vivo')?window._ccTab:'hoy';
+      const vivos=ccVivos();
+      window._ccSaltosPrev=window._ccSaltosPrev||{};
+      vivos.forEach(v=>{ const n=aLista(v.t.saltos).length, prev=window._ccSaltosPrev[v.id]; if(prev!=null&&n>prev){ const u=aLista(v.t.saltos).slice(-1)[0]||{}; toast('⚠ '+(v.r.nombre||'Ruta')+': el camión saltó un tramo de '+(Number(u.m)||0)+' m'); } window._ccSaltosPrev[v.id]=n; });
       window._ccSelDays=window._ccSelDays||{}; window._ccExtraIds=window._ccExtraIds||{};
       const hoyLbl={pendiente:'sin enviar',enviada:'enviada · esperando salida',curso:'en curso',completada:'completada'};
       H+='<div class="tc-dock">';
       H+='<div class="tc-dock-h" data-sheet="1"><span class="t">Rutas</span><span class="tc-dock-hr"><span class="tc-badge'+(nSinEnviar?'':' zero')+'">'+nSinEnviar+' sin enviar</span><i class="ti ti-chevron-up tc-sheet-chev" aria-hidden="true"></i></span></div>';
       H+='<div class="tc-tabs" role="tablist"><button type="button" role="tab" class="tc-tab'+(tab==='hoy'?' on':'')+'" data-tab="hoy">Hoy · '+cola.length+'</button>'
-        +'<button type="button" role="tab" class="tc-tab'+(tab==='todas'?' on':'')+'" data-tab="todas">Todas · '+ids.length+'</button></div>';
+        +'<button type="button" role="tab" class="tc-tab'+(tab==='todas'?' on':'')+'" data-tab="todas">Todas · '+ids.length+'</button>'
+        +'<button type="button" role="tab" class="tc-tab'+(tab==='vivo'?' on':'')+(vivos.some(v=>estadoVivo(v.t,v.age).cls==='dg')?' alerta':'')+'" data-tab="vivo"><span class="tc-livedot'+(vivos.length?' on':'')+'"></span>En vivo · '+vivos.length+'</button></div>';
       H+='<div class="tc-dock-list">';
-      if(tab==='hoy'){
+      if(tab==='vivo'){
+        if(!vivos.length){ H+='<div class="tc-vacio">No hay camiones en ruta ahora. Cuando un chofer empiece, aparecerá aquí con su avance y su bitácora.</div>'; }
+        vivos.forEach(v=>{ const t=v.t, r=v.r, est=estadoVivo(t,v.age); const pg=Math.max(0,Math.min(100,Math.round(Number(t.progress)||0)));
+          const sel=window._ccSel===v.id; const et=(t.totalEtapas>1)?(' · etapa '+(t.etapa||1)+'/'+t.totalEtapas):'';
+          const edad=v.age<60?('hace '+Math.round(v.age)+' s'):('hace '+Math.round(v.age/60)+' min');
+          H+='<div class="tc-vcard'+(sel?' sel':'')+(est.cls==='dg'?' mal':'')+'" data-vid="'+esc(v.id)+'">'
+            +'<div class="tc-vrow"><span class="tc-vnm">'+esc(r.nombre||v.id)+'</span><span class="tc-vb '+est.cls+'">'+esc(est.lbl)+'</span></div>'
+            +'<div class="tc-prog"><i style="width:'+pg+'%"></i></div>'
+            +'<div class="tc-vmeta">'+esc((t.code||t.chofer||'')+(t.name&&t.name!==t.code?(' '+t.name):''))+' · '+esc(t.camion||r.camion||'sin camión')+' · <b>'+pg+'%</b>'+esc(et)+' · señal '+esc(edad)+'</div>';
+          if(sel){ const evs=aLista(t.eventos).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,14);
+            H+='<div class="tc-bita"><div class="tc-bitah">Bitácora de hoy</div>';
+            if(!evs.length)H+='<div class="tc-bitav">Sin eventos registrados todavía.</div>';
+            evs.forEach(ev=>{ const d=EV_TXT[ev.e]||[ev.e,'ti-point','ac']; H+='<div class="tc-ev"><span class="tc-evt">'+hhmm(ev.ts)+'</span><i class="ti '+d[1]+' tc-evi '+d[2]+'"></i><span>'+esc(d[0])+(ev.m?(' · <b>'+(Number(ev.m)||0)+' m</b>'):'')+'</span></div>'; });
+            H+='<div class="tc-vacts"><button type="button" class="mon-tinybtn" data-vdet="'+esc(v.id)+'"><i class="ti ti-file-description"></i> Ver detalle</button></div></div>'; }
+          H+='</div>'; });
+      } else if(tab==='hoy'){
         if(!cola.length){ H+='<div class="tc-vacio">No hay rutas para hoy. En la pestaña <b>Todas</b> están todas las rutas.</div>'; }
         else { cola.forEach(x=>{ const r=rutas[x.id]||{}; const st=ST[x.s]; const t=live[x.id];
           const pgN=(x.s==='curso'&&t&&t.progress!=null)?Math.max(0,Math.min(100,Math.round(Number(t.progress)||0))):null;
@@ -2494,9 +2542,11 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           const ok=(!q||row.dataset.nom.indexOf(q)>=0)&&porDia; row.hidden=!ok; if(ok)n++; });
         const nn=host.querySelector('.tc-anone'); if(nn)nn.hidden=!!n; }); }
       if(!host._ccHoverBound){ host._ccHoverBound=true; // una sola vez: el host sobrevive a los redibujos
-        host.addEventListener('mouseover',e=>{ if(e.target.closest('.tc-aeye')){ ccHoverOff(); return; } const row=e.target.closest('.tc-arow[data-otra],.tc-rcard[data-id]'); const id=row?(row.dataset.otra||row.dataset.id):null;
+        host.addEventListener('mouseover',e=>{ if(e.target.closest('.tc-aeye')){ ccHoverOff(); return; } const row=e.target.closest('.tc-arow[data-otra],.tc-rcard[data-id],.tc-vcard[data-vid]'); const id=row?(row.dataset.otra||row.dataset.id||row.dataset.vid):null;
           if(id)ccHoverOn(id); else ccHoverOff(); });
         host.addEventListener('mouseleave',()=>ccHoverOff()); }
+      host.querySelectorAll('.tc-vcard[data-vid]').forEach(c=>c.addEventListener('click',e=>{ if(e.target.closest('[data-vdet]'))return; ccSeleccionar(c.dataset.vid); }));
+      host.querySelectorAll('[data-vdet]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); openRouteDetail(b.dataset.vdet); }));
       host.querySelectorAll('.tc-fitbtn').forEach(b=>b.addEventListener('click',()=>{ try{ ccCentrarHoy(); }catch(_){} }));
       host.querySelectorAll('[data-go]').forEach(k=>k.addEventListener('click',()=>{ const g=k.dataset.go;
         if(g==='mon'){ // Mapa completo: colapsar el rail dentro del MISMO Centro de Control (no abrir la interfaz vieja)
@@ -6263,7 +6313,15 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           lat:lastTruckPos?lastTruckPos[0]:null, lng:lastTruckPos?lastTruckPos[1]:null,
           atendida:false };
       }
+      base.desviado=!!deviated; base.camion=(mgmtRutas[choferTurno.rutaId]||{}).camion||null;
       fbDb.ref('live/'+txId()).update(Object.assign(base, extra||{})).catch(e=>console.warn('[chofer] tx live falló:', e&&e.code, e&&e.message));
+      // Bitácora del turno (v4.91): cada evento queda registrado con hora; se reinicia al empezar el turno
+      if(extra && extra.evento && !choSimOn){ try{
+        const evRef=fbDb.ref('live/'+txId()+'/eventos'); const ev={e:String(extra.evento),ts:Date.now()};
+        if(extra.saltoM)ev.m=extra.saltoM; if(lastTruckPos){ ev.lat=lastTruckPos[0]; ev.lng=lastTruckPos[1]; }
+        const pushEv=()=>evRef.push(ev).catch(()=>{});
+        if(extra.evento==='inicio_turno') evRef.remove().then(pushEv,pushEv); else pushEv();
+      }catch(_){} }
       // También intentar escribir en alertas_chofer como respaldo persistente
       if(extra && extra.alerta){
         fbDb.ref('alertas_chofer').push(Object.assign({tipo:extra.alerta, chofer:choferName||choferCode, rutaId:choferTurno.rutaId||null,
@@ -7410,14 +7468,14 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         // Tramos saltados que ya se cubrieron → resueltos
         let resolvio=false;
         skippedSegments.forEach(sg=>{ if(!sg.resolved && mkTramoCubierto(sg,doneWps)){ sg.resolved=true; if(sg.tipo==='salto')resolvio=true; } });
-        if(resolvio){ redrawSkippedSegments(); if(!choSimOn){ speak('Tramo pendiente completado. Continúa la ruta.','nav'); showAlert('✓ Tramo completado'); } }
+        if(resolvio){ redrawSkippedSegments(); if(!choSimOn){ speak('Tramo pendiente completado. Continúa la ruta.','nav'); showAlert('✓ Tramo completado'); try{ txChofer({evento:'salto_ok'}); }catch(_){} } }
         else if(r.marcar.length) redrawSkippedSegments();
         if(r.marcar.length){
           if(deviated){
             deviated=false; bonusReturnedToTrack=true;
             quitarMarcadorPerdida && quitarMarcadorPerdida();
             mostrarBotonAsistencia(false);
-            showAlert('✓ Volvió a la ruta');
+            showAlert('✓ Volvió a la ruta'); if(!choSimOn){ try{ txChofer({evento:'reintegro'}); }catch(_){} }
           }
           r.marcar.forEach(mi=>{ const stopOnWp=stops.find(s=>s.wpIdx===mi);
             if(stopOnWp&&!stopOnWp.attended){stopOnWp.attended=true;stopOnWp.attendedAt=new Date().toISOString();renderStops();} });
@@ -7460,7 +7518,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
         if(!deviated){
           deviated=true;deviationStartIdx=nextWpIdx;
           skippedSegments.push({from:Math.max(0,nextWpIdx-1),to:nextWpIdx,distance:0,resolved:false});
-          showAlert('Te saliste de la ruta');
+          showAlert('Te saliste de la ruta'); try{ txChofer({evento:'desvio'}); }catch(_){}
           speak('Te saliste de la ruta. Si quieres que te guíe de vuelta, pulsa el botón de asistencia.','nav');
           redrawSkippedSegments();
           lastDeviationAt=now;
