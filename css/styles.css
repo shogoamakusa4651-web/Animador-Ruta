@@ -2264,3 +2264,7 @@ body.dark .ru-aviso{background:rgba(207,154,74,.12);color:#e6c486;border-color:r
 .del-acts .mon-tinybtn{height:40px;border-radius:8px;}
 .del-acts .del-si{background:#C2402F;border-color:#C2402F;color:#fff;}
 .del-acts .del-si:disabled{background:var(--surface-inset,#e9e4d4);border-color:var(--border-2,#ddd7c6);color:var(--mt3,#8b8779);cursor:not-allowed;}
+
+/* ===== v4.86 · Solo lectura: lo que edita se ve deshabilitado ===== */
+body.readonly .ro-lock{opacity:.45!important;cursor:not-allowed!important;filter:grayscale(.3);}
+body.readonly select.ro-lock,body.readonly input.ro-lock,body.readonly textarea.ro-lock{background:var(--surface-inset,#e9e4d4)!important;}

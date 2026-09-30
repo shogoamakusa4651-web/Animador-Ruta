@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.85" />
+<link rel="stylesheet" href="css/styles.css?v=4.86" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.85 · 2026-09-29</div>
+  <div class="ver" id="navVer">v4.86 · 2026-09-30</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -100,7 +100,7 @@
       <div class="usu-grid">
         <label class="usu-fld"><span>Rol</span>
           <select id="usuRol" class="fld">
-            <option value="adm">Administrador</option>
+            <option value="adm">Administrador · solo lectura (ve todo, no edita)</option>
             <option value="supervisor">Supervisor</option>
             <option value="chofer">Chofer</option>
           </select></label>
@@ -638,7 +638,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.85 · 2026-09-29</div>
+<div class="ver-badge" id="verBadge">v4.86 · 2026-09-30</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -872,7 +872,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.85 · 2026-09-29'; // ← actualizar con cada release
+  const APP_VERSION='v4.86 · 2026-09-30'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1525,6 +1525,22 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       if(PALABRAS_EDICION.test(txt)){ ev.preventDefault(); ev.stopPropagation(); avisarSoloLectura(); }
     },true);
   }
+  // Campos que SOLO sirven para ver/filtrar: siguen activos en solo lectura.
+  const CAMPOS_VER=['acFicha','q','spd','ccBusca','rtFiltro','hDesde','hHasta','repFrom','repTo','qSearch','infPer','admUserIn','admKeyIn','supKeyIn','supRutaCode','choferNum'];
+  // Botones de edición sin texto (solo icono): papeleras, editar, activar/desactivar usuarios, quitar etapa…
+  const BOTONES_EDICION_ICONO='[data-act="del"],[data-act="editar"],.etapa-del,.mant-x,[data-a="del"],[data-a="edit"],[data-a="toggle"],[data-ua],.ru-new,#rdEdit,#dsGen';
+  function esBotonEdicion(b){ if(b.matches(BOTONES_EDICION_ICONO))return true; const txt=(b.textContent||'').trim();
+    if(!txt)return false; if(/^(ver|buscar|cerrar|volver|copiar|word|imprimir|exportar|×|‹|›|−|\+|filtrar|hoy|ayer|todos|todas|ocultar|calles|limpiar|centrar|leyenda|perfil|mapa)/i.test(txt))return false;
+    return PALABRAS_EDICION.test(txt); }
+  function bloquearEdicionEn(root){ if(!readOnlyMode||!root||!root.querySelectorAll)return;
+    root.querySelectorAll('input,select,textarea').forEach(el=>{ if(el.type==='search'||el.type==='date'||el.type==='month'||CAMPOS_VER.indexOf(el.id)>=0||el.classList.contains('rd-dpick')||el.closest('.acc,#qjPortal,.qj-right'))return;
+      if(!el.disabled){ el.disabled=true; el.classList.add('ro-lock'); el.title='Solo lectura'; } });
+    root.querySelectorAll('button').forEach(b=>{ if(b.closest('.shell-nav,.rtab-bar,.adm2-tab,.rep-scope,.rd-tabs,.tc-tabs,.cc-daychips,.acc'))return;
+      if(!b.disabled&&esBotonEdicion(b)){ b.disabled=true; b.classList.add('ro-lock'); b.title='Solo lectura · no puedes editar con este usuario'; } }); }
+  let _roObs=null;
+  function activarBloqueoVisual(){ if(_roObs)return; bloquearEdicionEn(document.body);
+    _roObs=new MutationObserver(ms=>{ if(!readOnlyMode)return; ms.forEach(m=>{ if(m.addedNodes&&m.addedNodes.length)bloquearEdicionEn(m.target); }); });
+    _roObs.observe(document.body,{childList:true,subtree:true}); }
   function nombreSaludo(){
     // El maestro (correo) saluda como "Administración"; los usuarios creados, con su nombre
     let su=null; try{su=localStorage.getItem('animador_user');}catch(_){}
@@ -5156,7 +5172,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     // Supervisor: shell completo pero con permisos (ve Inicio, Monitoreo, Reportes), solo lectura en edición
     currentUserRole='supervisor'; readOnlyMode=true;
     enterAdmApp();
-    document.body.classList.add('readonly');
+    document.body.classList.add('readonly'); activarBloqueoVisual();
     aplicarPermisos('supervisor');
     setSection('inicio');
     toast('Supervisor · '+(currentUserName||''));
@@ -6271,7 +6287,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     currentUserName=u.data.name||u.data.user; currentUserRole='adm';
     readOnlyMode=true;
     enterAdmApp();
-    document.body.classList.add('readonly');
+    document.body.classList.add('readonly'); activarBloqueoVisual();
     toast('Sesión de solo lectura · '+(currentUserName||''));
   }
   function accSetup(){
