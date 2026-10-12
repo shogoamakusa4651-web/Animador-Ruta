@@ -26,8 +26,7 @@ self.addEventListener('fetch', function(e){
       return;
     }
   } catch (err) {}
-  // Todo lo demás (Firebase, tiles, fuentes): directo a la red normal.
-  e.respondWith(fetch(req).catch(function(){
-    return new Response('Sin conexión', { status: 503, statusText: 'Sin conexión' });
-  }));
+  // Todo lo demás (imágenes del mapa, Firebase, fuentes): NO se intercepta. El navegador lo baja directo
+  // con su propio caché y conexiones en paralelo. (Antes pasaba por aquí: más lento, y un fallo devolvía
+  // 'Sin conexión' → cuadros negros en el mapa.)
 });

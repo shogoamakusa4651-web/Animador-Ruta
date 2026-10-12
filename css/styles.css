@@ -2323,3 +2323,8 @@ body.dark .apt-opt:hover{background:rgba(255,255,255,.05);}
 .cc-salto-lbl{background:none;border:none;}
 .cc-salto-lbl span{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;background:#cd4936;color:#fff;font:700 10.5px/1.3 'Archivo','Segoe UI',sans-serif;padding:2px 8px;border-radius:999px;box-shadow:0 1px 5px rgba(0,0,0,.35);}
 body.dark .tc-vb.ok{background:rgba(39,163,91,.18);color:#7fd4a3;}body.dark .tc-vb.wr{background:rgba(207,154,74,.18);color:#e6c486;}body.dark .tc-vb.ac{background:rgba(46,125,242,.18);color:#9cc3ff;}body.dark .tc-vb.dg{background:rgba(205,73,54,.2);color:#f0a79b;}
+
+/* ===== v4.96 · Mapa: fondo sin "hoyos negros" mientras carga + calles en gris ===== */
+#map,.leaflet-container{background:#2b3127;}
+#map.mapa-calles,.leaflet-container.mapa-calles{background:#efece4;}
+.leaflet-pane.leaflet-callesMapa-pane img{filter:grayscale(1) contrast(1.05);}
