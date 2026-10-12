@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.97" />
+<link rel="stylesheet" href="css/styles.css?v=4.98" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.97 · 2026-10-12</div>
+  <div class="ver" id="navVer">v4.98 · 2026-10-12</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -556,6 +556,12 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   </div>
 </div>
 <button class="maplayer-btn" id="mapLayerBtn" title="Satélite / Calles">🗺 Calles</button>
+<div class="cc-mapctl" id="ccMapCtl" aria-label="Controles del mapa">
+  <button type="button" data-z="in" title="Acercar" aria-label="Acercar"><i class="ti ti-plus"></i></button>
+  <button type="button" data-z="out" title="Alejar" aria-label="Alejar"><i class="ti ti-minus"></i></button>
+  <button type="button" data-z="home" title="Ver toda La Vega" aria-label="Ver toda La Vega"><i class="ti ti-home"></i></button>
+  <button type="button" data-z="capa" class="capa" id="ccCapaBtn" title="Cambiar tipo de mapa"><i class="ti ti-map-2"></i><span>Calles</span></button>
+</div>
 <div class="adm-bar" id="admBar">
   <div class="adm-seg">
     <button class="adm-segbtn on" id="viewEditor">✏️ Editor</button>
@@ -640,7 +646,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.97 · 2026-10-12</div>
+<div class="ver-badge" id="verBadge">v4.98 · 2026-10-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -874,7 +880,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.97 · 2026-10-12'; // ← actualizar con cada release
+  const APP_VERSION='v4.98 · 2026-10-12'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -883,7 +889,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   });
   const LA_VEGA=[19.2225,-70.5293];
   // Zoom de medio nivel (fino pero sin encolar pasos: con ¼ y debounce corto la rueda seguía haciendo zoom sola)
-  const map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:19,zoomSnap:0.5,zoomDelta:0.5,wheelPxPerZoomLevel:100}).setView(LA_VEGA,15);
+  const map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:19,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:120,wheelDebounceTime:40}).setView(LA_VEGA,15);
 
   // Calidad del mapa (v4.95): Esri tiene foto REAL hasta zoom 18 en La Vega (antes se pedía la 17 y se estiraba → borroso)
   // Carga rápida: 2 servidores de Esri en paralelo (el navegador solo baja 6 a la vez por servidor), precarga alrededor
@@ -1369,10 +1375,14 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     document.querySelectorAll('.layer-toggle .t').forEach(x=>x.classList.remove('active'));t.classList.add('active');
     if(t.dataset.layer==='sat'){map.removeLayer(street);satGroup.addTo(map);setMapLayerBtn('sat');}else{map.removeLayer(satGroup);street.addTo(map);setMapLayerBtn('street');}});});
   let curMapLayer='sat';
-  function setMapLayerBtn(l){ curMapLayer=l; try{ map.getContainer().classList.toggle('mapa-calles',l!=='sat'); }catch(_){} const b=document.getElementById('mapLayerBtn'); if(b)b.textContent=(l==='sat'?'🗺 Calles':'🛰 Satélite'); }
+  function setMapLayerBtn(l){ curMapLayer=l; try{ map.getContainer().classList.toggle('mapa-calles',l!=='sat'); }catch(_){} const b=document.getElementById('mapLayerBtn'); if(b)b.textContent=(l==='sat'?'🗺 Calles':'🛰 Satélite');
+    const cb=document.getElementById('ccCapaBtn'); if(cb)cb.innerHTML=(l==='sat'?'<i class="ti ti-map-2"></i><span>Calles</span>':'<i class="ti ti-satellite"></i><span>Satélite</span>'); }
   const mlb=document.getElementById('mapLayerBtn');
   if(mlb)mlb.addEventListener('click',()=>{ if(curMapLayer==='sat'){map.removeLayer(satGroup);street.addTo(map);setMapLayerBtn('street');}else{map.removeLayer(street);satGroup.addTo(map);setMapLayerBtn('sat');}
     document.querySelectorAll('.layer-toggle .t').forEach(x=>x.classList.toggle('active',x.dataset.layer===curMapLayer)); });
+  // Controles del mapa del Centro de Control (abajo a la derecha: el +/− de Leaflet quedaba detrás de la barra)
+  document.querySelectorAll('#ccMapCtl [data-z]').forEach(b=>b.addEventListener('click',()=>{ const z=b.dataset.z;
+    if(z==='in')map.zoomIn(); else if(z==='out')map.zoomOut(); else if(z==='home'){ try{ ccVistaCiudad(); }catch(_){ map.setView(LA_VEGA,14); } } else if(z==='capa'&&mlb)mlb.click(); }));
 
   // ---- COMPARTIR ----
   function encode(){if(waypoints.length<1)return '';

@@ -2328,3 +2328,18 @@ body.dark .tc-vb.ok{background:rgba(39,163,91,.18);color:#7fd4a3;}body.dark .tc-
 #map,.leaflet-container{background:#2b3127;}
 #map.mapa-calles,.leaflet-container.mapa-calles{background:#efece4;}
 .leaflet-pane.leaflet-callesMapa-pane img{filter:grayscale(1) contrast(1.05);}
+
+/* ===== v4.98 · Controles del mapa del Centro de Control ===== */
+body.adm-shell.sec-inicio .leaflet-control-zoom{display:none;}
+.cc-mapctl{display:none;position:fixed;right:16px;bottom:70px;z-index:1600;flex-direction:column;align-items:flex-end;gap:6px;}
+body.adm-shell.sec-inicio .cc-mapctl{display:flex;}
+.cc-mapctl button{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:9px;border:1px solid var(--border-2,#ddd7c6);background:var(--surface-3,#fff);color:var(--mt1,#2b332a);font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.22);font-family:inherit;transition:background .14s,border-color .14s;}
+.cc-mapctl button:hover{border-color:var(--green-hover2,#2d6a4f);color:var(--green-text2,#1b5e3f);}
+.cc-mapctl button.capa{width:auto;padding:0 12px;font-size:13px;font-weight:600;margin-top:4px;}
+.cc-mapctl button.capa i{font-size:17px;}
+@media(max-width:768px){
+  body.adm-shell.sec-inicio .cc-mapctl{right:10px;bottom:calc(120px + env(safe-area-inset-bottom,0px));}
+  body.adm-shell.sec-inicio.cc-sheet-open .cc-mapctl{display:none;}
+  .cc-mapctl button{width:38px;height:38px;}
+  .cc-mapctl button[data-z="in"],.cc-mapctl button[data-z="out"]{display:none;} /* en el celular se acerca con los dedos */
+}
