@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.98" />
+<link rel="stylesheet" href="css/styles.css?v=4.99" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.98 · 2026-10-12</div>
+  <div class="ver" id="navVer">v4.99 · 2026-10-12</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -646,7 +646,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.98 · 2026-10-12</div>
+<div class="ver-badge" id="verBadge">v4.99 · 2026-10-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -880,7 +880,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.98 · 2026-10-12'; // ← actualizar con cada release
+  const APP_VERSION='v4.99 · 2026-10-12'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1671,6 +1671,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       rutaId: currentRutaId||null,
       _idx: (typeof nextWpIdx==='number'?nextWpIdx:null),
       acc: (lastAccuracy!=null?Math.round(lastAccuracy):null),
+      hdg: (truckHeading!=null&&!isNaN(truckHeading))?Math.round(truckHeading):null,
       inicio: (tripStartedAt?new Date(tripStartedAt).getTime():null),
       cov: (waypoints&&waypoints.length&&doneWps)?covEnc(doneWps,waypoints.length):null,
       ts: Date.now()
@@ -1699,22 +1700,50 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(age>30) return {label:'sin señal',c:'#BD8475'};
     return {label:'en ruta',c:'#7E9B86'};
   }
+  // ===== Camión en el mapa (v4.99): se DESLIZA entre señales (~4 s) y una flecha indica hacia dónde va =====
+  const _supAnim={}; // id -> {raf, rot, lastTs}
+  // Giro por el camino corto: de 350° a 10° gira +20°, no -340°. Puro (probado con node).
+  function rotCorta(prev,h){ if(prev==null)return h; let d=((h-prev)%360+540)%360-180; return prev+d; }
+  // Duración del deslizamiento = tiempo real entre señales (acotado), para que no se detenga ni se adelante
+  function durDeslizar(msDesdeUltima){ return Math.max(800,Math.min(4500,msDesdeUltima||3500)); }
+  function iconoCamion(c,txt){ return L.divIcon({className:'',iconSize:[46,46],iconAnchor:[23,23],
+    html:'<div class="sup-truck"><div class="sup-arrow" style="--c:'+c+'"></div><div class="sup-marker" style="background:'+c+'">'+txt+'</div></div>'}); }
+  // Posición LÓGICA por tiempo (no por cuadros de animación): si el navegador no anima (ventana tapada, ahorro de
+  // batería), el camión igual queda donde debe. Puro (probado con node).
+  function posPorTiempo(a,now){ if(!a||!a.from||!a.to||!a.dur)return null; const k=Math.max(0,Math.min(1,(now-a.t0)/a.dur));
+    return [a.from[0]+(a.to[0]-a.from[0])*k, a.from[1]+(a.to[1]-a.from[1])*k]; }
+  function moverCamion(id,mk,to,hdg){ const a=_supAnim[id]||(_supAnim[id]={}); const now=performance.now();
+    if(a.to&&a.to[0]===to[0]&&a.to[1]===to[1])return; // misma señal repetida (refresco de la lista): no reiniciar
+    const p0=posPorTiempo(a,now); const fl=p0?L.latLng(p0[0],p0[1]):mk.getLatLng(); const from=[fl.lat,fl.lng];
+    const dist=fl.distanceTo(L.latLng(to[0],to[1]));
+    let h=(hdg!=null&&!isNaN(hdg))?Number(hdg):(dist>6?bearing(from,to):null);
+    if(h!=null){ a.rot=rotCorta(a.rot,h); const el=mk.getElement&&mk.getElement(); const ar=el&&el.querySelector('.sup-arrow'); if(ar){ ar.style.transform='rotate('+a.rot+'deg)'; ar.classList.add('on'); } }
+    if(a.raf){ cancelAnimationFrame(a.raf); a.raf=null; } if(a.seguro){ clearTimeout(a.seguro); a.seguro=null; }
+    const dur=durDeslizar(a.lastTs?now-a.lastTs:0); a.lastTs=now;
+    if(dist<1||dist>600||document.hidden){ a.from=a.to=null; mk.setLatLng(to); a.to=[to[0],to[1]]; a.dur=0; return; } // directo
+    a.from=from; a.to=[to[0],to[1]]; a.t0=now; a.dur=dur;
+    const step=()=>{ const p=posPorTiempo(a,performance.now()); if(p)mk.setLatLng(p); a.raf=(p&&performance.now()-a.t0<a.dur)?requestAnimationFrame(step):null; };
+    a.raf=requestAnimationFrame(step);
+    a.seguro=setTimeout(()=>{ if(a.raf){ cancelAnimationFrame(a.raf); a.raf=null; } mk.setLatLng(a.to); },dur+120); } // seguro: llega sí o sí
   function renderSupervisor(data){
     const list=document.getElementById('supList'), empty=document.getElementById('supEmpty'), count=document.getElementById('supCount');
     if(!list)return;
     const ids=data?Object.keys(data):[];
-    Object.keys(supMarkers).forEach(id=>{ if(!data||!data[id]){ map.removeLayer(supMarkers[id]); delete supMarkers[id]; } });
+    Object.keys(supMarkers).forEach(id=>{ if(!data||!data[id]){ map.removeLayer(supMarkers[id]); delete supMarkers[id]; const a=_supAnim[id]; if(a){ if(a.raf)cancelAnimationFrame(a.raf); if(a.seguro)clearTimeout(a.seguro); } delete _supAnim[id]; } });
     list.innerHTML=''; let n=0;
     ids.forEach(id=>{
       const t=data[id]; if(!t)return;
       const _age=(Date.now()-(t.ts||0))/1000;
       const muerto=(t.status==='offline'||t.status==='termino'||_age>60);
-      if(muerto){ if(supMarkers[id]){map.removeLayer(supMarkers[id]);delete supMarkers[id];} return; }
+      if(muerto){ if(supMarkers[id]){map.removeLayer(supMarkers[id]);delete supMarkers[id];} const _a=_supAnim[id]; if(_a){ if(_a.raf)cancelAnimationFrame(_a.raf); if(_a.seguro)clearTimeout(_a.seguro); } delete _supAnim[id]; return; }
       const st=statusOf(t);
       if(t.lat!=null && t.lng!=null){
-        const icon=L.divIcon({html:'<div class="sup-marker" style="background:'+st.c+'">'+esc(String(t.code||id).replace('CH-',''))+'</div>',className:'',iconSize:[30,30],iconAnchor:[15,15]});
-        if(supMarkers[id]){ supMarkers[id].setLatLng([t.lat,t.lng]).setIcon(icon); }
-        else { supMarkers[id]=L.marker([t.lat,t.lng],{icon:icon,zIndexOffset:1000}).addTo(map); }
+        const txt=esc(String(t.code||id).replace('CH-','')); const sig=st.c+'|'+txt;
+        if(!supMarkers[id]){ supMarkers[id]=L.marker([t.lat,t.lng],{icon:iconoCamion(st.c,txt),zIndexOffset:1000}).addTo(map); supMarkers[id]._sig=sig;
+          if(t.hdg!=null)moverCamion(id,supMarkers[id],[t.lat,t.lng],t.hdg); }
+        else { const mk=supMarkers[id];
+          if(mk._sig!==sig){ mk.setIcon(iconoCamion(st.c,txt)); mk._sig=sig; const a=_supAnim[id]; if(a&&a.rot!=null){ const ar=mk.getElement()&&mk.getElement().querySelector('.sup-arrow'); if(ar){ ar.style.transition='none'; ar.style.transform='rotate('+a.rot+'deg)'; ar.classList.add('on'); void ar.offsetWidth; ar.style.transition=''; } } }
+          moverCamion(id,mk,[t.lat,t.lng],t.hdg); }
       }
       const age=Math.max(0,Math.round((Date.now()-(t.ts||0))/1000));
       const ageTx=age<60?('hace '+age+'s'):('hace '+Math.round(age/60)+' min');
@@ -6348,6 +6377,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           lat:lastTruckPos?lastTruckPos[0]:null, lng:lastTruckPos?lastTruckPos[1]:null,
           atendida:false };
       }
+      base.hdg=(truckHeading!=null&&!isNaN(truckHeading))?Math.round(truckHeading):null;
       base.desviado=!!deviated; base.camion=(mgmtRutas[choferTurno.rutaId]||{}).camion||null;
       fbDb.ref('live/'+txId()).update(Object.assign(base, extra||{})).catch(e=>console.warn('[chofer] tx live falló:', e&&e.code, e&&e.message));
       // Bitácora del turno (v4.91): cada evento queda registrado con hora; se reinicia al empezar el turno
