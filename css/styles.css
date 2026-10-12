@@ -2350,3 +2350,8 @@ body.adm-shell.sec-inicio .cc-mapctl{display:flex;}
 .sup-arrow{position:absolute;inset:0;opacity:0;transition:transform .9s ease-out,opacity .3s;pointer-events:none;}
 .sup-arrow.on{opacity:1;}
 .sup-arrow::before{content:'';position:absolute;left:50%;top:0;transform:translateX(-50%);border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:11px solid var(--c,#2E7DF2);filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 1px 2px rgba(0,0,0,.45));}
+
+/* ===== v5.01 · Indicador de carga del mapa ===== */
+#mapCarga{position:fixed;left:0;right:0;top:0;height:3px;z-index:1550;pointer-events:none;opacity:0;transition:opacity .25s;background:rgba(255,255,255,.12);}
+#mapCarga.on{opacity:1;}
+#mapCarga i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2d6a4f,#7fd4a3);box-shadow:0 0 6px rgba(127,212,163,.7);transition:width .25s ease-out;}

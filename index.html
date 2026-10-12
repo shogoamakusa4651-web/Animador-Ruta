@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=5.00" />
+<link rel="stylesheet" href="css/styles.css?v=5.01" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v5.00 · 2026-10-12</div>
+  <div class="ver" id="navVer">v5.01 · 2026-10-12</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -646,7 +646,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v5.00 · 2026-10-12</div>
+<div class="ver-badge" id="verBadge">v5.01 · 2026-10-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -880,7 +880,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v5.00 · 2026-10-12'; // ← actualizar con cada release
+  const APP_VERSION='v5.01 · 2026-10-12'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -910,6 +910,26 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // Modo Calles: mapa de calles de Esri (más limpio que el OSM clásico), nativo hasta zoom 19
   const street=L.tileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',Object.assign(HD?{detectRetina:true,maxZoom:20,maxNativeZoom:18}:{maxZoom:19,maxNativeZoom:19},{attribution:'Mapa © Esri, HERE, OpenStreetMap'},TILE_OK));
   const satGroup=L.layerGroup([sat,satRoads,satLabels]).addTo(map);
+  // ===== Indicador de carga del mapa (v5.01): barra fina arriba del mapa VISIBLE mientras bajan imágenes =====
+  // Aparece solo si tarda >250 ms (sin parpadeos), avanza según lo cargado y se va al terminar. Seguro: 10 s máx.
+  function instalarIndicadorCarga(capas,ubicar){
+    const barra=document.createElement("div"); barra.id="mapCarga"; barra.innerHTML="<i></i>"; document.body.appendChild(barra);
+    const st={pend:0,tot:0,hecho:0,t:null,w:null,visible:false};
+    const pintar=()=>{ const pct=st.tot?Math.round(st.hecho/st.tot*100):0; barra.firstChild.style.width=Math.max(6,pct)+"%"; };
+    const ocultar=()=>{ barra.classList.remove("on"); st.visible=false; };
+    const vigilar=()=>{ clearTimeout(st.w); st.w=setTimeout(()=>{ st.pend=0; ocultar(); },10000); };
+    const inicio=()=>{ if(st.pend===0){ st.tot=0; st.hecho=0; } st.pend++; st.tot++; vigilar();
+      if(st.visible){ pintar(); return; } clearTimeout(st.t);
+      st.t=setTimeout(()=>{ if(st.pend>0){ st.visible=true; try{ ubicar(barra); }catch(_){} barra.classList.add("on"); pintar(); } },250); };
+    const fin=()=>{ if(st.pend<=0)return; st.pend--; st.hecho++; pintar(); vigilar();
+      if(st.pend===0){ clearTimeout(st.t); clearTimeout(st.w); st.t=setTimeout(ocultar,300); } };
+    capas.forEach(l=>{ l.on("tileloadstart",inicio); l.on("tileload",fin); l.on("tileerror",fin); l.on("tileabort",fin); });
+    return {estado:()=>Object.assign({},st,{on:barra.classList.contains("on"),ancho:barra.firstChild.style.width}),barra:barra}; }
+  const indicadorCarga=instalarIndicadorCarga([sat,satRoads,satLabels,street],barra=>{
+    let top=0,l=0,r=0; const cb=document.getElementById("choBar");
+    if(document.body.classList.contains("rol-chofer")&&cb){ top=Math.round(cb.getBoundingClientRect().bottom); barra.style.zIndex=6001; }
+    else { const h=mapaHuecos(); top=h.t; l=h.l; r=h.r; barra.style.zIndex=1550; }
+    barra.style.top=top+"px"; barra.style.left=l+"px"; barra.style.right=r+"px"; });
 
   let waypoints=[], markers=[], baseLine=null, progLine=null, car=null, animId=null, playing=false;
   let startFlag=null, reachedStart=false, baseEnd=null, baseArrows=null;
