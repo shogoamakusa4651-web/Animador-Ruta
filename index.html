@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=5.01" />
+<link rel="stylesheet" href="css/styles.css?v=5.02" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v5.01 · 2026-10-12</div>
+  <div class="ver" id="navVer">v5.02 · 2026-10-12</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -646,7 +646,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v5.01 · 2026-10-12</div>
+<div class="ver-badge" id="verBadge">v5.02 · 2026-10-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -880,7 +880,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v5.01 · 2026-10-12'; // ← actualizar con cada release
+  const APP_VERSION='v5.02 · 2026-10-12'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -2313,6 +2313,10 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     mapaEncuadrar(b,15); }
   // Etiquetas: si dos nombres chocan se esconde el de menor prioridad (primero se ven las de hoy)
   // Ruta enfocada = la que tiene abierto el detalle. Resalta esa y apaga las demás.
+  // Leyenda inteligente (v5.02): solo los colores que hay dibujados ahora mismo en el mapa
+  function ccActualizarLeyenda(set){ const box=document.querySelector(".tc-legend"); if(!box)return; let n=0;
+    box.querySelectorAll("[data-leg]").forEach(sp=>{ const k=sp.dataset.leg; if(k==="vacia")return; const on=set.has(k); sp.hidden=!on; if(on)n++; });
+    const v=box.querySelector('[data-leg="vacia"]'); if(v)v.hidden=n>0; return n; }
   function ccFoco(){ const ov=document.getElementById('rdOv'); if(ov&&ov.classList.contains('show')&&rdId&&mgmtRutas[rdId])return rdId;
     return (window._ccSel&&mgmtRutas[window._ccSel])?window._ccSel:null; }
   // ===== MONITOREO EN VIVO (v4.91) =====
@@ -2390,7 +2394,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     const _n=new Date(); const hoy=_n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
     const Lh=todayLetter(); const live=liveByRuta();
     const selDays=window._ccSelDays||{}; const extraIds=window._ccExtraIds||{}; const verTodas=!!window._ccVerTodas;
-    let bounds=null, boundsHoy=null; const foco=ccFoco();
+    let bounds=null, boundsHoy=null; const foco=ccFoco(); const _leg=new Set(); // estados que quedan dibujados (leyenda)
     Object.keys(mgmtRutas||{}).forEach(id=>{
       const r=mgmtRutas[id]||{};
       const esDeHoy=ccEsDeHoy(r,id,hoy,live);
@@ -2404,6 +2408,8 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       const t=live[id];
       const viajesHoy=(r.viajes&&r.viajes[hoy])||null;
       const estado = !esDeHoy ? 'noProgramada' : ccEstadoHoy(r,id,hoy,live);
+      _leg.add(estado==='completada'?'recorrido':estado);
+      if(estado==='curso'){ if(t&&t.cov)_leg.add('recorrido'); if(aLista(t&&t.saltos).length)_leg.add('saltado'); }
       const g=L.layerGroup();
       const etVivo=(t&&t.etapa)?Math.max(0,Math.min(segs.length-1,Number(t.etapa)-1)):0; // etapa que el chofer recorre ahora
       segs.forEach((sp,si)=>{
@@ -2428,11 +2434,11 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
           const vs=Object.keys(viajesHoy||{}).map(k=>viajesHoy[k]||{}).filter(v=>segs.length===1||(v.etapaIdx!=null?v.etapaIdx:0)===si);
           let cov=null; vs.forEach(v=>{ if(v.cov)cov=v.cov; });
           if(cov){ try{ const bits=covDec(cov,sp.length);
-            covSegs(sp,bits,false).forEach(x=>ccPL(x,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g));
+            covSegs(sp,bits,false).forEach(x=>{ _leg.add('pendiente'); ccPL(x,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g); });
             covSegs(sp,bits,true).forEach(x=>ccPL(x,{color:'#27A35B',weight:5,opacity:.97,lineCap:'round',lineJoin:'round',interactive:false}).addTo(g));
           }catch(_){ ccPL(sp,{color:'#27A35B',weight:5,opacity:.95,interactive:false}).addTo(g); } }
           else if(vs.length){ ccPL(sp,{color:'#27A35B',weight:5,opacity:.95,lineCap:'round',interactive:false}).addTo(g); }
-          else { ccPL(sp,{color:'#fff',weight:6,opacity:.35,lineCap:'round',interactive:false}).addTo(g);
+          else { _leg.add('pendiente'); ccPL(sp,{color:'#fff',weight:6,opacity:.35,lineCap:'round',interactive:false}).addTo(g);
             ccPL(sp,{color:'#cd4936',weight:4,opacity:.9,dashArray:'8,7',lineCap:'round',interactive:false}).addTo(g); }
         }
       });
@@ -2454,6 +2460,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       try{ const b=L.latLngBounds(pts); bounds=bounds?bounds.extend(b):b; if(esDeHoy)boundsHoy=boundsHoy?boundsHoy.extend(L.latLngBounds(pts)):L.latLngBounds(pts); }catch(_){}
     });
     if(window._ccHome){ window._ccHome=false; try{ ccVistaCiudad(); }catch(_){} }
+    try{ ccActualizarLeyenda(_leg); }catch(_){}
     if(window._ccFitVisible){ window._ccFitVisible=false; if(bounds)mapaEncuadrar(bounds,15); }
     window._ccBoundsHoy=boundsHoy;
     try{ ccAplicarResalte(); }catch(_){}
@@ -2579,7 +2586,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
       H+='<div class="tc-mapchips"><div class="tc-chip"><i class="ti ti-map-2"></i> Mapa en vivo</div><div class="tc-chip sec">'+(liveIds.length?(liveIds.length+' camión'+(liveIds.length!==1?'es':'')+' en vivo'):'Sin camiones activos ahora')+'</div>'
         +'<button type="button" class="tc-chip tc-fitbtn" title="Encuadrar las rutas de hoy"><i class="ti ti-focus-2"></i> Centrar en rutas de hoy</button>'
         +'<button type="button" class="tc-chip tc-legbtn"><i class="ti ti-palette"></i> Leyenda</button>'
-        +'<div class="tc-chip sec tc-legend"><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#cd4936;vertical-align:middle;"></i> Sin enviar / pendiente</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#c9a227;vertical-align:middle;"></i> Enviada</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#2E7DF2;vertical-align:middle;"></i> En curso</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#27A35B;vertical-align:middle;"></i> Recorrido</span><span><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#9b87e0;vertical-align:middle;"></i> No programada hoy</span></div>'
+        +'<div class="tc-chip sec tc-legend"><span data-leg="pendiente"><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:repeating-linear-gradient(90deg,#cd4936 0 4px,transparent 4px 7px);vertical-align:middle;"></i> Sin enviar / pendiente</span><span data-leg="enviada"><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#c9a227;vertical-align:middle;"></i> Enviada</span><span data-leg="curso"><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#2E7DF2;vertical-align:middle;"></i> En curso</span><span data-leg="recorrido"><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#27A35B;vertical-align:middle;"></i> Recorrido</span><span data-leg="saltado" hidden><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:repeating-linear-gradient(90deg,#cd4936 0 4px,transparent 4px 7px);vertical-align:middle;"></i> Tramo saltado</span><span data-leg="noProgramada"><i style="display:inline-block;width:14px;height:3px;border-radius:2px;background:#9b87e0;vertical-align:middle;"></i> No programada hoy</span><span data-leg="vacia" hidden>Sin rutas en el mapa</span></div>'
         +'<div class="tc-chip sec tc-hint">Toca una ruta para ver estado y acciones</div></div>';
       H+='<button class="tc-mapfull" data-go="mon"><i class="ti ti-maximize"></i> Mapa completo</button>';
       // ===== Panel con pestañas: HOY (lo que toca hoy, urgente arriba) · TODAS (todas las rutas SIEMPRE, A-Z) =====

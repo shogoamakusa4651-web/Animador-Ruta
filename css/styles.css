@@ -2355,3 +2355,6 @@ body.adm-shell.sec-inicio .cc-mapctl{display:flex;}
 #mapCarga{position:fixed;left:0;right:0;top:0;height:3px;z-index:1550;pointer-events:none;opacity:0;transition:opacity .25s;background:rgba(255,255,255,.12);}
 #mapCarga.on{opacity:1;}
 #mapCarga i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2d6a4f,#7fd4a3);box-shadow:0 0 6px rgba(127,212,163,.7);transition:width .25s ease-out;}
+
+/* ===== v5.02 · Leyenda inteligente ===== */
+.tc-legend [hidden]{display:none !important;}
