@@ -1,3 +1,5 @@
 app.js
 *.zip
 .claude/launch.json
+
+_test_*.html

@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.99" />
+<link rel="stylesheet" href="css/styles.css?v=5.00" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.99 · 2026-10-12</div>
+  <div class="ver" id="navVer">v5.00 · 2026-10-12</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -646,7 +646,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.99 · 2026-10-12</div>
+<div class="ver-badge" id="verBadge">v5.00 · 2026-10-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -880,7 +880,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.99 · 2026-10-12'; // ← actualizar con cada release
+  const APP_VERSION='v5.00 · 2026-10-12'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -1375,6 +1375,41 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     document.querySelectorAll('.layer-toggle .t').forEach(x=>x.classList.remove('active'));t.classList.add('active');
     if(t.dataset.layer==='sat'){map.removeLayer(street);satGroup.addTo(map);setMapLayerBtn('sat');}else{map.removeLayer(satGroup);street.addTo(map);setMapLayerBtn('street');}});});
   let curMapLayer='sat';
+  // ===== MAPA GUARDADO EN EL CELULAR DEL CHOFER (v5.00) =====
+  // Al ver su ruta despachada, el celular baja las imágenes de un CORREDOR alrededor de la ruta (no la ciudad).
+  // En la calle, el service worker las sirve desde el celular (sin señal = mapa igual). Solo URLs con ?c=1 (chofer).
+  const MAPA_SVCS=[['World_Imagery',15,18],['Reference/World_Transportation',17,18],['Reference/World_Boundaries_and_Places',15,18]];
+  const MAPA_MAX_TILES=1500, MAPA_MAX_RUTAS=4;
+  function tileXY(lat,lng,z){ const n=2**z, r=lat*Math.PI/180; return [Math.floor((lng+180)/360*n), Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n)]; }
+  // Mismo servidor que elige Leaflet para cada imagen ({s} = server/services según x+y): así la URL guardada es idéntica
+  function urlTileChofer(svc,z,x,y){ return 'https://'+['server','services'][Math.abs(x+y)%2]+'.arcgisonline.com/ArcGIS/rest/services/'+svc+'/MapServer/tile/'+z+'/'+y+'/'+x+'?c=1'; }
+  // Imágenes del corredor: la de cada punto + su anillo vecino (±1 imagen ≈ ±150 m en zoom 18). Puro.
+  function tilesCorredor(pts,zMin,zMax){ const out=new Set(); for(let z=zMin;z<=zMax;z++){ pts.forEach(p=>{ const xy=tileXY(p[0],p[1],z);
+      for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)out.add(z+'/'+(xy[0]+dx)+'/'+(xy[1]+dy)); }); } return out; }
+  function urlsMapaRuta(pts){ const urls=[]; MAPA_SVCS.forEach(([svc,a,b])=>{ tilesCorredor(pts,a,b).forEach(k=>{ const q=k.split('/').map(Number); urls.push(urlTileChofer(svc,q[0],q[1],q[2])); }); });
+    return urls.slice(0,MAPA_MAX_TILES); }
+  // Baja y guarda (4 a la vez). Devuelve {ok,total}.
+  async function guardarTilesRuta(cacheName,urls){ const cache=await caches.open(cacheName); let ok=0,i=0;
+    const trabajador=async()=>{ while(i<urls.length){ const u=urls[i++]; try{ if(await cache.match(u)){ ok++; continue; } const resp=await fetch(u,{mode:'cors'}); if(resp.ok){ await cache.put(u,resp); ok++; } }catch(_){} } };
+    await Promise.all([trabajador(),trabajador(),trabajador(),trabajador()]); return {ok:ok,total:urls.length}; }
+  const _mapaPref={};
+  async function prefetchMapaRuta(id){ if(_mapaPref[id]||!('caches' in window)||!navigator.onLine)return; const r=mgmtRutas[id]; if(!r)return;
+    const pts=ccPtsRuta(r); if(pts.length<2)return;
+    const firma=pts.length+':'+pts[0].join(',')+':'+pts[pts.length-1].join(',')+':'+hoyISO(); // se refresca cada día y si cambia el trazado
+    const key='mapaRuta:'+id; let prev=null; try{ prev=JSON.parse(localStorage.getItem(key)||'null'); }catch(_){}
+    if(prev&&prev.firma===firma&&prev.completo)return;
+    _mapaPref[id]=true;
+    try{ const res=await guardarTilesRuta('mapa-ruta-'+fbKey(id),urlsMapaRuta(densificarRuta(pts,60)));
+      const completo=res.ok>=res.total*0.9;
+      try{ localStorage.setItem(key,JSON.stringify({firma:firma,completo:completo,n:res.ok,ts:Date.now()})); }catch(_){}
+      await limpiarMapasViejos();
+      if(currentUserRole==='chofer'&&completo)toast('🗺 Mapa de la ruta guardado para usar sin señal');
+    }catch(e){ console.warn('[mapa guardado]',e); } finally{ _mapaPref[id]=false; } }
+  // Solo las últimas MAPA_MAX_RUTAS rutas guardadas (no llenar el celular)
+  async function limpiarMapasViejos(){ try{ const regs=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf('mapaRuta:')===0){ try{ regs.push({k:k,ts:(JSON.parse(localStorage.getItem(k))||{}).ts||0}); }catch(_){} } }
+    regs.sort((a,b)=>b.ts-a.ts).slice(MAPA_MAX_RUTAS).forEach(x=>{ try{ caches.delete('mapa-ruta-'+fbKey(x.k.slice(9))); localStorage.removeItem(x.k); }catch(_){} }); }catch(_){} }
+  // El mapa del chofer pide las imágenes con ?c=1 → el service worker las sirve desde lo guardado
+  function usarTilesChofer(){ [sat,satRoads,satLabels,street].forEach(l=>{ try{ if(l&&l._url&&l._url.indexOf('?c=1')<0)l.setUrl(l._url+'?c=1'); }catch(_){} }); }
   function setMapLayerBtn(l){ curMapLayer=l; try{ map.getContainer().classList.toggle('mapa-calles',l!=='sat'); }catch(_){} const b=document.getElementById('mapLayerBtn'); if(b)b.textContent=(l==='sat'?'🗺 Calles':'🛰 Satélite');
     const cb=document.getElementById('ccCapaBtn'); if(cb)cb.innerHTML=(l==='sat'?'<i class="ti ti-map-2"></i><span>Calles</span>':'<i class="ti ti-satellite"></i><span>Satélite</span>'); }
   const mlb=document.getElementById('mapLayerBtn');
@@ -5360,7 +5395,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     currentUserRole='chofer';
     if(u&&u.code)choferCode=u.code;
     if(u&&u.data&&u.data.name)choferName=u.data.name;
-    document.body.classList.add('rol-chofer');
+    document.body.classList.add('rol-chofer'); try{ usarTilesChofer(); }catch(_){}
     // Ocultar TODO lo del panel admin y el login
     const ag=document.getElementById('admGate'); if(ag)ag.classList.add('hide');
     const sg=document.getElementById('supGate'); if(sg)sg.classList.add('hide');
@@ -5525,10 +5560,12 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(_choProgresoHoy==='loading') return; // esperando Firebase, ignorar llamadas concurrentes
     // Si hay ruta en progreso de hoy, mostrar pantalla de retomar
     if(_choProgresoHoy && _choProgresoHoy.rutaId && mgmtRutas[_choProgresoHoy.rutaId]){
+      try{ prefetchMapaRuta(_choProgresoHoy.rutaId); }catch(_){}
       _renderChoferRetomar(_choProgresoHoy);
       return;
     }
     const rutas=rutasDelChofer();
+    try{ rutas.forEach(o=>prefetchMapaRuta(o.id)); }catch(_){} // guardar el mapa de sus rutas mientras tiene señal
     let ficha=''; if(rutas.length){ ficha=rutas[0].r.camion||''; }
     // Meta del header: código de chofer · camión · fecha
     const _n=new Date(); const fechaCorta=_n.toLocaleDateString('es-DO',{weekday:'long',day:'numeric',month:'short'});
