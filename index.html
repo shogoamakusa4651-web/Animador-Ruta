@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.94" />
+<link rel="stylesheet" href="css/styles.css?v=4.95" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.94 · 2026-09-30</div>
+  <div class="ver" id="navVer">v4.95 · 2026-10-12</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -640,7 +640,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.94 · 2026-09-30</div>
+<div class="ver-badge" id="verBadge">v4.95 · 2026-10-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -874,7 +874,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.94 · 2026-09-30'; // ← actualizar con cada release
+  const APP_VERSION='v4.95 · 2026-10-12'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -883,14 +883,18 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   });
   const LA_VEGA=[19.2225,-70.5293];
   // Zoom de medio nivel (fino pero sin encolar pasos: con ¼ y debounce corto la rueda seguía haciendo zoom sola)
-  const map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:18,zoomSnap:0.5,zoomDelta:0.5,wheelPxPerZoomLevel:100}).setView(LA_VEGA,15);
+  const map=L.map('map',{zoomControl:true,attributionControl:true,maxZoom:19,zoomSnap:0.5,zoomDelta:0.5,wheelPxPerZoomLevel:100}).setView(LA_VEGA,15);
 
-  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,maxNativeZoom:17,attribution:'Esri'});
+  // Calidad del mapa (v4.95): Esri tiene foto REAL hasta zoom 18 en La Vega (antes se pedía la 17 y se estiraba → borroso)
+  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'Imágenes © Esri, Maxar'});
   // Nombres de calles/barrios POR ENCIMA de las rutas (panel 450: sobre las líneas 400, bajo etiquetas y camiones 600)
   map.createPane('nombresMapa'); map.getPane('nombresMapa').style.zIndex=450; map.getPane('nombresMapa').style.pointerEvents='none';
-  const satLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,maxNativeZoom:17,attribution:'',pane:'nombresMapa'});
-  const street=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,maxNativeZoom:18,attribution:'© OpenStreetMap'});
-  const satGroup=L.layerGroup([sat,satLabels]).addTo(map);
+  const satLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'',pane:'nombresMapa'});
+  // Nombres de calles y avenidas (estilo Google) sobre la foto, en el mismo panel por encima de las rutas
+  const satRoads=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'',pane:'nombresMapa',opacity:.9});
+  // Modo Calles: mapa de calles de Esri (más limpio que el OSM clásico), nativo hasta zoom 19
+  const street=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:19,attribution:'Mapa © Esri, HERE, OpenStreetMap'});
+  const satGroup=L.layerGroup([sat,satRoads,satLabels]).addTo(map);
 
   let waypoints=[], markers=[], baseLine=null, progLine=null, car=null, animId=null, playing=false;
   let startFlag=null, reachedStart=false, baseEnd=null, baseArrows=null;
