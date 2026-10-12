@@ -28,7 +28,7 @@
 <script src="js/utils.js?v=4.74"></script>
 <script src="js/store.js?v=4.74"></script>
 <script src="js/auth.js?v=4.74"></script>
-<link rel="stylesheet" href="css/styles.css?v=4.96" />
+<link rel="stylesheet" href="css/styles.css?v=4.97" />
 </head>
 <body>
 <div id="map"></div>
@@ -53,7 +53,7 @@
 </div>
 <div class="shell-foot" id="shellFoot">
   <div class="row" id="shellFb"><span class="dot" id="shellFbDot"></span><span id="shellFbTx">Firebase</span></div>
-  <div class="ver" id="navVer">v4.96 · 2026-10-12</div>
+  <div class="ver" id="navVer">v4.97 · 2026-10-12</div>
 </div>
 <div class="help-ov" id="helpOv">
   <div class="help-card">
@@ -640,7 +640,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
 </div>
 
 <div class="fb-status hide" id="fbStatus"><span class="fb-dot"></span><span class="fb-tx">Firebase: …</span></div>
-<div class="ver-badge" id="verBadge">v4.96 · 2026-10-12</div>
+<div class="ver-badge" id="verBadge">v4.97 · 2026-10-12</div>
 
 <!-- ===== ELEGIR MODO DE IMPORTACIÓN ===== -->
 <div class="modal hide" id="importModeModal">
@@ -874,7 +874,7 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
      en este archivo es comodidad de interfaz, no barrera real. Toda escritura
      sensible DEBE estar protegida por una regla de Firebase, nunca solo por JS.
      ============================================================================ */
-  const APP_VERSION='v4.96 · 2026-10-12'; // ← actualizar con cada release
+  const APP_VERSION='v4.97 · 2026-10-12'; // ← actualizar con cada release
   // Inyectar versión en todos los badges al cargar
   document.addEventListener('DOMContentLoaded',()=>{
     ['verBadge','navVer','choVer'].forEach(id=>{
@@ -889,16 +889,20 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
   // Carga rápida: 2 servidores de Esri en paralelo (el navegador solo baja 6 a la vez por servidor), precarga alrededor
   // de lo visible y sin pedir imágenes en medio de la animación del zoom. Si una imagen falla, queda transparente (no negra).
   const TILE_OK={subdomains:['server','services'],keepBuffer:4,updateWhenZooming:false,errorTileUrl:'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'};
-  const sat=L.tileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',Object.assign({maxZoom:19,maxNativeZoom:18,attribution:'Imágenes © Esri, Maxar'},TILE_OK));
+  // Pantallas de alta densidad (2K al 150%, celulares): se piden fotos del DOBLE de resolución (como Google Maps);
+  // si no, cada imagen se estira y se ve blanda. Con 'retina' la URL pide z+1, por eso el nativo baja a 17 (=18 real).
+  const HD=!!(L.Browser&&L.Browser.retina);
+  const sat=L.tileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',Object.assign(HD?{detectRetina:true,maxZoom:20,maxNativeZoom:17}:{maxZoom:19,maxNativeZoom:18},{attribution:'Imágenes © Esri, Maxar'},TILE_OK));
   // Nombres de calles/barrios POR ENCIMA de las rutas (panel 450: sobre las líneas 400, bajo etiquetas y camiones 600)
   map.createPane('nombresMapa'); map.getPane('nombresMapa').style.zIndex=450; map.getPane('nombresMapa').style.pointerEvents='none';
-  const satLabels=L.tileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',Object.assign({maxZoom:19,maxNativeZoom:18,attribution:'',pane:'nombresMapa'},TILE_OK));
+  const satLabels=L.tileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',Object.assign({maxZoom:20,maxNativeZoom:18,attribution:'',pane:'nombresMapa'},TILE_OK));
   // Nombres de calles (estilo Google) solo desde zoom 16 —con la ciudad completa saturaba—; en GRIS (CSS) para que las
   // avenidas no salgan salmón, casi igual que las rutas sin enviar
-  map.createPane('callesMapa'); map.getPane('callesMapa').style.zIndex=440; map.getPane('callesMapa').style.pointerEvents='none';
-  const satRoads=L.tileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',Object.assign({minZoom:16,maxZoom:19,maxNativeZoom:18,attribution:'',pane:'callesMapa',opacity:.95},TILE_OK));
+  // Debajo de las rutas (350 < 400): las rutas siempre quedan completas y visibles; los nombres se leen donde no hay ruta
+  map.createPane('callesMapa'); map.getPane('callesMapa').style.zIndex=350; map.getPane('callesMapa').style.pointerEvents='none';
+  const satRoads=L.tileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',Object.assign({minZoom:17,maxZoom:20,maxNativeZoom:18,attribution:'',pane:'callesMapa',opacity:.95},TILE_OK));
   // Modo Calles: mapa de calles de Esri (más limpio que el OSM clásico), nativo hasta zoom 19
-  const street=L.tileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',Object.assign({maxZoom:19,maxNativeZoom:19,attribution:'Mapa © Esri, HERE, OpenStreetMap'},TILE_OK));
+  const street=L.tileLayer('https://{s}.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',Object.assign(HD?{detectRetina:true,maxZoom:20,maxNativeZoom:18}:{maxZoom:19,maxNativeZoom:19},{attribution:'Mapa © Esri, HERE, OpenStreetMap'},TILE_OK));
   const satGroup=L.layerGroup([sat,satRoads,satLabels]).addTo(map);
 
   let waypoints=[], markers=[], baseLine=null, progLine=null, car=null, animId=null, playing=false;
@@ -2183,9 +2187,11 @@ body.chofer-ruta-activa #choGpsPill{ display:flex; }
     if(r.envios&&r.envios[hoy])return 'enviada'; return 'pendiente'; }
   // Grosor responsive al zoom: 1 = zoom 16 (calle). Al alejar se afinan; al acercar engordan un poco.
   function ccEscala(){ const z=(map&&map.getZoom)?map.getZoom():15; return Math.max(0.28,Math.min(1.2,1-(16-z)*0.24)); }
-  function ccDash(d,k){ return d?String(d).split(',').map(x=>Math.max(2,Math.round(parseFloat(x)*Math.max(0.6,k)))).join(','):null; }
+  // Lejos (k<0.55) el punteado diminuto es ruido: se dibuja continuo. Cerca vuelve el punteado.
+  function ccDash(d,k){ if(!d||k<0.55)return null; return String(d).split(',').map(x=>Math.max(2,Math.round(parseFloat(x)*Math.max(0.6,k)))).join(','); }
   // El halo blanco se afina más rápido (k²) para que de lejos no se forme una mancha.
-  function ccGrosor(w,halo,k){ return halo ? w*(k<1?k*k:k) : Math.max(1.4,w*k); }
+  // Mínimos pensados para verse desde lejos sobre la foto satelital (antes la línea bajaba a 1.4 px y se perdía)
+  function ccGrosor(w,halo,k){ return halo ? Math.max(3.2,w*(k<1?k*k:k)) : Math.max(2.2,w*k); }
   function ccPL(pts,o){ const k=ccEscala(); const h=(o.color==='#fff'); const pl=L.polyline(pts,Object.assign({},o,{weight:ccGrosor(o.weight,h,k),dashArray:ccDash(o.dashArray,k)}));
     pl._cwb=o.weight; pl._cdb=o.dashArray||null; pl._chalo=h; return pl; }
   function ccAjustarGrosor(){ if(typeof ccAplicarResalte==='function'){ try{ ccAplicarResalte(); return; }catch(_){} } const k=ccEscala(); Object.keys(ccLayers).forEach(id=>{ try{ ccLayers[id].eachLayer(l=>{ if(l._cwb&&l.setStyle)l.setStyle({weight:ccGrosor(l._cwb,l._chalo,k),dashArray:ccDash(l._cdb,k)}); }); }catch(_){} }); }
